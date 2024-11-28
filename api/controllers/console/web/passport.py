@@ -7,15 +7,14 @@ from flask_login import current_user
 from werkzeug.exceptions import NotFound, Unauthorized
 
 from controllers.console import api
+from controllers.console.wraps import account_initialization_required, setup_required
 from controllers.web.error import WebSSOAuthRequiredError
 from extensions.ext_database import db
+from libs.login import login_required
 from libs.passport import PassportService
-from models.model import App, EndUser, Site, Account
+from models.model import Account, App, EndUser, Site
 from services.enterprise.enterprise_service import EnterpriseService
 from services.feature_service import FeatureService
-
-from controllers.console.wraps import account_initialization_required, setup_required
-from libs.login import login_required
 
 
 class PassportUserAuthResource(Resource):

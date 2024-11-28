@@ -226,7 +226,11 @@ class KnowledgeRetrievalNode(BaseNode[KnowledgeRetrievalNodeData]):
                         try:
                             import json
                             source_info = json.loads(document.data_source_info)
-                            if (isinstance(source_info, dict) and source_info.get("upload_file_id", False) and document.data_source_type == "upload_file"):
+                            isDict = isinstance(source_info, dict)
+                            hasUploadFileId = source_info.get("upload_file_id", False)
+                            isUploadFile = document.data_source_type == "upload_file"
+                            
+                            if (isDict and hasUploadFileId and isUploadFile):
                                 upload_file = UploadFile.query.filter(
                                     UploadFile.id == source_info["upload_file_id"],
                                 ).first()
