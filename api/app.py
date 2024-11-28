@@ -108,6 +108,31 @@ def pool_stat():
         "recycle_time": db.engine.pool._recycle,
     }
 
+@app.route("/upload_files/<dataset>/<filename>", methods=["GET"])
+def view_pdf(dataset, filename):
+    """
+    显示指定的 PDF 文件。
+    """
+    from werkzeug.utils import secure_filename
+    from flask import abort, jsonify, send_file
 
+    try:
+        filename = secure_filename(filename)
+        DOCUMENT_LOCATION = os.path.normpath(os.path.join(os.getcwd(), dify_config.STORAGE_LOCAL_PATH, "upload_files/{0}/{1}".format(dataset, filename)))
+        
+        if not os.path.exists(DOCUMENT_LOCATION):
+            abort(404, description="PDF file not found")
+        else:
+            if filename.endswith(".pdf"):
+                return Response(
+                    open(DOCUMENT_LOCATION, "rb"),
+                    mimetype="application/pdf",
+                    headers={"Content-Disposition": f"inline; filename={filename}"}
+                )
+            else:
+                return send_file(DOCUMENT_LOCATION, as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001)
+    app.run(host="0.0.0.0", port=5001, debug=True)

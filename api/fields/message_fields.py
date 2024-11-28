@@ -24,6 +24,7 @@ retriever_resource_fields = {
     "index_node_hash": fields.String,
     "content": fields.String,
     "created_at": TimestampField,
+    "file_location": fields.String,
 }
 
 feedback_fields = {"rating": fields.String}
@@ -59,6 +60,7 @@ retriever_resource_fields = {
     "index_node_hash": fields.String,
     "content": fields.String,
     "created_at": TimestampField,
+    "file_location": fields.String,
 }
 
 message_fields = {

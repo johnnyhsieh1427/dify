@@ -193,3 +193,6 @@ api/.vscode
 
 .idea/
 .vscode
+docker/volumes/pgadmin/data/pgadmin4.db
+docker/volumes/pgadmin/data/sessions/c9fbb34e-a409-4d70-b3e7-71483984947f
+web/yarn.lock

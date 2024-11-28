@@ -225,3 +225,7 @@ export const fetchAccessToken = async (appCode: string) => {
   headers.append('X-App-Code', appCode)
   return get('/passport', { headers }) as Promise<{ access_token: string }>
 }
+
+export const fetchLoginUser = async (params: Record<string, any>) => {
+  return consoleGet('/passport_auth', { params }) as Promise<{ access_token: string }>
+}

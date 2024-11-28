@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import Tooltip from './tooltip'
 import ProgressTooltip from './progress-tooltip'
 import type { Resources } from './index'
+import { PUBLIC_API_PREFIX } from '@/config'
 import {
   PortalToFollowElem,
   PortalToFollowElemContent,
@@ -57,7 +58,14 @@ const Popup: FC<PopupProps> = ({
           <div className='px-4 pt-3 pb-2'>
             <div className='flex items-center h-[18px]'>
               <FileIcon type={fileType} className='shrink-0 mr-1 w-4 h-4' />
-              <div className='text-xs font-medium text-gray-600 truncate'>{data.documentName}</div>
+              {data.fileLocation
+                ? <Link
+                  href={`${new URL(data.fileLocation, PUBLIC_API_PREFIX).href}`}
+                  target='_blank'
+                  className='text-xs font-medium text-gray-600 truncate'
+                >{data.documentName}</Link>
+                : <div className='text-xs font-medium text-gray-600 truncate'>{data.documentName}</div>
+              }
             </div>
           </div>
           <div className='px-4 py-0.5 max-h-[450px] bg-white rounded-lg overflow-y-auto'>

@@ -380,7 +380,8 @@ export const RETRIEVAL_OUTPUT_STRUCT = `{
     "segment_word_count": "",
     "segment_hit_count": "",
     "segment_index_node_hash": "",
-    "score": ""
+    "score": "",
+    "file_location": "",
   }
 }`
 

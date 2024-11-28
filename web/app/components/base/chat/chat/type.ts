@@ -60,6 +60,7 @@ export type CitationItem = {
   segment_position: number
   score: number
   word_count: number
+  file_location: string
 }
 
 export type IChatItem = {

@@ -18,7 +18,7 @@ from core.workflow.entities.node_entities import NodeRunResult
 from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.enums import NodeType
 from extensions.ext_database import db
-from models.dataset import Dataset, Document, DocumentSegment
+from models.dataset import Dataset, Document, DocumentSegment, UploadFile
 from models.workflow import WorkflowNodeExecutionStatus
 
 from .entities import KnowledgeRetrievalNodeData
@@ -222,6 +222,19 @@ class KnowledgeRetrievalNode(BaseNode[KnowledgeRetrievalNodeData]):
                         Document.archived == False,
                     ).first()
                     if dataset and document:
+                        file_location = None
+                        try:
+                            import json
+                            source_info = json.loads(document.data_source_info)
+                            if (isinstance(source_info, dict) and source_info.get("upload_file_id", False) and document.data_source_type == "upload_file"):
+                                upload_file = UploadFile.query.filter(
+                                    UploadFile.id == source_info["upload_file_id"],
+                                ).first()
+                                if upload_file and upload_file.storage_type == "local":
+                                    file_location = upload_file.key
+                        except:
+                            pass
+                        
                         source = {
                             "metadata": {
                                 "_source": "knowledge",
@@ -237,6 +250,7 @@ class KnowledgeRetrievalNode(BaseNode[KnowledgeRetrievalNodeData]):
                                 "segment_word_count": segment.word_count,
                                 "segment_position": segment.position,
                                 "segment_index_node_hash": segment.index_node_hash,
+                                "file_location": file_location,
                             },
                             "title": document.name,
                         }

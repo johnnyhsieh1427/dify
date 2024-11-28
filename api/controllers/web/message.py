@@ -53,6 +53,7 @@ class MessageListApi(WebApiResource):
         "index_node_hash": fields.String,
         "content": fields.String,
         "created_at": TimestampField,
+        "file_location": fields.String,
     }
 
     message_fields = {

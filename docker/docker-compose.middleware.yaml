@@ -1,4 +1,20 @@
 services:
+  # DB UI for postgres
+  pgadmin:
+    image: dpage/pgadmin4:8.13.0
+    restart: always
+    user: "${UID}:${GID}"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-user@domain.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-docker}
+    ports:
+      - "${PGADMIN_PORT:-5431}:80"
+    volumes:
+      - ${PGADMIN_VOLUME:-./volumes/pgadmin/data}:/var/lib/pgadmin
+
   # The postgres database.
   db:
     image: postgres:15-alpine

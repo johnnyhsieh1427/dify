@@ -1,5 +1,21 @@
 import { CONVERSATION_ID_INFO } from '../base/chat/constants'
-import { fetchAccessToken } from '@/service/share'
+import { fetchAccessToken, fetchLoginUser } from '@/service/share'
+
+export const checkIsLogin = async () => {
+  const sharedToken = globalThis.location.pathname.split('/').slice(-1)[0]
+  const accessToken = localStorage.getItem('token') || JSON.stringify({ [sharedToken]: '' })
+  let accessTokenJson = { [sharedToken]: '' }
+  try {
+    accessTokenJson = JSON.parse(accessToken)
+  }
+  catch (e) {
+
+  }
+
+  const res = await fetchLoginUser({ appCode: sharedToken })
+  accessTokenJson[sharedToken] = res.access_token
+  localStorage.setItem('token', JSON.stringify(accessTokenJson))
+}
 
 export const checkOrSetAccessToken = async () => {
   const sharedToken = globalThis.location.pathname.split('/').slice(-1)[0]
