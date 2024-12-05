@@ -14,7 +14,7 @@ import classNames from '@/utils/classnames'
 import Button from '@/app/components/base/button'
 
 import { fetchInitValidateStatus, fetchSetupStatus, setup } from '@/service/common'
-import type { InitValidateStatusResponse, SetupStatusResponse } from '@/models/common'
+import type { CommonResponse, InitValidateStatusResponse, SetupStatusResponse } from '@/models/common'
 
 const validPassword = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/
 
@@ -50,12 +50,13 @@ const InstallForm = () => {
   })
 
   const onSubmit: SubmitHandler<AccountFormValues> = async (data) => {
-    await setup({
+    const res: CommonResponse = await setup({
       body: {
         ...data,
       },
     })
-    router.push('/signin')
+    if (res.result === 'success')
+      router.push('/signin')
   }
 
   const handleSetting = async () => {

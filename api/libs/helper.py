@@ -51,7 +51,7 @@ def email(email):
     pattern = r"^[\w\.!#$%&'*+\-/=?^_`{|}~]+@([\w-]+\.)+[\w-]{2,}$"
     # Check if the email matches the pattern
     if re.match(pattern, email) is not None:
-        return email
+        return email.lower()
 
     error = "{email} is not a valid email.".format(email=email)
     raise ValueError(error)

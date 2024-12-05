@@ -90,6 +90,7 @@ const SettingsModal: FC<ISettingsModalProps> = ({
     use_icon_as_answer_icon,
     enable_sso: appInfo.enable_sso,
   })
+  const [emails, setEmails] = useState<string[]>([])
   const [language, setLanguage] = useState(default_language)
   const [saveLoading, setSaveLoading] = useState(false)
   const { t } = useTranslation()
@@ -252,7 +253,6 @@ const SettingsModal: FC<ISettingsModalProps> = ({
           </div>
           <p className='body-xs-regular text-gray-500'>{t(`${prefixSettings}.workflow.showDesc`)}</p>
         </div>
-
         {isChat && <> <div className={`mt-8 font-medium ${s.settingTitle} text-gray-900`}>{t(`${prefixSettings}.chatColorTheme`)}</div>
           <p className={`mt-1 ${s.settingsTip} text-gray-500`}>{t(`${prefixSettings}.chatColorThemeDesc`)}</p>
           <Input

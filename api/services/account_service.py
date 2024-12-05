@@ -769,9 +769,11 @@ class RegisterService:
 
             TenantService.create_owner_tenant_if_not_exist(account=account, is_setup=True)
 
-            dify_setup = DifySetup(version=dify_config.CURRENT_VERSION)
-            db.session.add(dify_setup)
-            db.session.commit()
+            res = db.session.query(DifySetup).filter(DifySetup.version == dify_config.CURRENT_VERSION).first()
+            if not res:
+                dify_setup = DifySetup(version=dify_config.CURRENT_VERSION)
+                db.session.add(dify_setup)
+                db.session.commit()
         except Exception as e:
             db.session.query(DifySetup).delete()
             db.session.query(TenantAccountJoin).delete()
@@ -930,7 +932,14 @@ class RegisterService:
             "data": invitation_data,
             "tenant": tenant,
         }
-
+        
+    @classmethod
+    def get_user_by_email(cls, email: str) -> Account:
+        account = db.session.query(Account).filter(Account.email == email).first()
+        if account:
+            return account
+        return False
+    
     @classmethod
     def _get_invitation_by_token(
         cls, token: str, workspace_id: Optional[str] = None, email: Optional[str] = None

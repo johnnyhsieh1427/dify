@@ -69,8 +69,8 @@ export const fetchInitValidateStatus = () => {
   return get<InitValidateStatusResponse>('/init')
 }
 
-export const fetchSetupStatus = () => {
-  return get<SetupStatusResponse>('/setup')
+export const fetchSetupStatus = (params?: Record<string, any>) => {
+  return get<SetupStatusResponse>('/setup', params)
 }
 
 export const fetchUserProfile: Fetcher<UserProfileOriginResponse, { url: string; params: Record<string, any> }> = ({ url, params }) => {

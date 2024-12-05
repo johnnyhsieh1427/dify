@@ -25,7 +25,7 @@ const SwrInitor = ({
     try {
       if (localStorage.getItem('setup_status') === 'finished')
         return true
-      const setUpStatus = await fetchSetupStatus()
+      const setUpStatus = await fetchSetupStatus({ params: { pathname } })
       if (setUpStatus.step !== 'finished') {
         localStorage.removeItem('setup_status')
         return false
