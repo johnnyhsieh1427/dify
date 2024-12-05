@@ -2,8 +2,8 @@ import uuid
 from typing import cast
 
 from flask import request
-from flask_restful import Resource
 from flask_login import current_user
+from flask_restful import Resource
 from werkzeug.exceptions import NotFound, Unauthorized
 
 from controllers.console import api
@@ -84,7 +84,9 @@ class PassportUserAuthResource(Resource):
             "access_token": tk,
         }
 
+
 api.add_resource(PassportUserAuthResource, "/passport_auth")
+
 
 def generate_session_id():
     """
