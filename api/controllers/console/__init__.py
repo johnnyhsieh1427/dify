@@ -23,7 +23,7 @@ api.add_resource(AppImportApi, "/apps/imports")
 api.add_resource(AppImportConfirmApi, "/apps/imports/<string:import_id>/confirm")
 
 # Import other controllers
-from . import admin, apikey, extension, feature, ping, setup, version
+from . import admin, apikey, extension, feature, init_validate, ping, setup, version
 
 # Import app controllers
 from .app import (

@@ -37,7 +37,7 @@ const SwrInitor = ({
       console.error(error)
       return false
     }
-  }, [])
+  }, [pathname])
 
   useEffect(() => {
     (async () => {

@@ -7,6 +7,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
+name = "dify-api"
 package-mode = false
 
 ############################################################
