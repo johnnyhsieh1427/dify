@@ -190,7 +190,9 @@ class WorkflowToolManageService:
         權限為admin
         """
         
-        joined_tenants = db.session.query(TenantAccountJoin).filter(TenantAccountJoin.account_id == user_id, TenantAccountJoin.role == "admin").all()
+        joined_tenants = db.session.query(TenantAccountJoin).filter(
+            TenantAccountJoin.account_id == user_id, TenantAccountJoin.role == "admin"
+        ).all()
         
         if len(joined_tenants) > 0:
             db_tools = db.session.query(WorkflowToolProvider).filter(
