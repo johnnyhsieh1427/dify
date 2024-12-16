@@ -4,7 +4,8 @@ from collections.abc import Generator
 from datetime import UTC, datetime
 from typing import Optional, Union
 
-from sqlalchemy import and_
+from sqlalchemy import and_, cast
+from sqlalchemy.dialects.postgresql import TEXT
 
 from core.app.app_config.entities import EasyUIBasedAppModelConfigFrom
 from core.app.apps.base_app_generator import BaseAppGenerator
@@ -152,6 +153,15 @@ class MessageBasedAppGenerator(BaseAppGenerator):
         if application_generate_entity.invoke_from in {InvokeFrom.WEB_APP, InvokeFrom.SERVICE_API}:
             from_source = "api"
             end_user_id = application_generate_entity.user_id
+            
+            end_user_account = (
+                db.session.query(Account)
+                .join(EndUser, EndUser.session_id == cast(Account.id, TEXT))
+                .filter(EndUser.id == end_user_id)
+                .first()
+            )
+            if end_user_account:
+                account_id = end_user_account.id
         else:
             from_source = "console"
             account_id = application_generate_entity.user_id

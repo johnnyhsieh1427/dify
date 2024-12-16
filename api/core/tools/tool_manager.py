@@ -184,6 +184,13 @@ class ToolManager:
             )
 
             if workflow_provider is None:
+                workflow_provider = (
+                    db.session.query(WorkflowToolProvider)
+                    .filter(WorkflowToolProvider.id == provider_id)
+                    .first()
+                )
+                
+            if workflow_provider is None:
                 raise ToolProviderNotFoundError(f"workflow provider {provider_id} not found")
 
             controller = ToolTransformService.workflow_provider_to_controller(db_provider=workflow_provider)
@@ -640,6 +647,14 @@ class ToolManager:
                 .filter(WorkflowToolProvider.tenant_id == tenant_id, WorkflowToolProvider.id == provider_id)
                 .first()
             )
+
+            if provider is None:
+                provider: WorkflowToolProvider = (
+                    db.session.query(WorkflowToolProvider)
+                    .filter(WorkflowToolProvider.id == provider_id)
+                    .first()
+                )
+                
             if provider is None:
                 raise ToolProviderNotFoundError(f"workflow provider {provider_id} not found")
 

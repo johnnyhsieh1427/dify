@@ -163,7 +163,8 @@ class ChatConversationApi(Resource):
 
         subquery = (
             db.session.query(
-                Conversation.id.label("conversation_id"), EndUser.session_id.label("from_end_user_session_id")
+                Conversation.id.label("conversation_id"),
+                EndUser.session_id.label("from_end_user_session_id")
             )
             .outerjoin(EndUser, Conversation.from_end_user_id == EndUser.id)
             .subquery()
@@ -185,7 +186,7 @@ class ChatConversationApi(Resource):
                         Message.answer.ilike(keyword_filter),
                         Conversation.name.ilike(keyword_filter),
                         Conversation.introduction.ilike(keyword_filter),
-                        subquery.c.from_end_user_session_id.ilike(keyword_filter),
+                        subquery.c.from_end_user_session_id.ilike(keyword_filter)
                     ),
                 )
                 .group_by(Conversation.id)

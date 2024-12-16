@@ -234,8 +234,9 @@ class KnowledgeRetrievalNode(BaseNode[KnowledgeRetrievalNodeData]):
                                 upload_file = UploadFile.query.filter(
                                     UploadFile.id == source_info["upload_file_id"],
                                 ).first()
-                                if upload_file and upload_file.storage_type == "local":
-                                    file_location = upload_file.key
+                                if upload_file:
+                                    if upload_file.storage_type == "local":
+                                        file_location = upload_file.key
                         except:
                             pass
                         

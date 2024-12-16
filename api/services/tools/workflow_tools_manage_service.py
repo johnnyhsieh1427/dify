@@ -11,6 +11,7 @@ from core.tools.provider.workflow_tool_provider import WorkflowToolProviderContr
 from core.tools.tool_label_manager import ToolLabelManager
 from core.tools.utils.workflow_configuration_sync import WorkflowToolConfigurationUtils
 from extensions.ext_database import db
+from models.account import TenantAccountJoin
 from models.model import App
 from models.tools import WorkflowToolProvider
 from models.workflow import Workflow
@@ -183,7 +184,20 @@ class WorkflowToolManageService:
         :param tenant_id: the tenant id
         :return: the list of tools
         """
-        db_tools = db.session.query(WorkflowToolProvider).filter(WorkflowToolProvider.tenant_id == tenant_id).all()
+        
+        """
+        加入使用者是否在其他的工作區
+        權限為admin
+        """
+        
+        joined_tenants = db.session.query(TenantAccountJoin).filter(TenantAccountJoin.account_id == user_id, TenantAccountJoin.role == "admin").all()
+        
+        if len(joined_tenants) > 0:
+            db_tools = db.session.query(WorkflowToolProvider).filter(
+                WorkflowToolProvider.tenant_id.in_([tenant_id] + [join.tenant_id for join in joined_tenants])
+            ).all()
+        else:
+            db_tools = db.session.query(WorkflowToolProvider).filter(WorkflowToolProvider.tenant_id == tenant_id).all()
 
         tools = []
         for provider in db_tools:

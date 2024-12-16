@@ -29,15 +29,29 @@ class ConversationService:
     ) -> InfiniteScrollPagination:
         if not user:
             return InfiniteScrollPagination(data=[], limit=limit, has_more=False)
+        
+        source = "api" if isinstance(user, EndUser) else "console"
+        user_id = user.id if user else None
+        account_id = user.session_id if isinstance(user, EndUser) and db.session.query(Account).filter(Account.id == user.session_id).first() else user_id
 
-        base_query = db.session.query(Conversation).filter(
+        conversation_filters = [
             Conversation.is_deleted == False,
             Conversation.app_id == app_model.id,
-            Conversation.from_source == ("api" if isinstance(user, EndUser) else "console"),
-            Conversation.from_end_user_id == (user.id if isinstance(user, EndUser) else None),
-            Conversation.from_account_id == (user.id if isinstance(user, Account) else None),
+            Conversation.from_source == source,
+            Conversation.from_end_user_id == (user_id if isinstance(user, EndUser) else None),
+            Conversation.from_account_id == account_id,
             or_(Conversation.invoke_from.is_(None), Conversation.invoke_from == invoke_from.value),
-        )
+        ]
+            
+        base_query = db.session.query(Conversation).filter(*conversation_filters)
+        # base_query = db.session.query(Conversation).filter(
+        #     Conversation.is_deleted == False,
+        #     Conversation.app_id == app_model.id,
+        #     Conversation.from_source == ("api" if isinstance(user, EndUser) else "console"),
+        #     Conversation.from_end_user_id == (user.id if isinstance(user, EndUser) else None),
+        #     Conversation.from_account_id == (user.id if isinstance(user, Account) else None),
+        #     or_(Conversation.invoke_from.is_(None), Conversation.invoke_from == invoke_from.value),
+        # )
 
         if include_ids is not None:
             base_query = base_query.filter(Conversation.id.in_(include_ids))
@@ -137,19 +151,33 @@ class ConversationService:
         return conversation
 
     @classmethod
-    def get_conversation(cls, app_model: App, conversation_id: str, user: Optional[Union[Account, EndUser]]):
-        conversation = (
-            db.session.query(Conversation)
-            .filter(
-                Conversation.id == conversation_id,
-                Conversation.app_id == app_model.id,
-                Conversation.from_source == ("api" if isinstance(user, EndUser) else "console"),
-                Conversation.from_end_user_id == (user.id if isinstance(user, EndUser) else None),
-                Conversation.from_account_id == (user.id if isinstance(user, Account) else None),
-                Conversation.is_deleted == False,
-            )
-            .first()
-        )
+    def get_conversation(cls, app_model: App, conversation_id: str, user: Optional[Union[Account, EndUser]]):        
+        source = "api" if isinstance(user, EndUser) else "console"
+        user_id = user.id if user else None
+        account_id = user.session_id if isinstance(user, EndUser) and db.session.query(Account).filter(Account.id == user.session_id).first() else user_id
+
+        conversation_filters = [
+            Conversation.id == conversation_id,
+            Conversation.app_id == app_model.id,
+            Conversation.from_source == source,
+            Conversation.from_end_user_id == (user_id if isinstance(user, EndUser) else None),
+            Conversation.from_account_id == account_id,
+            Conversation.is_deleted == False,
+        ]
+
+        conversation = db.session.query(Conversation).filter(*conversation_filters).first()
+        # conversation = (
+        #     db.session.query(Conversation)
+        #     .filter(
+        #         Conversation.id == conversation_id,
+        #         Conversation.app_id == app_model.id,
+        #         Conversation.from_source == ("api" if isinstance(user, EndUser) else "console"),
+        #         Conversation.from_end_user_id == (user.id if isinstance(user, EndUser) else None),
+        #         Conversation.from_account_id == (user.id if isinstance(user, Account) else None),
+        #         Conversation.is_deleted == False,
+        #     )
+        #     .first()
+        # )
 
         if not conversation:
             raise ConversationNotExistsError()
