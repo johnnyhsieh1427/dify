@@ -1,3 +1,5 @@
+# 修改日期2025-01-14
+# 新增EmbeddingTraceInfo類別，用於追蹤Embedding的操作
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Optional, Union
@@ -105,6 +107,12 @@ class GenerateNameTraceInfo(BaseTraceInfo):
     tenant_id: str
 
 
+class EmbeddingTraceInfo(BaseTraceInfo):
+    dataset_id: str
+    user_id: Optional[str] = None
+    metadata: Optional[dict[str, Any]] = None
+
+
 class TaskData(BaseModel):
     app_id: str
     trace_info_type: str
@@ -119,6 +127,7 @@ trace_info_info_map = {
     "DatasetRetrievalTraceInfo": DatasetRetrievalTraceInfo,
     "ToolTraceInfo": ToolTraceInfo,
     "GenerateNameTraceInfo": GenerateNameTraceInfo,
+    "EmbeddingTraceInfo": EmbeddingTraceInfo,
 }
 
 
@@ -131,3 +140,4 @@ class TraceTaskName(StrEnum):
     DATASET_RETRIEVAL_TRACE = "dataset_retrieval"
     TOOL_TRACE = "tool"
     GENERATE_NAME_TRACE = "generate_conversation_name"
+    EMBEDDING_TRACE = "embedding"

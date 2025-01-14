@@ -1,6 +1,6 @@
 services:
   langfuse-worker:
-    image: langfuse/langfuse-worker:3
+    image: langfuse/langfuse-worker:3.5
     env_file:
       - ./langfuse.env
     restart: always
@@ -26,6 +26,14 @@ services:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse}
       CLICKHOUSE_CLUSTER_ENABLED: ${CLICKHOUSE_CLUSTER_ENABLED:-false}
+      LANGFUSE_S3_BATCH_EXPORT_ENABLED: ${LANGFUSE_S3_BATCH_EXPORT_ENABLED:-true}
+      LANGFUSE_S3_BATCH_EXPORT_BUCKET: ${LANGFUSE_S3_BATCH_EXPORT_BUCKET:-langfuse}
+      LANGFUSE_S3_BATCH_EXPORT_ACCESS_KEY_ID: ${LANGFUSE_S3_BATCH_EXPORT_ACCESS_KEY_ID:-minio}
+      LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY: ${LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY:-miniosecret}
+      LANGFUSE_S3_BATCH_EXPORT_REGION: ${LANGFUSE_S3_BATCH_EXPORT_REGION:-auto}
+      LANGFUSE_S3_BATCH_EXPORT_ENDPOINT: ${LANGFUSE_S3_BATCH_EXPORT_ENDPOINT:-http://minio:9000}
+      LANGFUSE_S3_BATCH_EXPORT_PREFIX: ${LANGFUSE_S3_BATCH_EXPORT_PREFIX:-exports/}
+
       LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${LANGFUSE_S3_EVENT_UPLOAD_BUCKET:-langfuse}
       LANGFUSE_S3_EVENT_UPLOAD_REGION: ${LANGFUSE_S3_EVENT_UPLOAD_REGION:-auto}
       LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID:-minio}
@@ -33,6 +41,7 @@ services:
       LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: ${LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT:-http://minio:9000}
       LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: ${LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE:-true}
       LANGFUSE_S3_EVENT_UPLOAD_PREFIX: ${LANGFUSE_S3_EVENT_UPLOAD_PREFIX:-events/}
+      
       LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: ${LANGFUSE_S3_MEDIA_UPLOAD_BUCKET:-langfuse}
       LANGFUSE_S3_MEDIA_UPLOAD_REGION: ${LANGFUSE_S3_MEDIA_UPLOAD_REGION:-auto}
       LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID:-minio}
@@ -45,7 +54,7 @@ services:
       REDIS_AUTH: ${REDIS_AUTH:-myredissecret}
 
   langfuse-web:
-    image: langfuse/langfuse:3
+    image: langfuse/langfuse:3.5
     env_file:
       - ./langfuse.env
     restart: always
@@ -109,7 +118,7 @@ services:
       - "9090:9000"
       - "9091:9001"
     volumes:
-      - langfuse_minio_data:/data
+      - ./langfuse/minio/data:/data
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 1s
@@ -149,18 +158,15 @@ services:
       POSTGRES_USER: ${LANGFUSE_DB_USER:-postgres}
       POSTGRES_PASSWORD: ${LANGFUSE_DB_PASSWORD:-postgres}
       POSTGRES_DB: ${LANGFUSE_DB_NAME:-postgres}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - ${LANGFUSE_DB_PORT:-5430}:${LANGFUSE_DB_PORT:-5430}
     command: postgres -p ${LANGFUSE_DB_PORT:-5430}  # 命令行修改使其在5430端口上運行
     volumes:
-      - langfuse_postgres_data:/var/lib/postgresql/data
+      - ./langfuse/postgres/data:/var/lib/postgresql/data
 
 volumes:
-  langfuse_postgres_data:
-    driver: local
   langfuse_clickhouse_data:
     driver: local
   langfuse_clickhouse_logs:
-    driver: local
-  langfuse_minio_data:
     driver: local

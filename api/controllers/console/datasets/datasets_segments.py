@@ -1,3 +1,7 @@
+# 修改日期2025-01-14
+# 修改class DatasetDocumentSegmentApi()的內部
+# enable_segment_to_index_task()的參數
+# 新增user_id和process_id參數，用於追蹤資料庫操作的使用者和程序
 import uuid
 from datetime import UTC, datetime
 
@@ -179,8 +183,16 @@ class DatasetDocumentSegmentApi(Resource):
 
             # Set cache to prevent indexing the same segment multiple times
             redis_client.setex(indexing_cache_key, 600, 1)
-
-            enable_segment_to_index_task.delay(segment.id)
+            user_id = str(current_user.id)
+            process_id = str(uuid.uuid5(
+                uuid.NAMESPACE_DNS, 
+                datetime.now().isoformat()
+            ))
+            enable_segment_to_index_task.delay(
+                segment_id=segment.id, 
+                user_id=user_id,
+                process_id=process_id,
+            )
 
             return {"result": "success"}, 200
         elif action == "disable":

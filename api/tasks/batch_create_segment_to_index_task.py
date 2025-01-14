@@ -1,3 +1,6 @@
+# 修改日期2025-01-14
+# 修改function batch_create_segment_to_index_task()的參數
+# 新增user_id和process_id參數，用於追蹤資料庫操作的使用者和程序
 import datetime
 import logging
 import time
@@ -94,8 +97,10 @@ def batch_create_segment_to_index_task(
         dataset_document.word_count += word_count_change
         db.session.add(dataset_document)
         # add index to db
+        user_id = user_id
+        process_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, str(datetime.datetime.now().isoformat())))
         indexing_runner = IndexingRunner()
-        indexing_runner.batch_add_segments(document_segments, dataset)
+        indexing_runner.batch_add_segments(document_segments, dataset, user_id=user_id, process_id=process_id)
         db.session.commit()
         redis_client.setex(indexing_cache_key, 600, "completed")
         end_at = time.perf_counter()

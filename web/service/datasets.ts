@@ -1,3 +1,8 @@
+// 修改日期2025-01-13
+// 新增TracingConfig & TracingStatus & TracingProvider到DatasetService
+// 新增下列兩個API
+// 1. /datasets/${appId}/trace-config
+// 2. /datasets/${appId}/trace、/datasets/${appId}/trace-config
 import type { Fetcher } from 'swr'
 import qs from 'qs'
 import { del, get, patch, post, put } from './base'
@@ -36,8 +41,11 @@ import { DataSourceProvider } from '@/models/common'
 import type {
   ApiKeysListResponse,
   CreateApiKeyResponse,
+  TracingConfig,
+  TracingStatus,
 } from '@/models/app'
 import type { RetrievalConfig } from '@/types/app'
+import type { TracingProvider } from '@/app/(commonLayout)/app/(appDetailLayout)/[appId]/overview/tracing/type'
 
 // apis for documents in a dataset
 
@@ -342,4 +350,33 @@ export const getErrorDocs: Fetcher<ErrorDocsResponse, { datasetId: string }> = (
 
 export const retryErrorDocs: Fetcher<CommonResponse, { datasetId: string; document_ids: string[] }> = ({ datasetId, document_ids }) => {
   return post<CommonResponse>(`/datasets/${datasetId}/retry`, { body: { document_ids } })
+}
+
+// Tracing
+export const fetchTracingStatus: Fetcher<TracingStatus, { appId: string }> = ({ appId }) => {
+  return get(`/datasets/${appId}/trace`)
+}
+
+export const updateTracingStatus: Fetcher<CommonResponse, { appId: string; body: Record<string, any> }> = ({ appId, body }) => {
+  return post(`/datasets/${appId}/trace`, { body })
+}
+
+export const fetchTracingConfig: Fetcher<TracingConfig & { has_not_configured: true }, { appId: string; provider: TracingProvider }> = ({ appId, provider }) => {
+  return get(`/datasets/${appId}/trace-config`, {
+    params: {
+      tracing_provider: provider,
+    },
+  })
+}
+
+export const addTracingConfig: Fetcher<CommonResponse, { appId: string; body: TracingConfig }> = ({ appId, body }) => {
+  return post(`/datasets/${appId}/trace-config`, { body })
+}
+
+export const updateTracingConfig: Fetcher<CommonResponse, { appId: string; body: TracingConfig }> = ({ appId, body }) => {
+  return patch(`/datasets/${appId}/trace-config`, { body })
+}
+
+export const removeTracingConfig: Fetcher<CommonResponse, { appId: string; provider: TracingProvider }> = ({ appId, provider }) => {
+  return del(`/datasets/${appId}/trace-config?tracing_provider=${provider}`)
 }

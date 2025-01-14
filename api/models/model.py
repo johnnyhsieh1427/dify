@@ -1,3 +1,7 @@
+# 修改日期2025-01-13
+# 修改table Message中的function retriever_resources
+# 新增在table Message，新增function to_dict_custom
+# 新增Table TraceDatasetConfig
 import json
 import re
 import uuid
@@ -921,12 +925,19 @@ class Message(db.Model):
 
     @property
     def retriever_resources(self):
-        return (
+        # return (
+        #     db.session.query(DatasetRetrieverResource)
+        #     .filter(DatasetRetrieverResource.message_id == self.id)
+        #     .order_by(DatasetRetrieverResource.position.asc())
+        #     .all()
+        # )
+        res = (
             db.session.query(DatasetRetrieverResource)
             .filter(DatasetRetrieverResource.message_id == self.id)
             .order_by(DatasetRetrieverResource.position.asc())
             .all()
         )
+        return res or self.message_metadata_dict.get("retriever_resources", [])
 
     @property
     def message_files(self):
@@ -999,7 +1010,10 @@ class Message(db.Model):
             return db.session.query(WorkflowRun).filter(WorkflowRun.id == self.workflow_run_id).first()
 
         return None
-
+    
+    def to_dict_custom(self) -> dict:
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+    
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -1648,6 +1662,40 @@ class TraceAppConfig(db.Model):
         return {
             "id": self.id,
             "app_id": self.app_id,
+            "tracing_provider": self.tracing_provider,
+            "tracing_config": self.tracing_config_dict,
+            "is_active": self.is_active,
+            "created_at": str(self.created_at) if self.created_at else None,
+            "updated_at": str(self.updated_at) if self.updated_at else None,
+        }
+
+class TraceDatasetConfig(db.Model):
+    __tablename__ = "trace_dataset_config"
+    __table_args__ = (
+        db.PrimaryKeyConstraint("id", name="tracing_dataset_config_pkey"),
+        db.Index("trace_dataset_config_dataset_id_idx", "dataset_id"),
+    )
+
+    id = db.Column(StringUUID, server_default=db.text("uuid_generate_v4()"))
+    dataset_id = db.Column(StringUUID, nullable=False)
+    tracing_provider = db.Column(db.String(255), nullable=True)
+    tracing_config = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    is_active = db.Column(db.Boolean, nullable=False, server_default=db.text("true"))
+
+    @property
+    def tracing_config_dict(self):
+        return self.tracing_config or {}
+
+    @property
+    def tracing_config_str(self):
+        return json.dumps(self.tracing_config_dict)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "dataset_id": self.dataset_id,
             "tracing_provider": self.tracing_provider,
             "tracing_config": self.tracing_config_dict,
             "is_active": self.is_active,

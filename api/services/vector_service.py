@@ -1,3 +1,5 @@
+# 修改日期2025-01-13
+# 新增作者(created_by)的變數user，用於知道是哪個使用者在操作
 from typing import Optional
 
 from core.rag.datasource.keyword.keyword_factory import Keyword
@@ -9,8 +11,10 @@ from models.dataset import Dataset, DocumentSegment
 class VectorService:
     @classmethod
     def create_segments_vector(
-        cls, keywords_list: Optional[list[list[str]]], segments: list[DocumentSegment], dataset: Dataset
+        cls, keywords_list: Optional[list[list[str]]], segments: list[DocumentSegment], dataset: Dataset, **kwargs
     ):
+        user_id = kwargs.get("user_id", None)
+        process_id = kwargs.get("process_id", None)
         documents = []
         for segment in segments:
             document = Document(
@@ -26,7 +30,7 @@ class VectorService:
         if dataset.indexing_technique == "high_quality":
             # save vector index
             vector = Vector(dataset=dataset)
-            vector.add_texts(documents, duplicate_check=True)
+            vector.add_texts(documents, duplicate_check=True, user_id=user_id, process_id=process_id)
 
         # save keyword index
         keyword = Keyword(dataset)
@@ -37,9 +41,10 @@ class VectorService:
             keyword.add_texts(documents)
 
     @classmethod
-    def update_segment_vector(cls, keywords: Optional[list[str]], segment: DocumentSegment, dataset: Dataset):
+    def update_segment_vector(cls, keywords: Optional[list[str]], segment: DocumentSegment, dataset: Dataset, **kwargs):
         # update segment index task
-
+        user_id = kwargs.get("user_id", None)
+        process_id = kwargs.get("process_id", None)
         # format new index
         document = Document(
             page_content=segment.content,
@@ -54,7 +59,7 @@ class VectorService:
             # update vector index
             vector = Vector(dataset=dataset)
             vector.delete_by_ids([segment.index_node_id])
-            vector.add_texts([document], duplicate_check=True)
+            vector.add_texts([document], duplicate_check=True, user_id=user_id, process_id=process_id)
 
         # update keyword index
         keyword = Keyword(dataset)

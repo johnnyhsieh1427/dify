@@ -1,3 +1,5 @@
+# 修改日期2025-01-13
+# 取消自動生成名稱功能
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Optional, Union
@@ -118,10 +120,13 @@ class ConversationService:
     ):
         conversation = cls.get_conversation(app_model, conversation_id, user)
 
-        if auto_generate:
+        if auto_generate and False:
             return cls.auto_generate_name(app_model, conversation)
         else:
-            conversation.name = name
+            if name == None or name == "":
+                conversation.name = "New conversation"
+            else:
+                conversation.name = name
             conversation.updated_at = datetime.now(UTC).replace(tzinfo=None)
             db.session.commit()
 

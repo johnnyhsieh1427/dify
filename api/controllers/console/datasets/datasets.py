@@ -1,3 +1,6 @@
+# 修改日期2025-01-14
+# 新增class DatasetTraceApi get()和post() "/datasets/<uuid:app_id>/trace"
+
 import flask_restful
 from flask import request
 from flask_login import current_user
@@ -14,6 +17,7 @@ from controllers.console.wraps import account_initialization_required, enterpris
 from core.errors.error import LLMBadRequestError, ProviderTokenNotInitError
 from core.indexing_runner import IndexingRunner
 from core.model_runtime.entities.model_entities import ModelType
+from core.ops.ops_trace_manager import OpsTraceManager
 from core.provider_manager import ProviderManager
 from core.rag.datasource.vdb.vector_type import VectorType
 from core.rag.extractor.entity.extract_setting import ExtractSetting
@@ -733,6 +737,37 @@ class DatasetPermissionUserListApi(Resource):
         }, 200
 
 
+class DatasetTraceApi(Resource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def get(self, app_id):
+        """Get app trace"""
+        app_trace_config = OpsTraceManager.get_dataset_tracing_config(dataset_id=app_id)
+        
+        return app_trace_config
+
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def post(self, app_id):
+        # add app trace
+        if not current_user.is_admin_or_owner:
+            raise Forbidden()
+        parser = reqparse.RequestParser()
+        parser.add_argument("enabled", type=bool, required=True, location="json")
+        parser.add_argument("tracing_provider", type=str, required=True, location="json")
+        args = parser.parse_args()
+
+        OpsTraceManager.update_dataset_tracing_config(
+            dataset_id=app_id,
+            enabled=args["enabled"],
+            tracing_provider=args["tracing_provider"],
+        )
+
+        return {"result": "success"}
+
+
 api.add_resource(DatasetListApi, "/datasets")
 api.add_resource(DatasetApi, "/datasets/<uuid:dataset_id>")
 api.add_resource(DatasetUseCheckApi, "/datasets/<uuid:dataset_id>/use-check")
@@ -747,3 +782,4 @@ api.add_resource(DatasetApiBaseUrlApi, "/datasets/api-base-info")
 api.add_resource(DatasetRetrievalSettingApi, "/datasets/retrieval-setting")
 api.add_resource(DatasetRetrievalSettingMockApi, "/datasets/retrieval-setting/<string:vector_type>")
 api.add_resource(DatasetPermissionUserListApi, "/datasets/<uuid:dataset_id>/permission-part-users")
+api.add_resource(DatasetTraceApi, "/datasets/<uuid:app_id>/trace")

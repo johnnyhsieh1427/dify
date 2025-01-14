@@ -182,6 +182,7 @@ docker/nginx/ssl/*
 !docker/nginx/ssl/.gitkeep
 docker/middleware.env
 
+docker/langfuse/*
 docker/xinference/*
 docker/volumes/pgadmin/*
 
@@ -200,3 +201,8 @@ docker/volumes/pgadmin/data/pgadmin4.db
 docker/volumes/pgadmin/data/sessions/c9fbb34e-a409-4d70-b3e7-71483984947f
 web/yarn.lock
 web/package copy.json
+docker/docker-compose.langfuse_300 copy.yaml
+docker/test.docker.yaml
+docker/clickhouse_backups/bak_folder/docker_langfuse_clickhouse_data_backup_2024-12-18_10-08-05.tar.gz
+docker/clickhouse_backups/bak_folder/docker_langfuse_clickhouse_logs_backup_2024-12-18_10-08-05.tar.gz
+docker/clickhouse_backups/backup - 複製.sh

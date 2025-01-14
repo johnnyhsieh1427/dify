@@ -1,3 +1,12 @@
+# 修改日期2025-01-14
+# 修改function _load()的參數
+# 新增process_id參數，用於追蹤資料庫操作的程序
+
+# 修改function _process_chunk()的參數
+# 新增process_id和user_id參數，用於追蹤資料庫操作的程序
+
+# 修改function batch_add_segments()的參數
+# 新增process_id和user_id參數，用於追蹤資料庫操作的程序
 import concurrent.futures
 import datetime
 import json
@@ -653,6 +662,10 @@ class IndexingRunner:
         create_keyword_thread.start()
         if dataset.indexing_technique == "high_quality":
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                process_id = str(uuid.uuid5(
+                    uuid.NAMESPACE_DNS,
+                    datetime.datetime.now().isoformat()
+                ))
                 futures = []
                 for i in range(0, len(documents), chunk_size):
                     chunk_documents = documents[i : i + chunk_size]
@@ -665,6 +678,7 @@ class IndexingRunner:
                             dataset,
                             dataset_document,
                             embedding_model_instance,
+                            process_id,
                         )
                     )
 
@@ -712,7 +726,7 @@ class IndexingRunner:
                 db.session.commit()
 
     def _process_chunk(
-        self, flask_app, index_processor, chunk_documents, dataset, dataset_document, embedding_model_instance
+        self, flask_app, index_processor, chunk_documents, dataset, dataset_document, embedding_model_instance, process_id
     ):
         with flask_app.app_context():
             # check document is paused
@@ -724,9 +738,15 @@ class IndexingRunner:
                     embedding_model_instance.get_text_embedding_num_tokens([document.page_content])
                     for document in chunk_documents
                 )
-
             # load index
-            index_processor.load(dataset, chunk_documents, with_keywords=False)
+            user_id = dataset_document.created_by
+            index_processor.load(
+                dataset, 
+                chunk_documents, 
+                with_keywords=False, 
+                user_id=user_id, 
+                process_id=process_id
+            )
 
             document_ids = [document.metadata["doc_id"] for document in chunk_documents]
             db.session.query(DocumentSegment).filter(
@@ -784,7 +804,7 @@ class IndexingRunner:
         db.session.commit()
 
     @staticmethod
-    def batch_add_segments(segments: list[DocumentSegment], dataset: Dataset):
+    def batch_add_segments(segments: list[DocumentSegment], dataset: Dataset, **kwargs):
         """
         Batch add segments index processing
         """
@@ -802,8 +822,10 @@ class IndexingRunner:
             documents.append(document)
         # save vector index
         index_type = dataset.doc_form
+        user_id = kwargs.get("user_id", None)
+        process_id = kwargs.get("process_id", None)
         index_processor = IndexProcessorFactory(index_type).init_index_processor()
-        index_processor.load(dataset, documents)
+        index_processor.load(dataset, documents, user_id=user_id, process_id=process_id)
 
     def _transform(
         self,

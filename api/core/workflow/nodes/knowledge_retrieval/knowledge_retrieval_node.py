@@ -1,3 +1,6 @@
+# 修改日期2025-01-13
+# 修改function _fetch_dataset_retriever()，修改判斷upload_file.storage_type是local或opendal時，才取得file_location
+
 import logging
 from collections.abc import Mapping, Sequence
 from typing import Any, cast
@@ -234,9 +237,16 @@ class KnowledgeRetrievalNode(BaseNode[KnowledgeRetrievalNodeData]):
                                 upload_file = UploadFile.query.filter(
                                     UploadFile.id == source_info["upload_file_id"],
                                 ).first()
-                                if upload_file:
-                                    if upload_file.storage_type == "local":
-                                        file_location = upload_file.key
+                                if (upload_file and upload_file.storage_type in ["local", "opendal"]):
+                                    file_location = upload_file.key
+
+                            # if (isDict and hasUploadFileId and isUploadFile):
+                            #     upload_file = UploadFile.query.filter(
+                            #         UploadFile.id == source_info["upload_file_id"],
+                            #     ).first()
+                            #     if upload_file:
+                            #         if upload_file.storage_type == "local" or upload_file.storage_type == "opendal":
+                            #             file_location = upload_file.key
                         except:
                             pass
                         

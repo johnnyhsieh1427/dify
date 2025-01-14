@@ -1,3 +1,7 @@
+// 修改日期2025-01-13
+// 新增select的html標籤在markdown
+// 下拉式選單
+
 import React, { useEffect, useState } from 'react'
 import Button from '@/app/components/base/button'
 import Input from '@/app/components/base/input'
@@ -13,6 +17,7 @@ enum SUPPORTED_TAGS {
   INPUT = 'input',
   TEXTAREA = 'textarea',
   BUTTON = 'button',
+  SELECT = 'select',
 }
 enum SUPPORTED_TYPES {
   TEXT = 'text',
@@ -38,7 +43,7 @@ const MarkdownForm = ({ node }: any) => {
   useEffect(() => {
     const initialValues: { [key: string]: any } = {}
     node.children.forEach((child: any) => {
-      if ([SUPPORTED_TAGS.INPUT, SUPPORTED_TAGS.TEXTAREA].includes(child.tagName))
+      if ([SUPPORTED_TAGS.INPUT, SUPPORTED_TAGS.TEXTAREA, SUPPORTED_TAGS.SELECT].includes(child.tagName))
         initialValues[child.properties.name] = child.properties.value
     })
     setFormValues(initialValues)
@@ -47,7 +52,7 @@ const MarkdownForm = ({ node }: any) => {
   const getFormValues = (children: any) => {
     const values: { [key: string]: any } = {}
     children.forEach((child: any) => {
-      if ([SUPPORTED_TAGS.INPUT, SUPPORTED_TAGS.TEXTAREA].includes(child.tagName))
+      if ([SUPPORTED_TAGS.INPUT, SUPPORTED_TAGS.TEXTAREA, SUPPORTED_TAGS.SELECT].includes(child.tagName))
         values[child.properties.name] = formValues[child.properties.name]
     })
     return values
@@ -120,6 +125,29 @@ const MarkdownForm = ({ node }: any) => {
                 }))
               }}
             />
+          )
+        }
+        if (child.tagName === SUPPORTED_TAGS.SELECT) {
+          return (
+            <select
+              key={index}
+              name={child.properties.name}
+              value={formValues[child.properties.name]}
+              onChange={(e) => {
+                setFormValues(prevValues => ({
+                  ...prevValues,
+                  [child.properties.name]: e.target.value,
+                }))
+              }}
+            >
+              {child.children
+                .filter((option: any) => option.type === 'element' && option.tagName === 'option')
+                .map((option: any, optionIndex: number) => (
+                  <option key={optionIndex} value={option.properties.value}>
+                    {option.children[0]?.value || ''}
+                  </option>
+                ))}
+            </select>
           )
         }
         if (child.tagName === SUPPORTED_TAGS.BUTTON) {

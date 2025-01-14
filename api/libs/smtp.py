@@ -1,3 +1,5 @@
+# 修改日期2025-01-13
+# 修正SMTP異常關閉問題
 import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -48,5 +50,8 @@ class SMTPClient:
             logging.exception(f"Unexpected error occurred while sending email to {mail['to']}")
             raise
         finally:
-            if smtp:
-                smtp.quit()
+            try:
+                if smtp:
+                    smtp.quit()
+            except smtplib.SMTPServerDisconnected as e:
+                pass

@@ -1,3 +1,8 @@
+// 修改日期// 修改日期2025-01-13
+// 將updateAuthType修改為
+// allFeatures.enable_email_code_login ? 'code' : 'password'
+// 搜尋email_code_login取代enable_email_password_login
+
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
@@ -51,7 +56,8 @@ const NormalForm = () => {
       setSystemFeatures(allFeatures)
       setAllMethodsAreDisabled(!allFeatures.enable_social_oauth_login && !allFeatures.enable_email_code_login && !allFeatures.enable_email_password_login && !allFeatures.sso_enforced_for_signin)
       setShowORLine((allFeatures.enable_social_oauth_login || allFeatures.sso_enforced_for_signin) && (allFeatures.enable_email_code_login || allFeatures.enable_email_password_login))
-      updateAuthType(allFeatures.enable_email_password_login ? 'password' : 'code')
+      updateAuthType(allFeatures.enable_email_code_login ? 'code' : 'password')
+      // updateAuthType(allFeatures.enable_email_password_login ? 'password' : 'code')
       if (isInviteLink) {
         const checkRes = await invitationCheck({
           url: '/activate/check',

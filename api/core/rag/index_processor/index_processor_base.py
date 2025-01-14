@@ -1,3 +1,5 @@
+# 修改日期2025-01-13
+# 修改function load()方法的實現，新增**kwargs參數
 """Abstract interface for document loader implementations."""
 
 from abc import ABC, abstractmethod
@@ -27,7 +29,7 @@ class BaseIndexProcessor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def load(self, dataset: Dataset, documents: list[Document], with_keywords: bool = True):
+    def load(self, dataset: Dataset, documents: list[Document], with_keywords: bool = True, **kwargs):
         raise NotImplementedError
 
     def clean(self, dataset: Dataset, node_ids: Optional[list[str]], with_keywords: bool = True):

@@ -1,3 +1,20 @@
+# 修改日期2025-01-14
+# 
+# 修改class TraceQueueManager()內容
+# 修改內容:增加mode判斷是哪個操作模式(dataset或app)
+# 1. get_decrypted_tracing_config()
+# 2. get_ops_trace_instance()
+# 新增function
+# 1. update_dataset_tracing_config()
+# 2. get_dataset_tracing_config()
+# 
+# 修改class TraceTask()內容
+# 1. 新增app_id, mode變數
+# 2. 修改preprocess()內容，增加embedding_trace()方法
+# EmbeddingTraceInfo類別，用於追蹤Embedding的操作
+
+# 修改class TraceQueueManager()內容
+# 1. 新增mode變數
 import json
 import logging
 import os
@@ -19,6 +36,7 @@ from core.ops.entities.config_entity import (
 )
 from core.ops.entities.trace_entity import (
     DatasetRetrievalTraceInfo,
+    EmbeddingTraceInfo,
     GenerateNameTraceInfo,
     MessageTraceInfo,
     ModerationTraceInfo,
@@ -33,7 +51,8 @@ from core.ops.langsmith_trace.langsmith_trace import LangSmithDataTrace
 from core.ops.utils import get_message_data
 from extensions.ext_database import db
 from extensions.ext_storage import storage
-from models.model import App, AppModelConfig, Conversation, Message, MessageAgentThought, MessageFile, TraceAppConfig
+from models.model import App, AppModelConfig, Conversation, Message, MessageAgentThought, MessageFile, TraceAppConfig, TraceDatasetConfig
+from models.dataset import Dataset
 from models.workflow import WorkflowAppLog, WorkflowRun
 from tasks.ops_trace_task import process_trace_tasks
 
@@ -138,72 +157,126 @@ class OpsTraceManager:
         return config_class(**new_config).model_dump()
 
     @classmethod
-    def get_decrypted_tracing_config(cls, app_id: str, tracing_provider: str):
+    def get_decrypted_tracing_config(cls, app_id: str, tracing_provider: str, mode: str = None):
         """
         Get decrypted tracing config
         :param app_id: app id
         :param tracing_provider: tracing provider
         :return:
         """
-        trace_config_data: TraceAppConfig = (
-            db.session.query(TraceAppConfig)
-            .filter(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
-            .first()
-        )
+        if mode == "dataset":
+            trace_config_data: TraceDatasetConfig = (
+                db.session.query(TraceDatasetConfig)
+                .filter(TraceDatasetConfig.dataset_id == app_id, TraceDatasetConfig.tracing_provider == tracing_provider)
+                .first()
+            )
 
-        if not trace_config_data:
-            return None
+            if not trace_config_data:
+                return None
 
-        # decrypt_token
-        tenant_id = db.session.query(App).filter(App.id == app_id).first().tenant_id
-        decrypt_tracing_config = cls.decrypt_tracing_config(
-            tenant_id, tracing_provider, trace_config_data.tracing_config
-        )
+            # decrypt_token
+            tenant_id = db.session.query(Dataset).filter(Dataset.id == app_id).first().tenant_id
+            decrypt_tracing_config = cls.decrypt_tracing_config(
+                tenant_id, tracing_provider, trace_config_data.tracing_config
+            )
 
-        return decrypt_tracing_config
+            return decrypt_tracing_config
+        else:
+            trace_config_data: TraceAppConfig = (
+                db.session.query(TraceAppConfig)
+                .filter(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
+                .first()
+            )
+
+            if not trace_config_data:
+                return None
+
+            # decrypt_token
+            tenant_id = db.session.query(App).filter(App.id == app_id).first().tenant_id
+            decrypt_tracing_config = cls.decrypt_tracing_config(
+                tenant_id, tracing_provider, trace_config_data.tracing_config
+            )
+
+            return decrypt_tracing_config
 
     @classmethod
     def get_ops_trace_instance(
         cls,
         app_id: Optional[Union[UUID, str]] = None,
+        mode: Optional[str] = None,
     ):
         """
         Get ops trace through model config
         :param app_id: app_id
+        :param mode: ensure the tracing task is on right mode
         :return:
         """
-        if isinstance(app_id, UUID):
-            app_id = str(app_id)
+        if mode == "dataset":
+            if isinstance(app_id, UUID):
+                app_id = str(app_id)
 
-        if app_id is None:
+            if app_id is None:
+                return None
+
+            dataset: Dataset = db.session.query(Dataset).filter(Dataset.id == app_id).first()
+
+            if dataset is None:
+                return None
+
+            dataset_ops_trace_config = json.loads(dataset.tracing) if dataset.tracing else None
+
+            if dataset_ops_trace_config is None:
+                return None
+
+            tracing_provider = dataset_ops_trace_config.get("tracing_provider")
+
+            if tracing_provider is None or tracing_provider not in provider_config_map:
+                return None
+
+            # decrypt_token
+            decrypt_trace_config = cls.get_decrypted_tracing_config(app_id, tracing_provider, "dataset")
+            if dataset_ops_trace_config.get("enabled"):
+                trace_instance, config_class = (
+                    provider_config_map[tracing_provider]["trace_instance"],
+                    provider_config_map[tracing_provider]["config_class"],
+                )
+                tracing_instance = trace_instance(config_class(**decrypt_trace_config))
+                return tracing_instance
+
             return None
+        else:
+            if isinstance(app_id, UUID):
+                app_id = str(app_id)
 
-        app: App = db.session.query(App).filter(App.id == app_id).first()
+            if app_id is None:
+                return None
 
-        if app is None:
+            app: App = db.session.query(App).filter(App.id == app_id).first()
+
+            if app is None:
+                return None
+
+            app_ops_trace_config = json.loads(app.tracing) if app.tracing else None
+
+            if app_ops_trace_config is None:
+                return None
+
+            tracing_provider = app_ops_trace_config.get("tracing_provider")
+
+            if tracing_provider is None or tracing_provider not in provider_config_map:
+                return None
+
+            # decrypt_token
+            decrypt_trace_config = cls.get_decrypted_tracing_config(app_id, tracing_provider)
+            if app_ops_trace_config.get("enabled"):
+                trace_instance, config_class = (
+                    provider_config_map[tracing_provider]["trace_instance"],
+                    provider_config_map[tracing_provider]["config_class"],
+                )
+                tracing_instance = trace_instance(config_class(**decrypt_trace_config))
+                return tracing_instance
+
             return None
-
-        app_ops_trace_config = json.loads(app.tracing) if app.tracing else None
-
-        if app_ops_trace_config is None:
-            return None
-
-        tracing_provider = app_ops_trace_config.get("tracing_provider")
-
-        if tracing_provider is None or tracing_provider not in provider_config_map:
-            return None
-
-        # decrypt_token
-        decrypt_trace_config = cls.get_decrypted_tracing_config(app_id, tracing_provider)
-        if app_ops_trace_config.get("enabled"):
-            trace_instance, config_class = (
-                provider_config_map[tracing_provider]["trace_instance"],
-                provider_config_map[tracing_provider]["config_class"],
-            )
-            tracing_instance = trace_instance(config_class(**decrypt_trace_config))
-            return tracing_instance
-
-        return None
 
     @classmethod
     def get_app_config_through_message_id(cls, message_id: str):
@@ -244,7 +317,29 @@ class OpsTraceManager:
             }
         )
         db.session.commit()
+        
+    @classmethod
+    def update_dataset_tracing_config(cls, dataset_id: str, enabled: bool, tracing_provider: dict):
+        """
+        Update dataset tracing config
+        :param dataset_id: dataset id
+        :param enabled: enabled
+        :param tracing_provider: tracing provider
+        :return:
+        """
+        # auth check
+        if tracing_provider not in provider_config_map and tracing_provider is not None:
+            raise ValueError(f"Invalid tracing provider: {tracing_provider}")
 
+        dataset_config: Dataset = db.session.query(Dataset).filter(Dataset.id == dataset_id).first()
+        dataset_config.tracing = json.dumps(
+            {
+                "enabled": enabled,
+                "tracing_provider": tracing_provider,
+            }
+        )
+        db.session.commit()
+        
     @classmethod
     def get_app_tracing_config(cls, app_id: str):
         """
@@ -257,7 +352,20 @@ class OpsTraceManager:
             return {"enabled": False, "tracing_provider": None}
         app_trace_config = json.loads(app.tracing)
         return app_trace_config
-
+    
+    @classmethod
+    def get_dataset_tracing_config(cls, dataset_id: str):
+        """
+        Get dataset tracing config
+        :param dataset_id: dataset id
+        :return:
+        """
+        dataset: Dataset = db.session.query(Dataset).filter(Dataset.id == dataset_id).first()
+        if not dataset.tracing:
+            return {"enabled": False, "tracing_provider": None}
+        dataset_trace_config = json.loads(dataset.tracing)
+        return dataset_trace_config
+    
     @staticmethod
     def check_trace_config_is_effective(tracing_config: dict, tracing_provider: str):
         """
@@ -311,6 +419,7 @@ class TraceTask:
         message_id: Optional[str] = None,
         workflow_run: Optional[WorkflowRun] = None,
         conversation_id: Optional[str] = None,
+        dataset_id: Optional[str] = None,
         user_id: Optional[str] = None,
         timer: Optional[Any] = None,
         **kwargs,
@@ -319,12 +428,14 @@ class TraceTask:
         self.message_id = message_id
         self.workflow_run = workflow_run
         self.conversation_id = conversation_id
+        self.dataset_id = dataset_id
         self.user_id = user_id
         self.timer = timer
         self.kwargs = kwargs
         self.file_base_url = os.getenv("FILES_URL", "http://127.0.0.1:5001")
 
         self.app_id = None
+        self.mode = None
 
     def execute(self):
         return self.preprocess()
@@ -346,6 +457,9 @@ class TraceTask:
             TraceTaskName.TOOL_TRACE: lambda: self.tool_trace(self.message_id, self.timer, **self.kwargs),
             TraceTaskName.GENERATE_NAME_TRACE: lambda: self.generate_name_trace(
                 self.conversation_id, self.timer, **self.kwargs
+            ),
+            TraceTaskName.EMBEDDING_TRACE: lambda: self.embedding_trace(
+                self.dataset_id, self.timer, self.user_id, **self.kwargs
             ),
         }
 
@@ -686,6 +800,19 @@ class TraceTask:
 
         return generate_name_trace_info
 
+    def embedding_trace(self, dataset_id, timer, user_id, **kwargs):
+        
+        embedding_trace_info = EmbeddingTraceInfo(
+            dataset_id=dataset_id,
+            user_id=user_id,
+            metadata=kwargs.get("metadata"),
+            inputs=kwargs.get("inputs"),
+            outputs=kwargs.get("outputs"),
+            start_time=timer.get("start"),
+            end_time=timer.get("end"),
+        )
+
+        return embedding_trace_info
 
 trace_manager_timer = None
 trace_manager_queue = queue.Queue()
@@ -694,12 +821,13 @@ trace_manager_batch_size = int(os.getenv("TRACE_QUEUE_MANAGER_BATCH_SIZE", 100))
 
 
 class TraceQueueManager:
-    def __init__(self, app_id=None, user_id=None):
+    def __init__(self, app_id=None, user_id=None, mode=None):
         global trace_manager_timer
 
         self.app_id = app_id
         self.user_id = user_id
-        self.trace_instance = OpsTraceManager.get_ops_trace_instance(app_id)
+        self.mode = mode
+        self.trace_instance = OpsTraceManager.get_ops_trace_instance(app_id, mode)
         self.flask_app = current_app._get_current_object()
         if trace_manager_timer is None:
             self.start_timer()
@@ -708,6 +836,8 @@ class TraceQueueManager:
         global trace_manager_timer, trace_manager_queue
         try:
             if self.trace_instance:
+                if isinstance(self.mode, str):
+                    trace_task.mode = self.mode
                 trace_task.app_id = self.app_id
                 trace_manager_queue.put(trace_task)
         except Exception as e:
@@ -755,5 +885,6 @@ class TraceQueueManager:
                 file_info = {
                     "file_id": file_id,
                     "app_id": task.app_id,
+                    "mode": task.mode,
                 }
                 process_trace_tasks.delay(file_info)

@@ -1,3 +1,6 @@
+# 修改日期2025-01-13
+# 修改function add_texts()和create()的參數
+# 增加user_id和process_id參數
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
@@ -147,14 +150,46 @@ class Vector:
 
     def create(self, texts: Optional[list] = None, **kwargs):
         if texts:
-            embeddings = self._embeddings.embed_documents([document.page_content for document in texts])
+            try:
+                user_id = kwargs.get("user_id", None)
+                process_id = kwargs.get("process_id", None)
+                metadata = {}
+                for document in texts:
+                    for k, v in dict(document.metadata).items():
+                        metadata.setdefault(k, []).append(v)
+                metadata.setdefault("user_id", user_id)
+                metadata.setdefault("process_id", process_id)
+            except Exception as e:
+                # logging.error(f"Error in create: {e}")
+                metadata = None
+            embeddings = self._embeddings.embed_documents(
+                texts=[document.page_content for document in texts],
+                metadata=metadata,
+                dataset=self._dataset,
+            )
             self._vector_processor.create(texts=texts, embeddings=embeddings, **kwargs)
 
     def add_texts(self, documents: list[Document], **kwargs):
         if kwargs.get("duplicate_check", False):
             documents = self._filter_duplicate_texts(documents)
-
-        embeddings = self._embeddings.embed_documents([document.page_content for document in documents])
+        try:
+            user_id = kwargs.get("user_id", None)
+            process_id = kwargs.get("process_id", None)
+            metadata = {}
+            for document in documents:
+                for k, v in dict(document.metadata).items():
+                    metadata.setdefault(k, []).append(v)
+            metadata.setdefault("user_id", user_id)
+            metadata.setdefault("process_id", process_id)
+        except Exception as e:
+            # logging.error(f"Error in add_texts: {e}")
+            metadata = None
+            
+        embeddings = self._embeddings.embed_documents(
+            texts=[document.page_content for document in documents],
+            metadata=metadata,
+            dataset=self._dataset
+        )
         self._vector_processor.create(texts=documents, embeddings=embeddings, **kwargs)
 
     def text_exists(self, id: str) -> bool:

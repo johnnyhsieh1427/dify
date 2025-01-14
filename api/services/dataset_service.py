@@ -1,3 +1,11 @@
+# 修改日期2025-01-14
+# 修改
+# 1. deal_dataset_vector_index_task()
+# 2. create_segment()內部
+# 3. multi_create_segment()內部
+# 4. update_segment()內部
+# 的參數，加入user_id和process_id參數，用於追蹤資料庫操作的使用者和程序
+
 import datetime
 import json
 import logging
@@ -326,8 +334,18 @@ class DatasetService:
             dataset.query.filter_by(id=dataset_id).update(filtered_data)
 
             db.session.commit()
+            user_id = user.id
+            process_id = str(uuid.uuid5(
+                uuid.NAMESPACE_DNS,
+                datetime.datetime.now().isoformat()
+            ))
             if action:
-                deal_dataset_vector_index_task.delay(dataset_id, action)
+                deal_dataset_vector_index_task.delay(
+                    dataset_id,
+                    action,
+                    user_id=user_id,
+                    process_id=process_id,
+                )
         return dataset
 
     @staticmethod
@@ -1384,6 +1402,8 @@ class SegmentService:
         doc_id = str(uuid.uuid4())
         segment_hash = helper.generate_text_hash(content)
         tokens = 0
+        user_id = str(current_user.id)
+        process_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, datetime.datetime.now().isoformat()))
         if dataset.indexing_technique == "high_quality":
             model_manager = ModelManager()
             embedding_model = model_manager.get_model_instance(
@@ -1428,7 +1448,13 @@ class SegmentService:
 
             # save vector index
             try:
-                VectorService.create_segments_vector([args["keywords"]], [segment_document], dataset)
+                VectorService.create_segments_vector(
+                    [args["keywords"]], 
+                    [segment_document], 
+                    dataset,
+                    user_id=user_id,
+                    process_id=process_id
+                )
             except Exception as e:
                 logging.exception("create segment index failed")
                 segment_document.enabled = False
@@ -1443,6 +1469,8 @@ class SegmentService:
     def multi_create_segment(cls, segments: list, document: Document, dataset: Dataset):
         lock_name = "multi_add_segment_lock_document_id_{}".format(document.id)
         increment_word_count = 0
+        user_id = str(current_user.id)
+        process_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, datetime.datetime.now().isoformat()))
         with redis_client.lock(lock_name, timeout=600):
             embedding_model = None
             if dataset.indexing_technique == "high_quality":
@@ -1506,7 +1534,13 @@ class SegmentService:
             db.session.add(document)
             try:
                 # save vector index
-                VectorService.create_segments_vector(keywords_list, pre_segment_data_list, dataset)
+                VectorService.create_segments_vector(
+                    keywords_list, 
+                    pre_segment_data_list, 
+                    dataset,
+                    user_id=user_id,
+                    process_id=process_id
+                )
             except Exception as e:
                 logging.exception("create segment index failed")
                 for segment_document in segment_data_list:
@@ -1522,6 +1556,8 @@ class SegmentService:
         segment_update_entity = SegmentUpdateEntity(**args)
         indexing_cache_key = "segment_{}_indexing".format(segment.id)
         cache_result = redis_client.get(indexing_cache_key)
+        user_id = str(current_user.id)
+        process_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, datetime.datetime.now().isoformat()))
         if cache_result is not None:
             raise ValueError("Segment is indexing, please try again later")
         if segment_update_entity.enabled is not None:
@@ -1565,7 +1601,13 @@ class SegmentService:
                     db.session.add(document)
                 # update segment index task
                 if segment_update_entity.enabled:
-                    VectorService.create_segments_vector([segment_update_entity.keywords], [segment], dataset)
+                    VectorService.create_segments_vector(
+                        [segment_update_entity.keywords], 
+                        [segment], 
+                        dataset, 
+                        user_id=user_id, 
+                        process_id=process_id
+                    )
             else:
                 segment_hash = helper.generate_text_hash(content)
                 tokens = 0
@@ -1606,7 +1648,13 @@ class SegmentService:
                 db.session.add(segment)
                 db.session.commit()
                 # update segment vector index
-                VectorService.update_segment_vector(segment_update_entity.keywords, segment, dataset)
+                VectorService.update_segment_vector(
+                    segment_update_entity.keywords, 
+                    segment, 
+                    dataset,
+                    user_id=user_id,
+                    process_id=process_id
+                )
 
         except Exception as e:
             logging.exception("update segment index failed")

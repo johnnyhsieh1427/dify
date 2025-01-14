@@ -1,3 +1,7 @@
+// 修改日期2025-01-13
+// 新增TraceConfig套件給Dataset，導入tracing的功能
+// 新增mode功能，可以判斷是app還是dataset
+
 'use client'
 import type { FC } from 'react'
 import React, { useCallback, useState } from 'react'
@@ -15,11 +19,21 @@ import { Lock01 } from '@/app/components/base/icons/src/vender/solid/security'
 import Button from '@/app/components/base/button'
 import { LinkExternal02 } from '@/app/components/base/icons/src/vender/line/general'
 import Confirm from '@/app/components/base/confirm'
-import { addTracingConfig, removeTracingConfig, updateTracingConfig } from '@/service/apps'
+import {
+  addTracingConfig,
+  removeTracingConfig,
+  updateTracingConfig,
+} from '@/service/apps'
+import {
+  addTracingConfig as addDatasetsTracingConfig,
+  removeTracingConfig as removeDatasetsTracingConfig,
+  updateTracingConfig as updateDatasetsTracingConfig,
+} from '@/service/datasets'
 import Toast from '@/app/components/base/toast'
 
 type Props = {
   appId: string
+  mode?: string
   type: TracingProvider
   payload?: LangSmithConfig | LangFuseConfig | null
   onRemoved: () => void
@@ -44,6 +58,7 @@ const langFuseConfigTemplate = {
 
 const ProviderConfigModal: FC<Props> = ({
   appId,
+  mode,
   type,
   payload,
   onRemoved,
@@ -70,17 +85,25 @@ const ProviderConfigModal: FC<Props> = ({
   }] = useBoolean(false)
 
   const handleRemove = useCallback(async () => {
-    await removeTracingConfig({
-      appId,
-      provider: type,
-    })
+    if (mode && mode === 'dataset') {
+      await removeDatasetsTracingConfig({
+        appId,
+        provider: type,
+      })
+    }
+    else {
+      await removeTracingConfig({
+        appId,
+        provider: type,
+      })
+    }
     Toast.notify({
       type: 'success',
       message: t('common.api.remove'),
     })
     onRemoved()
     hideRemoveConfirm()
-  }, [hideRemoveConfirm, appId, type, t, onRemoved])
+  }, [hideRemoveConfirm, appId, mode, type, t, onRemoved])
 
   const handleConfigChange = useCallback((key: string) => {
     return (value: string) => {
@@ -124,7 +147,17 @@ const ProviderConfigModal: FC<Props> = ({
       })
       return
     }
-    const action = isEdit ? updateTracingConfig : addTracingConfig
+    // const action = isEdit ? updateTracingConfig : addTracingConfig
+    const action = (() => {
+      if (mode && mode === 'dataset') {
+        return isEdit
+          ? updateDatasetsTracingConfig
+          : addDatasetsTracingConfig
+      }
+      return isEdit
+        ? updateTracingConfig
+        : addTracingConfig
+    })()
     try {
       await action({
         appId,
@@ -144,7 +177,7 @@ const ProviderConfigModal: FC<Props> = ({
     finally {
       setIsSaving(false)
     }
-  }, [appId, checkValid, config, isAdd, isEdit, isSaving, onChosen, onSaved, t, type])
+  }, [appId, mode, checkValid, config, isAdd, isEdit, isSaving, onChosen, onSaved, t, type])
 
   return (
     <>

@@ -1,3 +1,6 @@
+# 修改日期2025-01-14
+# 新增修改function embedding_trace()
+# 修改修改function workflow_trace()內部的usage方式
 import json
 import logging
 import os
@@ -11,6 +14,7 @@ from core.ops.entities.config_entity import LangfuseConfig
 from core.ops.entities.trace_entity import (
     BaseTraceInfo,
     DatasetRetrievalTraceInfo,
+    EmbeddingTraceInfo,
     GenerateNameTraceInfo,
     MessageTraceInfo,
     ModerationTraceInfo,
@@ -63,6 +67,8 @@ class LangFuseDataTrace(BaseTraceInstance):
             self.tool_trace(trace_info)
         if isinstance(trace_info, GenerateNameTraceInfo):
             self.generate_name_trace(trace_info)
+        if isinstance(trace_info, EmbeddingTraceInfo):
+            self.embedding_trace(trace_info)
 
     def workflow_trace(self, trace_info: WorkflowTraceInfo):
         trace_id = trace_info.workflow_run_id
@@ -214,9 +220,19 @@ class LangFuseDataTrace(BaseTraceInstance):
             if process_data and process_data.get("model_mode") == "chat":
                 total_token = metadata.get("total_tokens", 0)
                 # add generation
-                generation_usage = GenerationUsage(
-                    total=total_token,
-                )
+                if outputs and outputs.get("usage", None):
+                    resp_detail = outputs["usage"]
+                    generation_usage = GenerationUsage(
+                        input=resp_detail.get("prompt_tokens", 0),
+                        output=resp_detail.get("completion_tokens", 0),
+                        total=total_token,
+                        unit=UnitEnum.TOKENS,
+                        totalCost=resp_detail.get("total_price", 0),
+                    )
+                else:
+                    generation_usage = GenerationUsage(
+                        total=total_token,
+                    )
 
                 node_generation_data = LangfuseGeneration(
                     name="llm",
@@ -401,6 +417,49 @@ class LangFuseDataTrace(BaseTraceInstance):
         )
         self.add_span(langfuse_span_data=name_generation_span_data)
 
+    def embedding_trace(self, trace_info: EmbeddingTraceInfo):
+        dataset_id = trace_info.dataset_id
+        process_id = trace_info.metadata.get("process_id")
+        user_id = trace_info.metadata.get("user_id")
+        input = trace_info.inputs
+        output = trace_info.outputs
+        metadata = trace_info.metadata
+        
+        trace_data = LangfuseTrace(
+            id=process_id if process_id else dataset_id,
+            user_id=user_id,
+            name=TraceTaskName.EMBEDDING_TRACE.value,
+            input=input,
+            output=output,
+            metadata=metadata,
+            session_id=dataset_id,
+            tags=["embedding"],
+            version=None,
+            release=None,
+            public=None,
+        )
+        self.add_trace(langfuse_trace_data=trace_data)
+        
+        # add generation
+        generation_usage = GenerationUsage(
+            total=metadata.get("total_tokens", 0),
+        )
+        self.add_generation(
+            langfuse_generation_data=LangfuseGeneration(
+                name="embedding",
+                trace_id=process_id if process_id else dataset_id,
+                start_time=trace_info.start_time,
+                end_time=trace_info.end_time,
+                model=metadata.get("model_name"),
+                input=input,
+                output=output,
+                metadata=metadata,
+                level=LevelEnum.DEFAULT,
+                status_message="",
+                usage=generation_usage,
+            )
+        )
+    
     def add_trace(self, langfuse_trace_data: Optional[LangfuseTrace] = None):
         format_trace_data = filter_none_values(langfuse_trace_data.model_dump()) if langfuse_trace_data else {}
         try:
