@@ -1669,6 +1669,7 @@ class TraceAppConfig(db.Model):
             "updated_at": str(self.updated_at) if self.updated_at else None,
         }
 
+
 class TraceDatasetConfig(db.Model):
     __tablename__ = "trace_dataset_config"
     __table_args__ = (

@@ -91,6 +91,7 @@ class TraceAppConfigApi(Resource):
         except Exception as e:
             raise e
 
+
 class TraceDatasetConfigApi(Resource):
     """
     Manage trace dataset configurations
@@ -105,7 +106,9 @@ class TraceDatasetConfigApi(Resource):
         args = parser.parse_args()
 
         try:
-            trace_config = OpsService.get_tracing_dataset_config(dataset_id=app_id, tracing_provider=args["tracing_provider"])
+            trace_config = OpsService.get_tracing_dataset_config(
+                dataset_id=app_id, tracing_provider=args["tracing_provider"]
+            )
             if not trace_config:
                 return {"has_not_configured": True}
             return trace_config
@@ -172,6 +175,7 @@ class TraceDatasetConfigApi(Resource):
             return {"result": "success"}
         except Exception as e:
             raise e
+
 
 api.add_resource(TraceAppConfigApi, "/apps/<uuid:app_id>/trace-config")
 api.add_resource(TraceDatasetConfigApi, "/datasets/<uuid:app_id>/trace-config")

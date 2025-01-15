@@ -51,8 +51,17 @@ from core.ops.langsmith_trace.langsmith_trace import LangSmithDataTrace
 from core.ops.utils import get_message_data
 from extensions.ext_database import db
 from extensions.ext_storage import storage
-from models.model import App, AppModelConfig, Conversation, Message, MessageAgentThought, MessageFile, TraceAppConfig, TraceDatasetConfig
 from models.dataset import Dataset
+from models.model import (
+    App,
+    AppModelConfig,
+    Conversation,
+    Message,
+    MessageAgentThought,
+    MessageFile,
+    TraceAppConfig,
+    TraceDatasetConfig,
+)
 from models.workflow import WorkflowAppLog, WorkflowRun
 from tasks.ops_trace_task import process_trace_tasks
 
@@ -157,7 +166,7 @@ class OpsTraceManager:
         return config_class(**new_config).model_dump()
 
     @classmethod
-    def get_decrypted_tracing_config(cls, app_id: str, tracing_provider: str, mode: str = None):
+    def get_decrypted_tracing_config(cls, app_id: str, tracing_provider: str, mode: Optional[str] = None):
         """
         Get decrypted tracing config
         :param app_id: app id
@@ -167,8 +176,10 @@ class OpsTraceManager:
         if mode == "dataset":
             trace_config_data: TraceDatasetConfig = (
                 db.session.query(TraceDatasetConfig)
-                .filter(TraceDatasetConfig.dataset_id == app_id, TraceDatasetConfig.tracing_provider == tracing_provider)
-                .first()
+                .filter(
+                    TraceDatasetConfig.dataset_id == app_id, 
+                    TraceDatasetConfig.tracing_provider == tracing_provider
+                ).first()
             )
 
             if not trace_config_data:
@@ -813,6 +824,7 @@ class TraceTask:
         )
 
         return embedding_trace_info
+
 
 trace_manager_timer = None
 trace_manager_queue = queue.Queue()

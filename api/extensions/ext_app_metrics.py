@@ -1,9 +1,9 @@
 # 修改日期2025-01-13
 # 新增API端點，用於查看文件上傳的檔案function upload_files()
 import json
+import mimetypes
 import os
 import threading
-import mimetypes
 
 from flask import Response, send_file
 

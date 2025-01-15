@@ -27,8 +27,8 @@ def create_segment_to_index_task(segment_id: str, keywords: Optional[list[str]] 
     """
     logging.info(click.style("Start create segment to index: {}".format(segment_id), fg="green"))
     start_at = time.perf_counter()
-    user_id = kwargs.get("user_id", None)
-    process_id = kwargs.get("process_id", None)
+    user_id = kwargs.get("user_id")
+    process_id = kwargs.get("process_id")
     segment = db.session.query(DocumentSegment).filter(DocumentSegment.id == segment_id).first()
     if not segment:
         raise NotFound("Segment not found")

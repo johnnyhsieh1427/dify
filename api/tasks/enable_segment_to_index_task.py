@@ -65,8 +65,8 @@ def enable_segment_to_index_task(segment_id: str, **kwargs):
 
         index_processor = IndexProcessorFactory(dataset_document.doc_form).init_index_processor()
         # save vector index
-        user_id = kwargs.get("user_id", None)
-        process_id = kwargs.get("process_id", None)
+        user_id = kwargs.get("user_id")
+        process_id = kwargs.get("process_id")
         index_processor.load(dataset, [document], user_id=user_id, process_id=process_id)
 
         end_at = time.perf_counter()

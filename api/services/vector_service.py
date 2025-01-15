@@ -13,8 +13,8 @@ class VectorService:
     def create_segments_vector(
         cls, keywords_list: Optional[list[list[str]]], segments: list[DocumentSegment], dataset: Dataset, **kwargs
     ):
-        user_id = kwargs.get("user_id", None)
-        process_id = kwargs.get("process_id", None)
+        user_id = kwargs.get("user_id")
+        process_id = kwargs.get("process_id")
         documents = []
         for segment in segments:
             document = Document(
@@ -43,8 +43,8 @@ class VectorService:
     @classmethod
     def update_segment_vector(cls, keywords: Optional[list[str]], segment: DocumentSegment, dataset: Dataset, **kwargs):
         # update segment index task
-        user_id = kwargs.get("user_id", None)
-        process_id = kwargs.get("process_id", None)
+        user_id = kwargs.get("user_id")
+        process_id = kwargs.get("process_id")
         # format new index
         document = Document(
             page_content=segment.content,

@@ -151,8 +151,8 @@ class Vector:
     def create(self, texts: Optional[list] = None, **kwargs):
         if texts:
             try:
-                user_id = kwargs.get("user_id", None)
-                process_id = kwargs.get("process_id", None)
+                user_id = kwargs.get("user_id")
+                process_id = kwargs.get("process_id")
                 metadata = {}
                 for document in texts:
                     for k, v in dict(document.metadata).items():
@@ -173,8 +173,8 @@ class Vector:
         if kwargs.get("duplicate_check", False):
             documents = self._filter_duplicate_texts(documents)
         try:
-            user_id = kwargs.get("user_id", None)
-            process_id = kwargs.get("process_id", None)
+            user_id = kwargs.get("user_id")
+            process_id = kwargs.get("process_id")
             metadata = {}
             for document in documents:
                 for k, v in dict(document.metadata).items():

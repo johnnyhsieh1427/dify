@@ -1,5 +1,6 @@
 # 修改日期2025-01-13
 # 取消自動生成名稱功能
+# 在function rename()中，將switch = False永遠不自動生成名稱
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Optional, Union
@@ -119,11 +120,11 @@ class ConversationService:
         auto_generate: bool,
     ):
         conversation = cls.get_conversation(app_model, conversation_id, user)
-
-        if auto_generate and False:
+        switch = False
+        if auto_generate and switch:
             return cls.auto_generate_name(app_model, conversation)
         else:
-            if name == None or name == "":
+            if name in {None, ""}:
                 conversation.name = "New conversation"
             else:
                 conversation.name = name

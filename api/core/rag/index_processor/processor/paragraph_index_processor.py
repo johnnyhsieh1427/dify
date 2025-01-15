@@ -55,8 +55,8 @@ class ParagraphIndexProcessor(BaseIndexProcessor):
         return all_documents
 
     def load(self, dataset: Dataset, documents: list[Document], with_keywords: bool = True, **kwargs):
-        user_id = kwargs.get("user_id", None)
-        process_id = kwargs.get("process_id", None)
+        user_id = kwargs.get("user_id")
+        process_id = kwargs.get("process_id")
         if dataset.indexing_technique == "high_quality":
             vector = Vector(dataset)
             vector.create(texts=documents, user_id=user_id, process_id=process_id)

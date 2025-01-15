@@ -726,7 +726,13 @@ class IndexingRunner:
                 db.session.commit()
 
     def _process_chunk(
-        self, flask_app, index_processor, chunk_documents, dataset, dataset_document, embedding_model_instance, process_id
+        self, 
+        flask_app, 
+        index_processor, 
+        chunk_documents, 
+        dataset, dataset_document, 
+        embedding_model_instance, 
+        process_id
     ):
         with flask_app.app_context():
             # check document is paused
@@ -822,8 +828,8 @@ class IndexingRunner:
             documents.append(document)
         # save vector index
         index_type = dataset.doc_form
-        user_id = kwargs.get("user_id", None)
-        process_id = kwargs.get("process_id", None)
+        user_id = kwargs.get("user_id")
+        process_id = kwargs.get("process_id")
         index_processor = IndexProcessorFactory(index_type).init_index_processor()
         index_processor.load(dataset, documents, user_id=user_id, process_id=process_id)
 

@@ -4,7 +4,6 @@
 import datetime
 import logging
 import time
-import uuid
 
 import click
 from celery import shared_task
@@ -66,8 +65,8 @@ def add_document_to_index_task(dataset_document_id: str, **kwargs):
             raise Exception("Document has no dataset")
 
         index_type = dataset.doc_form
-        user_id = kwargs.get("user_id", None)
-        process_id = kwargs.get("process_id", None)
+        user_id = kwargs.get("user_id")
+        process_id = kwargs.get("process_id")
         index_processor = IndexProcessorFactory(index_type).init_index_processor()
         index_processor.load(
             dataset,

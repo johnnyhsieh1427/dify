@@ -24,8 +24,8 @@ def deal_dataset_vector_index_task(dataset_id: str, action: str, **kwargs):
     """
     logging.info(click.style("Start deal dataset vector index: {}".format(dataset_id), fg="green"))
     start_at = time.perf_counter()
-    user_id = kwargs.get("user_id", None)
-    process_id = kwargs.get("process_id", None)
+    user_id = kwargs.get("user_id")
+    process_id = kwargs.get("process_id")
     try:
         dataset = Dataset.query.filter_by(id=dataset_id).first()
 
@@ -78,7 +78,13 @@ def deal_dataset_vector_index_task(dataset_id: str, action: str, **kwargs):
 
                                 documents.append(document)
                             # save vector index
-                            index_processor.load(dataset, documents, with_keywords=False, user_id=user_id, process_id=process_id)
+                            index_processor.load(
+                                dataset, 
+                                documents, 
+                                with_keywords=False, 
+                                user_id=user_id, 
+                                process_id=process_id
+                            )
                         db.session.query(DatasetDocument).filter(DatasetDocument.id == dataset_document.id).update(
                             {"indexing_status": "completed"}, synchronize_session=False
                         )
@@ -135,7 +141,13 @@ def deal_dataset_vector_index_task(dataset_id: str, action: str, **kwargs):
 
                                 documents.append(document)
                             # save vector index
-                            index_processor.load(dataset, documents, with_keywords=False, user_id=user_id, process_id=process_id)
+                            index_processor.load(
+                                dataset, 
+                                documents, 
+                                with_keywords=False, 
+                                user_id=user_id, 
+                                process_id=process_id
+                            )
                         db.session.query(DatasetDocument).filter(DatasetDocument.id == dataset_document.id).update(
                             {"indexing_status": "completed"}, synchronize_session=False
                         )

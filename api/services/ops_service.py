@@ -6,8 +6,8 @@
 # 4. delete_tracing_dataset_config
 from core.ops.ops_trace_manager import OpsTraceManager, provider_config_map
 from extensions.ext_database import db
-from models.model import App, TraceAppConfig, TraceDatasetConfig
 from models.dataset import Dataset
+from models.model import App, TraceAppConfig, TraceDatasetConfig
 
 
 class OpsService:
@@ -74,8 +74,10 @@ class OpsService:
         """
         trace_config_data: TraceDatasetConfig = (
             db.session.query(TraceDatasetConfig)
-            .filter(TraceDatasetConfig.dataset_id == dataset_id, TraceDatasetConfig.tracing_provider == tracing_provider)
-            .first()
+            .filter(
+                TraceDatasetConfig.dataset_id == dataset_id, 
+                TraceDatasetConfig.tracing_provider == tracing_provider
+            ).first()
         )
 
         if not trace_config_data:
@@ -213,8 +215,10 @@ class OpsService:
         # check if trace config already exists
         trace_config_data: TraceDatasetConfig = (
             db.session.query(TraceDatasetConfig)
-            .filter(TraceDatasetConfig.dataset_id == dataset_id, TraceDatasetConfig.tracing_provider == tracing_provider)
-            .first()
+            .filter(
+                TraceDatasetConfig.dataset_id == dataset_id, 
+                TraceDatasetConfig.tracing_provider == tracing_provider
+            ).first()
         )
 
         if trace_config_data:
@@ -289,8 +293,10 @@ class OpsService:
         # check if trace config already exists
         current_trace_config = (
             db.session.query(TraceDatasetConfig)
-            .filter(TraceDatasetConfig.dataset_id == dataset_id, TraceDatasetConfig.tracing_provider == tracing_provider)
-            .first()
+            .filter(
+                TraceDatasetConfig.dataset_id == dataset_id, 
+                TraceDatasetConfig.tracing_provider == tracing_provider
+            ).first()
         )
 
         if not current_trace_config:

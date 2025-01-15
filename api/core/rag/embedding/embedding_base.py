@@ -2,8 +2,10 @@
 # 修改function embed_documents()的參數
 # 新增metadata、dataset和**kwargs參數
 from abc import ABC, abstractmethod
-from models.dataset import Dataset
 from typing import Any, Optional
+
+from models.dataset import Dataset
+
 
 class Embeddings(ABC):
     """Interface for embedding models."""

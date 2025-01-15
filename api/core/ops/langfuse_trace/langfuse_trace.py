@@ -426,7 +426,7 @@ class LangFuseDataTrace(BaseTraceInstance):
         metadata = trace_info.metadata
         
         trace_data = LangfuseTrace(
-            id=process_id if process_id else dataset_id,
+            id=process_id or dataset_id,
             user_id=user_id,
             name=TraceTaskName.EMBEDDING_TRACE.value,
             input=input,
@@ -447,7 +447,7 @@ class LangFuseDataTrace(BaseTraceInstance):
         self.add_generation(
             langfuse_generation_data=LangfuseGeneration(
                 name="embedding",
-                trace_id=process_id if process_id else dataset_id,
+                trace_id=process_id or dataset_id,
                 start_time=trace_info.start_time,
                 end_time=trace_info.end_time,
                 model=metadata.get("model_name"),
