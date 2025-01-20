@@ -1,3 +1,7 @@
+// 修改日期2025-01-20
+// 修改內容：
+// 增加function fetchAppTenantPermissionc和fetchLoginUser
+// 給前端使用function獲取api資料
 import type { IOnCompleted, IOnData, IOnError, IOnFile, IOnIterationFinished, IOnIterationNext, IOnIterationStarted, IOnMessageEnd, IOnMessageReplace, IOnNodeFinished, IOnNodeStarted, IOnTTSChunk, IOnTTSEnd, IOnTextChunk, IOnTextReplace, IOnThought, IOnWorkflowFinished, IOnWorkflowStarted } from './base'
 import {
   del as consoleDel, get as consoleGet, patch as consolePatch, post as consolePost,
@@ -228,4 +232,8 @@ export const fetchAccessToken = async (appCode: string) => {
 
 export const fetchLoginUser = async (params: Record<string, any>) => {
   return consoleGet('/passport_auth', { params }) as Promise<{ access_token: string }>
+}
+
+export const fetchAppTenantPermission = async () => {
+  return get('/permission') as Promise<{ result: string }>
 }

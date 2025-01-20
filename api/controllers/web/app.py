@@ -1,11 +1,16 @@
+# 修改日期2025-01-20
+# 新增API AppTenantPermission，用於檢查使用者是否有權限訪問聊天機器人應用
 from flask_restful import marshal_with
+from werkzeug.exceptions import Forbidden
 
 from controllers.common import fields
 from controllers.common import helpers as controller_helpers
 from controllers.web import api
 from controllers.web.error import AppUnavailableError
 from controllers.web.wraps import WebApiResource
-from models.model import App, AppMode
+from extensions.ext_database import db
+from models.account import TenantAccountJoin
+from models.model import App, AppMode, EndUser
 from services.app_service import AppService
 
 
@@ -42,5 +47,19 @@ class AppMeta(WebApiResource):
         return AppService().get_app_meta(app_model)
 
 
+class AppTenantPermission(WebApiResource):
+    def get(self, app_model: App, end_user: EndUser):
+        if app_model and end_user:
+            """Check if the user has permission to access the app"""
+            result = db.session.query(TenantAccountJoin).filter(
+                TenantAccountJoin.account_id == end_user.session_id, 
+                TenantAccountJoin.tenant_id == app_model.tenant_id 
+            ).first()
+            if result:
+                return {"result": "success"}
+        raise Forbidden()
+
+
 api.add_resource(AppParameterApi, "/parameters")
 api.add_resource(AppMeta, "/meta")
+api.add_resource(AppTenantPermission, "/permission")

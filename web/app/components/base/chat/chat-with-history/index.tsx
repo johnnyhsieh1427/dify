@@ -1,3 +1,6 @@
+// 修改日期2025-01-20
+// 修改內容：
+// 將原有的function checkOrSetAccessToken改成checkIsLogin
 import type { FC } from 'react'
 import {
   useEffect,
@@ -17,7 +20,7 @@ import ChatWrapper from './chat-wrapper'
 import type { InstalledApp } from '@/models/explore'
 import Loading from '@/app/components/base/loading'
 import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
-import { checkIsLogin, checkOrSetAccessToken } from '@/app/components/share/utils'
+import { checkIsLogin } from '@/app/components/share/utils'
 import AppUnavailable from '@/app/components/base/app-unavailable'
 
 type ChatWithHistoryProps = {
@@ -196,10 +199,8 @@ const ChatWithHistoryWrapWithCheckToken: FC<ChatWithHistoryWrapProps> = ({
     if (!initialized) {
       if (!installedAppInfo) {
         try {
-          if (true)
-            await checkIsLogin()
-          else
-            await checkOrSetAccessToken()
+          await checkIsLogin()
+          // await checkOrSetAccessToken()
         }
         catch (e: any) {
           if (e.status === 404) {

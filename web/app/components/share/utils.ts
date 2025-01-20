@@ -1,5 +1,13 @@
+// 修改日期2025-01-20
+// 修改內容：
+// 增加function fetchAppTenantPermissionc和fetchLoginUser
+
 import { CONVERSATION_ID_INFO } from '../base/chat/constants'
-import { fetchAccessToken, fetchLoginUser } from '@/service/share'
+import { fetchAccessToken, fetchAppTenantPermission, fetchLoginUser } from '@/service/share'
+
+export const checkAppTenantPermission = async () => {
+  await fetchAppTenantPermission()
+}
 
 export const checkIsLogin = async () => {
   const sharedToken = globalThis.location.pathname.split('/').slice(-1)[0]
