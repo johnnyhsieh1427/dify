@@ -4,6 +4,8 @@
 # 2. create_tracing_dataset_config
 # 3. update_tracing_dataset_config
 # 4. delete_tracing_dataset_config
+from typing import Optional
+
 from core.ops.ops_trace_manager import OpsTraceManager, provider_config_map
 from extensions.ext_database import db
 from models.dataset import Dataset
@@ -19,7 +21,7 @@ class OpsService:
         :param tracing_provider: tracing provider
         :return:
         """
-        trace_config_data: TraceAppConfig = (
+        trace_config_data: Optional[TraceAppConfig] = (
             db.session.query(TraceAppConfig)
             .filter(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
             .first()
@@ -29,7 +31,10 @@ class OpsService:
             return None
 
         # decrypt_token and obfuscated_token
-        tenant_id = db.session.query(App).filter(App.id == app_id).first().tenant_id
+        tenant = db.session.query(App).filter(App.id == app_id).first()
+        if not tenant:
+            return None
+        tenant_id = tenant.tenant_id
         decrypt_tracing_config = OpsTraceManager.decrypt_tracing_config(
             tenant_id, tracing_provider, trace_config_data.tracing_config
         )
@@ -115,6 +120,70 @@ class OpsService:
                 new_decrypt_tracing_config.update({"project_url": project_url})
             except Exception:
                 new_decrypt_tracing_config.update({"project_url": "https://smith.langchain.com/"})
+        
+        trace_config_data.tracing_config = new_decrypt_tracing_config
+        return trace_config_data.to_dict()
+
+    @classmethod
+    def get_tracing_dataset_config(cls, dataset_id: str, tracing_provider: str):
+        """
+        Get tracing dataset config
+        :param dataset_id: dataset id
+        :param tracing_provider: tracing provider
+        :return:
+        """
+        trace_config_data: TraceDatasetConfig = (
+            db.session.query(TraceDatasetConfig)
+            .filter(
+                TraceDatasetConfig.dataset_id == dataset_id, 
+                TraceDatasetConfig.tracing_provider == tracing_provider
+            ).first()
+        )
+
+        if not trace_config_data:
+            return None
+
+        # decrypt_token and obfuscated_token
+        tenant_id = db.session.query(Dataset).filter(Dataset.id == dataset_id).first().tenant_id
+        decrypt_tracing_config = OpsTraceManager.decrypt_tracing_config(
+            tenant_id, tracing_provider, trace_config_data.tracing_config
+        )
+        new_decrypt_tracing_config = OpsTraceManager.obfuscated_decrypt_token(tracing_provider, decrypt_tracing_config)
+
+        if tracing_provider == "langfuse" and (
+            "project_key" not in decrypt_tracing_config or not decrypt_tracing_config.get("project_key")
+        ):
+            try:
+                project_key = OpsTraceManager.get_trace_config_project_key(decrypt_tracing_config, tracing_provider)
+                new_decrypt_tracing_config.update(
+                    {
+                        "project_url": "{host}/project/{key}".format(
+                            host=decrypt_tracing_config.get("host"), key=project_key
+                        )
+                    }
+                )
+            except Exception:
+                new_decrypt_tracing_config.update(
+                    {"project_url": "{host}/".format(host=decrypt_tracing_config.get("host"))}
+                )
+
+        if tracing_provider == "langsmith" and (
+            "project_url" not in decrypt_tracing_config or not decrypt_tracing_config.get("project_url")
+        ):
+            try:
+                project_url = OpsTraceManager.get_trace_config_project_url(decrypt_tracing_config, tracing_provider)
+                new_decrypt_tracing_config.update({"project_url": project_url})
+            except Exception:
+                new_decrypt_tracing_config.update({"project_url": "https://smith.langchain.com/"})
+
+        if tracing_provider == "opik" and (
+            "project_url" not in decrypt_tracing_config or not decrypt_tracing_config.get("project_url")
+        ):
+            try:
+                project_url = OpsTraceManager.get_trace_config_project_url(decrypt_tracing_config, tracing_provider)
+                new_decrypt_tracing_config.update({"project_url": project_url})
+            except Exception:
+                new_decrypt_tracing_config.update({"project_url": "https://www.comet.com/opik/"})
 
         trace_config_data.tracing_config = new_decrypt_tracing_config
         return trace_config_data.to_dict()
@@ -135,8 +204,9 @@ class OpsService:
             provider_config_map[tracing_provider]["config_class"],
             provider_config_map[tracing_provider]["other_keys"],
         )
-        default_config_instance = config_class(**tracing_config)
-        for key in other_keys:
+        # FIXME: ignore type error
+        default_config_instance = config_class(**tracing_config)  # type: ignore
+        for key in other_keys:  # type: ignore
             if key in tracing_config and tracing_config[key] == "":
                 tracing_config[key] = getattr(default_config_instance, key, None)
 
@@ -148,13 +218,13 @@ class OpsService:
         if tracing_provider == "langfuse":
             project_key = OpsTraceManager.get_trace_config_project_key(tracing_config, tracing_provider)
             project_url = "{host}/project/{key}".format(host=tracing_config.get("host"), key=project_key)
-        elif tracing_provider == "langsmith":
+        elif tracing_provider in ("langsmith", "opik"):
             project_url = OpsTraceManager.get_trace_config_project_url(tracing_config, tracing_provider)
         else:
             project_url = None
 
         # check if trace config already exists
-        trace_config_data: TraceAppConfig = (
+        trace_config_data: Optional[TraceAppConfig] = (
             db.session.query(TraceAppConfig)
             .filter(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
             .first()
@@ -164,7 +234,10 @@ class OpsService:
             return None
 
         # get tenant id
-        tenant_id = db.session.query(App).filter(App.id == app_id).first().tenant_id
+        tenant = db.session.query(App).filter(App.id == app_id).first()
+        if not tenant:
+            return None
+        tenant_id = tenant.tenant_id
         tracing_config = OpsTraceManager.encrypt_tracing_config(tenant_id, tracing_provider, tracing_config)
         if project_url:
             tracing_config["project_url"] = project_url
@@ -194,8 +267,9 @@ class OpsService:
             provider_config_map[tracing_provider]["config_class"],
             provider_config_map[tracing_provider]["other_keys"],
         )
-        default_config_instance = config_class(**tracing_config)
-        for key in other_keys:
+        # FIXME: ignore type error
+        default_config_instance = config_class(**tracing_config)  # type: ignore
+        for key in other_keys:  # type: ignore
             if key in tracing_config and tracing_config[key] == "":
                 tracing_config[key] = getattr(default_config_instance, key, None)
 
@@ -207,13 +281,13 @@ class OpsService:
         if tracing_provider == "langfuse":
             project_key = OpsTraceManager.get_trace_config_project_key(tracing_config, tracing_provider)
             project_url = "{host}/project/{key}".format(host=tracing_config.get("host"), key=project_key)
-        elif tracing_provider == "langsmith":
+        elif tracing_provider in ("langsmith", "opik"):
             project_url = OpsTraceManager.get_trace_config_project_url(tracing_config, tracing_provider)
         else:
             project_url = None
 
         # check if trace config already exists
-        trace_config_data: TraceDatasetConfig = (
+        trace_config_data: Optional[TraceDatasetConfig] = (
             db.session.query(TraceDatasetConfig)
             .filter(
                 TraceDatasetConfig.dataset_id == dataset_id, 
@@ -263,47 +337,6 @@ class OpsService:
 
         # get tenant id
         tenant_id = db.session.query(App).filter(App.id == app_id).first().tenant_id
-        tracing_config = OpsTraceManager.encrypt_tracing_config(
-            tenant_id, tracing_provider, tracing_config, current_trace_config.tracing_config
-        )
-
-        # api check
-        # decrypt_token
-        decrypt_tracing_config = OpsTraceManager.decrypt_tracing_config(tenant_id, tracing_provider, tracing_config)
-        if not OpsTraceManager.check_trace_config_is_effective(decrypt_tracing_config, tracing_provider):
-            raise ValueError("Invalid Credentials")
-
-        current_trace_config.tracing_config = tracing_config
-        db.session.commit()
-
-        return current_trace_config.to_dict()
-
-    @classmethod
-    def update_tracing_dataset_config(cls, dataset_id: str, tracing_provider: str, tracing_config: dict):
-        """
-        Update tracing dataset config
-        :param dataset_id: dataset id
-        :param tracing_provider: tracing provider
-        :param tracing_config: tracing config
-        :return:
-        """
-        if tracing_provider not in provider_config_map:
-            raise ValueError(f"Invalid tracing provider: {tracing_provider}")
-
-        # check if trace config already exists
-        current_trace_config = (
-            db.session.query(TraceDatasetConfig)
-            .filter(
-                TraceDatasetConfig.dataset_id == dataset_id, 
-                TraceDatasetConfig.tracing_provider == tracing_provider
-            ).first()
-        )
-
-        if not current_trace_config:
-            return None
-
-        # get tenant id
-        tenant_id = db.session.query(Dataset).filter(Dataset.id == dataset_id).first().tenant_id
         tracing_config = OpsTraceManager.encrypt_tracing_config(
             tenant_id, tracing_provider, tracing_config, current_trace_config.tracing_config
         )

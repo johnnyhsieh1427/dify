@@ -1,6 +1,6 @@
 # 修改日期2025-01-20
 # 新增API AppTenantPermission，用於檢查使用者是否有權限訪問聊天機器人應用
-from flask_restful import marshal_with
+from flask_restful import marshal_with  # type: ignore
 from werkzeug.exceptions import Forbidden
 
 from controllers.common import fields
