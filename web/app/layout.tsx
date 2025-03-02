@@ -1,3 +1,6 @@
+// 修改日期2025-02-28
+// 新增NEXT_PUBLIC_WEB_CHAT_API_PREFIX常數變數
+
 import type { Viewport } from 'next'
 import I18nServer from './components/i18n-server'
 import BrowserInitor from './components/browser-initor'
@@ -38,6 +41,7 @@ const LocaleLayout = ({
         className="h-full select-auto color-scheme"
         data-api-prefix={process.env.NEXT_PUBLIC_API_PREFIX}
         data-pubic-api-prefix={process.env.NEXT_PUBLIC_PUBLIC_API_PREFIX}
+        data-web-chat-api-prefix={process.env.NEXT_PUBLIC_WEB_CHAT_API_PREFIX}
         data-public-edition={process.env.NEXT_PUBLIC_EDITION}
         data-public-support-mail-login={process.env.NEXT_PUBLIC_SUPPORT_MAIL_LOGIN}
         data-public-sentry-dsn={process.env.NEXT_PUBLIC_SENTRY_DSN}

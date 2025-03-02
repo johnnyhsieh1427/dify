@@ -1,3 +1,6 @@
+// 修改日期2025-02-28
+// 新增給web-chat介面使用
+
 'use client'
 import { useCallback, useEffect } from 'react'
 import Link from 'next/link'
@@ -14,6 +17,7 @@ import ExploreNav from './explore-nav'
 import ToolsNav from './tools-nav'
 import GithubStar from './github-star'
 import LicenseNav from './license-env'
+import UserChat from './user-chat'
 import { WorkspaceProvider } from '@/context/workspace-context'
 import AppContext, { useAppContext } from '@/context/app-context'
 import LogoSite from '@/app/components/base/logo/logo-site'
@@ -79,6 +83,7 @@ const Header = () => {
           {!isCurrentWorkspaceDatasetOperator && <AppNav />}
           {(isCurrentWorkspaceEditor || isCurrentWorkspaceDatasetOperator) && <DatasetNav />}
           {!isCurrentWorkspaceDatasetOperator && <ToolsNav className={navClassName} />}
+          {<UserChat className={navClassName}></UserChat>}
         </div>
       )}
       <div className='flex items-center flex-shrink-0'>
@@ -99,6 +104,7 @@ const Header = () => {
           {!isCurrentWorkspaceDatasetOperator && <AppNav />}
           {(isCurrentWorkspaceEditor || isCurrentWorkspaceDatasetOperator) && <DatasetNav />}
           {!isCurrentWorkspaceDatasetOperator && <ToolsNav className={navClassName} />}
+          {<UserChat className={navClassName}></UserChat>}
         </div>
       )}
     </div>

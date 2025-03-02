@@ -1,6 +1,10 @@
 # 修改日期2025-01-13
 # 取消自動生成名稱功能
 # 在function rename()中，將switch = False永遠不自動生成名稱
+# 修改日期2025-01-23
+# pagination_by_last_id()中，修改db的get成where
+# 修改日期2025-02-28
+# rename()中的auto_generate，修改成取前10個字元
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from typing import Optional, Union
@@ -37,7 +41,7 @@ class ConversationService:
             return InfiniteScrollPagination(data=[], limit=limit, has_more=False)
         account_id = (
             user.session_id if isinstance(user, EndUser)
-            and db.session.query(Account).get(user.session_id) 
+            and db.session.query(Account).where(Account.id == user.session_id)
             else user.id
         )
         stmt = select(Conversation).where(
@@ -110,9 +114,10 @@ class ConversationService:
         auto_generate: bool,
     ):
         conversation = cls.get_conversation(app_model, conversation_id, user)
-        switch = False
-        if auto_generate and switch:
-            return cls.auto_generate_name(app_model, conversation)
+
+        if auto_generate:
+            return cls.auto_name_conversation(app_model, conversation)
+            # return cls.auto_generate_name(app_model, conversation)
         else:
             if name in {None, ""}:
                 conversation.name = "New conversation"
@@ -122,7 +127,36 @@ class ConversationService:
             db.session.commit()
 
         return conversation
+    
+    @classmethod
+    def auto_name_conversation(cls, app_model: App, conversation: Conversation):
+        message = (
+            db.session.query(Message)
+            .filter(Message.app_id == app_model.id, Message.conversation_id == conversation.id)
+            .order_by(Message.created_at.asc())
+            .first()
+        )
 
+        if not message:
+            raise MessageNotExistsError()
+
+        try:
+            if len(message.answer) >= 10:
+                conversation.name = message.answer[:10] + "..."
+            else:
+                message_count = (
+                    db.session.query(Message)
+                    .filter(Message.app_id == app_model.id, Message.conversation_id == conversation.id)
+                    .count()
+                )
+                conversation.name = f"New conversation {message_count}"
+        except:
+            pass
+
+        db.session.commit()
+
+        return conversation
+    
     @classmethod
     def auto_generate_name(cls, app_model: App, conversation: Conversation):
         # get conversation first message

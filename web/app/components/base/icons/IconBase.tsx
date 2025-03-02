@@ -1,3 +1,4 @@
+/* eslint-disable react/display-name */
 import { forwardRef } from 'react'
 import { generate } from './utils'
 import type { AbstractNode } from './utils'

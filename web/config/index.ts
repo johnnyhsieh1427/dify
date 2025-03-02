@@ -1,3 +1,6 @@
+// 修改日期2025-02-28
+// 新增NEXT_PUBLIC_WEB_CHAT_API_PREFIX變數
+
 /* eslint-disable import/no-mutable-exports */
 import { InputVarType } from '@/app/components/workflow/types'
 import { AgentStrategy } from '@/types/app'
@@ -5,19 +8,25 @@ import { PromptRole } from '@/models/debug'
 
 export let apiPrefix = ''
 export let publicApiPrefix = ''
+export let webChatApiPrefix = ''
 
 // NEXT_PUBLIC_API_PREFIX=/console/api NEXT_PUBLIC_PUBLIC_API_PREFIX=/api npm run start
-if (process.env.NEXT_PUBLIC_API_PREFIX && process.env.NEXT_PUBLIC_PUBLIC_API_PREFIX) {
+if (process.env.NEXT_PUBLIC_API_PREFIX
+  && process.env.NEXT_PUBLIC_PUBLIC_API_PREFIX
+  && process.env.NEXT_PUBLIC_WEB_CHAT_API_PREFIX) {
   apiPrefix = process.env.NEXT_PUBLIC_API_PREFIX
   publicApiPrefix = process.env.NEXT_PUBLIC_PUBLIC_API_PREFIX
+  webChatApiPrefix = process.env.NEXT_PUBLIC_WEB_CHAT_API_PREFIX
 }
 else if (
   globalThis.document?.body?.getAttribute('data-api-prefix')
   && globalThis.document?.body?.getAttribute('data-pubic-api-prefix')
+  && globalThis.document?.body?.getAttribute('data-web-chat-api-prefix')
 ) {
   // Not build can not get env from process.env.NEXT_PUBLIC_ in browser https://nextjs.org/docs/basic-features/environment-variables#exposing-environment-variables-to-the-browser
   apiPrefix = globalThis.document.body.getAttribute('data-api-prefix') as string
   publicApiPrefix = globalThis.document.body.getAttribute('data-pubic-api-prefix') as string
+  webChatApiPrefix = globalThis.document.body.getAttribute('data-web-chat-api-prefix') as string
 }
 else {
   // const domainParts = globalThis.location?.host?.split('.');
@@ -25,10 +34,12 @@ else {
   // const env = domainParts.length === 2 ? 'ai' : domainParts?.[0];
   apiPrefix = 'http://localhost:5001/console/api'
   publicApiPrefix = 'http://localhost:5001/api' // avoid browser private mode api cross origin
+  webChatApiPrefix = 'http://localhost:5001/web-chat/api'
 }
 
 export const API_PREFIX: string = apiPrefix
 export const PUBLIC_API_PREFIX: string = publicApiPrefix
+export const WEB_CHAT_API_PREFIX: string = webChatApiPrefix
 
 const EDITION = process.env.NEXT_PUBLIC_EDITION || globalThis.document?.body?.getAttribute('data-public-edition') || 'SELF_HOSTED'
 export const IS_CE_EDITION = EDITION === 'SELF_HOSTED'

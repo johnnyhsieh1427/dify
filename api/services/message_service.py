@@ -1,3 +1,6 @@
+# 修改日期2025-02-28
+# get_message(), 根據 user 類型決定來源與對應的欄位
+
 import json
 from typing import Optional, Union
 
@@ -192,17 +195,36 @@ class MessageService:
 
     @classmethod
     def get_message(cls, app_model: App, user: Optional[Union[Account, EndUser]], message_id: str):
+        # 根據 user 類型決定來源與對應的欄位
+        if isinstance(user, Account):
+            from_source = "console"
+            user_field = Message.from_account_id
+        else:
+            from_source = "api"
+            user_field = Message.from_end_user_id
+            
+        # 組合查詢條件，一次查詢就可達成
         message = (
             db.session.query(Message)
             .filter(
                 Message.id == message_id,
                 Message.app_id == app_model.id,
-                Message.from_source == ("api" if isinstance(user, EndUser) else "console"),
-                Message.from_end_user_id == (user.id if isinstance(user, EndUser) else None),
-                Message.from_account_id == (user.id if isinstance(user, Account) else None),
+                Message.from_source == from_source,
+                user_field == (user.id if user else None),
             )
             .first()
         )
+        # message = (
+        #     db.session.query(Message)
+        #     .filter(
+        #         Message.id == message_id,
+        #         Message.app_id == app_model.id,
+        #         Message.from_source == ("api" if isinstance(user, EndUser) else "console"),
+        #         Message.from_end_user_id == (user.id if isinstance(user, EndUser) else None),
+        #         Message.from_account_id == (user.id if isinstance(user, Account) else None),
+        #     )
+        #     .first()
+        # )
 
         if not message:
             raise MessageNotExistsError()

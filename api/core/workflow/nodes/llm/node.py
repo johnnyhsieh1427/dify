@@ -1,3 +1,8 @@
+# 修改日期2025-01-23
+# 修改function _fetch_context()
+# 可以接受來自非KB retriever的context
+# json接收也可以
+
 import json
 import logging
 from collections.abc import Generator, Mapping, Sequence
@@ -37,6 +42,7 @@ from core.variables import (
     FileSegment,
     NoneSegment,
     ObjectSegment,
+    SegmentType,
     StringSegment,
 )
 from core.workflow.constants import SYSTEM_VARIABLE_NODE_ID
@@ -403,9 +409,18 @@ class LLMNode(BaseNode[LLMNodeData]):
             if isinstance(context_value_variable, StringSegment):
                 yield RunRetrieverResourceEvent(retriever_resources=[], context=context_value_variable.value)
             elif isinstance(context_value_variable, ArraySegment):
+                if (context_value_variable.value_type == SegmentType.ARRAY_OBJECT
+                    and len(context_value_variable.value) == 1
+                    and isinstance(context_value_variable.value[0], dict)
+                    and context_value_variable.value[0].get("kb_results", False)):
+                    iterations = context_value_variable.value[0]["kb_results"]
+                else:
+                    iterations = context_value_variable.value
+                    
                 context_str = ""
                 original_retriever_resource = []
-                for item in context_value_variable.value:
+                # for item in context_value_variable.value:
+                for item in iterations:
                     if isinstance(item, str):
                         context_str += item + "\n"
                     else:

@@ -206,3 +206,5 @@ docker/test.docker.yaml
 docker/clickhouse_backups/bak_folder/docker_langfuse_clickhouse_data_backup_2024-12-18_10-08-05.tar.gz
 docker/clickhouse_backups/bak_folder/docker_langfuse_clickhouse_logs_backup_2024-12-18_10-08-05.tar.gz
 docker/clickhouse_backups/backup - 複製.sh
+docker/langfuse.env
+api/migrations/versions/2025_01_08_0201-77e34d269b57_add_database_tracing_config.py.bak

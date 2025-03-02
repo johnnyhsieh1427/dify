@@ -1,12 +1,30 @@
 // 修改日期2025-01-20
 // 修改內容：
 // 增加function fetchAppTenantPermissionc和fetchLoginUser
+// 修改日期2025-02-28
+// 新增checkUserAppLogin()
 
 import { CONVERSATION_ID_INFO } from '../base/chat/constants'
-import { fetchAccessToken, fetchAppTenantPermission, fetchLoginUser } from '@/service/share'
+import { fetchAccessToken, fetchAppTenantPermission, fetchLoginUser, fetchUserApp } from '@/service/share'
 
 export const checkAppTenantPermission = async () => {
   await fetchAppTenantPermission()
+}
+
+export const checkUserAppLogin = async () => {
+  const sharedToken = globalThis.location.pathname.split('/').slice(-1)[0]
+  const accessToken = localStorage.getItem('token') || JSON.stringify({ [sharedToken]: '' })
+  let accessTokenJson = { [sharedToken]: '' }
+  try {
+    accessTokenJson = JSON.parse(accessToken)
+  }
+  catch (e) {
+
+  }
+
+  const res = await fetchUserApp()
+  accessTokenJson[sharedToken] = res.access_token
+  localStorage.setItem('token', JSON.stringify(accessTokenJson))
 }
 
 export const checkIsLogin = async () => {

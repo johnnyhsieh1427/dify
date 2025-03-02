@@ -1,3 +1,6 @@
+# 修改日期2025-02-28
+# 在父子的index中，修改load()方法，增加user_id和process_id參數
+
 """Paragraph index processor."""
 
 import uuid
@@ -96,6 +99,8 @@ class ParentChildIndexProcessor(BaseIndexProcessor):
 
     def load(self, dataset: Dataset, documents: list[Document], with_keywords: bool = True, **kwargs):
         if dataset.indexing_technique == "high_quality":
+            user_id = kwargs.get("user_id")
+            process_id = kwargs.get("process_id")            
             vector = Vector(dataset)
             for document in documents:
                 child_documents = document.children
@@ -103,7 +108,7 @@ class ParentChildIndexProcessor(BaseIndexProcessor):
                     formatted_child_documents = [
                         Document(**child_document.model_dump()) for child_document in child_documents
                     ]
-                    vector.create(formatted_child_documents)
+                    vector.create(formatted_child_documents, user_id=user_id, process_id=process_id)
 
     def clean(self, dataset: Dataset, node_ids: Optional[list[str]], with_keywords: bool = True, **kwargs):
         # node_ids is segment's node_ids

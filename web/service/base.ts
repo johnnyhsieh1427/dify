@@ -1,5 +1,9 @@
+// 修改日期2025-02-28
+// 修改內容：
+// 新增isWebChatAPI條件和webChat API溝通函式
+
 import { refreshAccessTokenOrRelogin } from './refresh-token'
-import { API_PREFIX, IS_CE_EDITION, PUBLIC_API_PREFIX } from '@/config'
+import { API_PREFIX, IS_CE_EDITION, PUBLIC_API_PREFIX, WEB_CHAT_API_PREFIX } from '@/config'
 import Toast from '@/app/components/base/toast'
 import type { AnnotationReply, MessageEnd, MessageReplace, ThoughtItem } from '@/app/components/base/chat/chat/type'
 import type { VisionFile } from '@/types/app'
@@ -72,6 +76,7 @@ export type IOnTTSEnd = (messageId: string, audioStr: string, audioType?: string
 export type IOnTextReplace = (textReplace: TextReplaceResponse) => void
 
 export type IOtherOptions = {
+  isWebChatAPI?: boolean
   isPublicAPI?: boolean
   bodyStringify?: boolean
   needAllResponseContent?: boolean
@@ -305,6 +310,7 @@ const baseFetch = <T>(
   url: string,
   fetchOptions: FetchOptionType,
   {
+    isWebChatAPI = false,
     isPublicAPI = false,
     bodyStringify = true,
     needAllResponseContent,
@@ -331,7 +337,9 @@ const baseFetch = <T>(
       options.headers.set('Content-Type', ContentType.json)
   }
 
-  const urlPrefix = isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX
+  // const urlPrefix = isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX
+  const urlPrefix = isWebChatAPI ? WEB_CHAT_API_PREFIX : (isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX)
+
   let urlWithPrefix = (url.startsWith('http://') || url.startsWith('https://'))
     ? url
     : `${urlPrefix}${url.startsWith('/') ? url : `/${url}`}`
@@ -411,8 +419,8 @@ const baseFetch = <T>(
   ]) as Promise<T>
 }
 
-export const upload = (options: any, isPublicAPI?: boolean, url?: string, searchParams?: string): Promise<any> => {
-  const urlPrefix = isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX
+export const upload = (options: any, isPublicAPI?: boolean, url?: string, searchParams?: string, isWebChatAPI?: boolean): Promise<any> => {
+  const urlPrefix = isWebChatAPI ? WEB_CHAT_API_PREFIX : (isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX)
   const token = getAccessToken(isPublicAPI)
   const defaultOptions = {
     method: 'POST',
@@ -454,6 +462,7 @@ export const ssePost = (
   otherOptions: IOtherOptions,
 ) => {
   const {
+    isWebChatAPI = false,
     isPublicAPI = false,
     onData,
     onCompleted,
@@ -491,7 +500,9 @@ export const ssePost = (
 
   getAbortController?.(abortController)
 
-  const urlPrefix = isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX
+  // const urlPrefix = isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX
+  const urlPrefix = isWebChatAPI ? WEB_CHAT_API_PREFIX : (isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX)
+
   const urlWithPrefix = (url.startsWith('http://') || url.startsWith('https://'))
     ? url
     : `${urlPrefix}${url.startsWith('/') ? url : `/${url}`}`
@@ -663,4 +674,25 @@ export const patch = <T>(url: string, options = {}, otherOptions?: IOtherOptions
 
 export const patchPublic = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
   return patch<T>(url, options, { ...otherOptions, isPublicAPI: true })
+}
+
+// For WebChat API
+export const getWebChat = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
+  return get<T>(url, options, { ...otherOptions, isWebChatAPI: true, isPublicAPI: true })
+}
+
+export const postWebChat = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
+  return post<T>(url, options, { ...otherOptions, isWebChatAPI: true, isPublicAPI: true })
+}
+
+export const putWebChat = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
+  return put<T>(url, options, { ...otherOptions, isWebChatAPI: true, isPublicAPI: true })
+}
+
+export const delWebChat = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
+  return del<T>(url, options, { ...otherOptions, isWebChatAPI: true, isPublicAPI: true })
+}
+
+export const patchWebChat = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
+  return patch<T>(url, options, { ...otherOptions, isWebChatAPI: true, isPublicAPI: true })
 }

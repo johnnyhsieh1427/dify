@@ -1,3 +1,6 @@
+# 修改日期2025-02-28
+# 新增create_workspace(), create-account()和delete-account()函數
+
 import base64
 import json
 import logging
@@ -24,7 +27,7 @@ from models.dataset import Dataset, DatasetCollectionBinding, DocumentSegment
 from models.dataset import Document as DatasetDocument
 from models.model import Account, App, AppAnnotationSetting, AppMode, Conversation, MessageAnnotation
 from models.provider import Provider, ProviderModel
-from services.account_service import RegisterService, TenantService
+from services.account_service import AccountService, RegisterService, TenantService
 
 
 @click.command("reset-password", help="Reset the account password.")
@@ -528,6 +531,119 @@ def add_qdrant_doc_id_index(field: str):
         click.echo(click.style("Failed to create Qdrant client.", fg="red"))
 
     click.echo(click.style(f"Index creation complete. Created {create_count} collection indexes.", fg="green"))
+
+
+@click.command("create-workspace", help="Create workspace on existing account.")
+@click.option("--email", prompt=True, help="Account email.")
+@click.option("--name", prompt=True, help="Workspace name.")
+@click.option("--language", prompt=True, help="Account language, default: en-US.")
+def create_workspace(email: str, language: Optional[str] = None, name: Optional[str] = None):
+    """
+    Create workspace
+    """
+    if not email:
+        click.echo(click.style("Email is required.", fg="red"))
+        return
+
+    # Create account
+    email = email.strip()
+
+    if "@" not in email:
+        click.echo(click.style("Invalid email address.", fg="red"))
+        return
+
+    if language not in languages:
+        language = "en-US"
+        # language = "zh-Hant"
+
+    # Validates name encoding for non-Latin characters.
+    name = name.strip().encode("utf-8").decode("utf-8") if name else None
+
+    # retrieve account
+    account = db.session.query(Account).filter(Account.email == email).one_or_none()
+    
+    if not account:
+        click.echo(click.style("Account not found for email: {}".format(email), fg="red"))
+    else:
+        TenantService.create_owner_tenant_if_not_exist(account, name)
+
+        click.echo(
+            click.style(
+                "Tenant created.\nAccount: {}".format(email),
+                fg="green",
+            )
+        )
+
+def parse_emails(ctx, param, value):
+    """
+    Parse emails
+    """
+    emails = []
+    try:
+        for email in value:
+            emails.extend([e.strip().lower() for e in email.split(",") if e.strip()])
+        return emails
+    except Exception as e:
+        return value
+
+
+@click.command("create-account", help="Create account.")
+@click.option("--email", "-e", multiple=True, callback=parse_emails, help="Account email.")
+# @click.option("--name", prompt=True, help="Account name.")
+@click.option("--language", "-lg", prompt=True, default="en-US", help="Account language, default: en-US.")
+def create_account(email: list, language: Optional[str] = None):
+    """
+    Create account
+    """
+    if not email:
+        click.echo(click.style("Email is required.", fg="red"))
+        return
+
+    for e in email:
+        # Create account
+        _email = e.strip()
+
+        if "@" not in _email:
+            click.echo(click.style("Invalid email address.", fg="red"))
+            continue
+
+        if language not in languages:
+            language = "en-US"
+
+        account_name = email.split("@")[0]
+
+        new_password = account_name
+
+        # register account
+        account = RegisterService.register(
+            email=email, name=account_name, password=new_password, language=language, create_workspace_required=False
+        )
+
+        click.echo(
+            click.style(
+                "Account created.\nEmail: {}\nAccount: {}\nPassword: {}".format(email, account.name, new_password),
+                fg="green",
+            )
+        )
+
+
+@click.command("delete-account", help="Delete existing account.")
+@click.option("--email", prompt=True, help="Account email.")
+def delete_account(email: str):
+    """
+    Delete account
+    """
+    if not email:
+        click.echo(click.style("Email is required.", fg="red"))
+        return
+
+    account = db.session.query(Account).filter(Account.email == email).one_or_none()
+
+    if not account:
+        click.echo(click.style("Account not found for email: {}".format(email), fg="red"))
+        return
+    AccountService.delete_account(account)
+    click.echo(click.style("Account deleted successfully.", fg="green"))
 
 
 @click.command("create-tenant", help="Create account and tenant.")

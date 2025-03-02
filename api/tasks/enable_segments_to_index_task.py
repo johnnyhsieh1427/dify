@@ -1,3 +1,6 @@
+# 修改日期2025-02-28
+# 修改enable_segments_to_index_task()函數, 加入user_id, process_id參數
+
 import datetime
 import logging
 import time
@@ -15,13 +18,15 @@ from models.dataset import Document as DatasetDocument
 
 
 @shared_task(queue="dataset")
-def enable_segments_to_index_task(segment_ids: list, dataset_id: str, document_id: str):
+def enable_segments_to_index_task(segment_ids: list, dataset_id: str, document_id: str, **kwargs):
     """
     Async enable segments to index
     :param segment_ids:
 
     Usage: enable_segments_to_index_task.delay(segment_ids)
     """
+    user_id = kwargs.get("user_id")
+    process_id = kwargs.get("process_id")
     start_at = time.perf_counter()
     dataset = db.session.query(Dataset).filter(Dataset.id == dataset_id).first()
     if not dataset:
@@ -82,7 +87,12 @@ def enable_segments_to_index_task(segment_ids: list, dataset_id: str, document_i
                     document.children = child_documents
             documents.append(document)
         # save vector index
-        index_processor.load(dataset, documents)
+        index_processor.load(
+            dataset, 
+            documents, 
+            user_id=user_id, 
+            process_id=process_id
+        )
 
         end_at = time.perf_counter()
         logging.info(click.style("Segments enabled to index latency: {}".format(end_at - start_at), fg="green"))

@@ -1,10 +1,17 @@
+# 修改日期2025-01-23
+# 修正BUG轉型有問題，直接給值不轉型
+# app_config: EasyUIBasedAppConfig = cast(EasyUIBasedAppConfig, application_generate_entity.app_config)
+
 import json
 import logging
 from collections.abc import Generator
 from datetime import UTC, datetime
-from typing import Optional, Union, cast
 
-from sqlalchemy import and_, cast
+# from typing import Optional, Union, cast
+from typing import Optional, Union
+
+from sqlalchemy import and_
+from sqlalchemy import cast as sql_cast
 from sqlalchemy.dialects.postgresql import TEXT
 
 from core.app.app_config.entities import EasyUIBasedAppConfig, EasyUIBasedAppModelConfigFrom
@@ -144,7 +151,8 @@ class MessageBasedAppGenerator(BaseAppGenerator):
         :conversation conversation
         :return:
         """
-        app_config: EasyUIBasedAppConfig = cast(EasyUIBasedAppConfig, application_generate_entity.app_config)
+        # app_config: EasyUIBasedAppConfig = cast(EasyUIBasedAppConfig, application_generate_entity.app_config)
+        app_config: EasyUIBasedAppConfig = application_generate_entity.app_config
 
         # get from source
         end_user_id = None
@@ -155,7 +163,7 @@ class MessageBasedAppGenerator(BaseAppGenerator):
             
             end_user_account = (
                 db.session.query(Account)
-                .join(EndUser, EndUser.session_id == cast(Account.id, TEXT))
+                .join(EndUser, EndUser.session_id == sql_cast(Account.id, TEXT))
                 .filter(EndUser.id == end_user_id)
                 .first()
             )

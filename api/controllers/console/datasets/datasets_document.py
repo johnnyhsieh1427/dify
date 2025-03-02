@@ -3,6 +3,9 @@
 # 1. sync_website_document()
 # 2. add_document_to_index_task()
 # 新增user_id和process_id參數
+# 修改日期2025-01-23
+# 移除API DocumentStatusApi PATCH的接收document_id參數
+
 import logging
 import uuid
 from argparse import ArgumentTypeError
@@ -792,10 +795,9 @@ class DocumentStatusApi(DocumentResource):
     @cloud_edition_billing_resource_check("vector_space")
     def patch(self, dataset_id, action):
         dataset_id = str(dataset_id)
-        document_id = str(document_id)
         process_id = str(uuid.uuid5(
             uuid.NAMESPACE_DNS,
-            datetime.datetime.now().isoformat()
+            datetime.now().isoformat()
         ))
         dataset = DatasetService.get_dataset(dataset_id)
         if dataset is None:

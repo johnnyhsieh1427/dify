@@ -5,6 +5,12 @@
 # 3. multi_create_segment()內部
 # 4. update_segment()內部
 # 的參數，加入user_id和process_id參數，用於追蹤資料庫操作的使用者和程序
+# 修改日期2025-02-28
+# 1. update_segment()
+# 2. update_segments_status()
+# 3. update_child_chunks()
+# 4. update_child_chunk()
+# 的參數，加入user_id和process_id參數
 
 import datetime
 import json
@@ -1776,11 +1782,11 @@ class SegmentService:
                     # update segment vector index
                     VectorService.update_segment_vector(
                         args.keywords, 
-                        segment, 
-						dataset,
-						user_id=user_id, 
-						process_id=process_id
-					)
+                        segment,
+                        dataset,
+                        user_id=user_id,
+                        process_id=process_id,
+                    )
 
         except Exception as e:
             logging.exception("update segment index failed")
@@ -1829,7 +1835,9 @@ class SegmentService:
         db.session.commit()
 
     @classmethod
-    def update_segments_status(cls, segment_ids: list, action: str, dataset: Dataset, document: Document):
+    def update_segments_status(cls, segment_ids: list, action: str, dataset: Dataset, document: Document, **kwargs):
+        user_id = kwargs.get("user_id")
+        process_id = kwargs.get("process_id")
         if action == "enable":
             segments = (
                 db.session.query(DocumentSegment)
@@ -1856,7 +1864,13 @@ class SegmentService:
                 real_deal_segmment_ids.append(segment.id)
             db.session.commit()
 
-            enable_segments_to_index_task.delay(real_deal_segmment_ids, dataset.id, document.id)
+            enable_segments_to_index_task.delay(
+                real_deal_segmment_ids, 
+                dataset.id, 
+                document.id,
+                user_id=user_id,
+                process_id=process_id
+            )
         elif action == "disable":
             segments = (
                 db.session.query(DocumentSegment)
@@ -1931,7 +1945,12 @@ class SegmentService:
             db.session.add(child_chunk)
             # save vector index
             try:
-                VectorService.create_child_chunk_vector(child_chunk, dataset)
+                VectorService.create_child_chunk_vector(
+                    child_chunk, dataset, user_id=str(current_user.id), 
+                    process_id=str(uuid.uuid5(
+                        uuid.NAMESPACE_DNS, datetime.datetime.now().isoformat()
+                    ))
+                )
             except Exception as e:
                 logging.exception("create child chunk index failed")
                 db.session.rollback()
@@ -1947,6 +1966,7 @@ class SegmentService:
         segment: DocumentSegment,
         document: Document,
         dataset: Dataset,
+        **kwargs,
     ) -> list[ChildChunk]:
         child_chunks = (
             db.session.query(ChildChunk)
@@ -2005,7 +2025,14 @@ class SegmentService:
                     db.session.add(child_chunk)
                     db.session.flush()
                     new_child_chunks.append(child_chunk)
-            VectorService.update_child_chunk_vector(new_child_chunks, update_child_chunks, delete_child_chunks, dataset)
+            VectorService.update_child_chunk_vector(
+                new_child_chunks, 
+                update_child_chunks, 
+                delete_child_chunks, 
+                dataset,
+                user_id=str(current_user.id),
+                process_id=str(uuid.uuid5(uuid.NAMESPACE_DNS, datetime.datetime.now().isoformat()))
+            )
             db.session.commit()
         except Exception as e:
             logging.exception("update child chunk index failed")
@@ -2029,7 +2056,13 @@ class SegmentService:
             child_chunk.updated_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
             child_chunk.type = "customized"
             db.session.add(child_chunk)
-            VectorService.update_child_chunk_vector([], [child_chunk], [], dataset)
+            VectorService.update_child_chunk_vector(
+                [], [child_chunk], [], dataset, 
+                user_id=str(current_user.id), 
+                process_id=str(uuid.uuid5(
+                    uuid.NAMESPACE_DNS, datetime.datetime.now().isoformat()
+                ))
+            )
             db.session.commit()
         except Exception as e:
             logging.exception("update child chunk index failed")

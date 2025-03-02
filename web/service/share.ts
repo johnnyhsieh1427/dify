@@ -2,10 +2,14 @@
 // 修改內容：
 // 增加function fetchAppTenantPermissionc和fetchLoginUser
 // 給前端使用function獲取api資料
+// 修改日期2025-02-28
+// 修改內容：
+// 新增function給web-chat使用
 import type { IOnCompleted, IOnData, IOnError, IOnFile, IOnIterationFinished, IOnIterationNext, IOnIterationStarted, IOnMessageEnd, IOnMessageReplace, IOnNodeFinished, IOnNodeStarted, IOnTTSChunk, IOnTTSEnd, IOnTextChunk, IOnTextReplace, IOnThought, IOnWorkflowFinished, IOnWorkflowStarted } from './base'
 import {
   del as consoleDel, get as consoleGet, patch as consolePatch, post as consolePost,
-  delPublic as del, getPublic as get, patchPublic as patch, postPublic as post, ssePost,
+  delPublic as del, delWebChat, getPublic as get, getWebChat, patchPublic as patch,
+  patchWebChat, postPublic as post, postWebChat, ssePost,
 } from './base'
 import type { FeedbackType } from '@/app/components/base/chat/chat/type'
 import type {
@@ -234,6 +238,61 @@ export const fetchLoginUser = async (params: Record<string, any>) => {
   return consoleGet('/passport_auth', { params }) as Promise<{ access_token: string }>
 }
 
+export const fetchUserApp = async () => {
+  return consoleGet('/passport_user') as Promise<{ access_token: string }>
+}
+
 export const fetchAppTenantPermission = async () => {
   return get('/permission') as Promise<{ result: string }>
+}
+
+// web-chat controller
+// Location: web.controller.web_user.*
+
+export const fetchUserAppInfo = async () => {
+  return getWebChat('site') as Promise<{ 'items': AppData[] }>
+}
+
+export const fetchUserAppMeta = async () => {
+  return getWebChat('meta') as Promise<AppMeta[]>
+}
+
+export const fetchUserAppParams = async () => {
+  return getWebChat('parameters') as Promise<ChatConfig[]>
+}
+
+export const fetchUserConversations = async (appId: string, last_id?: string, pinned?: boolean, limit?: number) => {
+  return getWebChat(`conversations/${appId}`, { params: { ...{ limit: limit || 20 }, ...(last_id ? { last_id } : {}), ...(pinned !== undefined ? { pinned } : {}) } }) as Promise<AppConversationData>
+}
+
+export const pinUserConversation = async (appId: string, id: string) => {
+  return patchWebChat(`conversations/${appId}/${id}/pin`)
+}
+
+export const unpinUserConversation = async (appId: string, id: string) => {
+  return patchWebChat(`conversations/${appId}/${id}/unpin`)
+}
+
+export const delUserConversation = async (appId: string, id: string) => {
+  return delWebChat(`conversations/${appId}/${id}`)
+}
+
+export const renameUserConversation = async (appId: string, id: string, name: string) => {
+  return postWebChat(`conversations/${appId}/${id}/name`, { body: { name } })
+}
+
+export const generationUserConversationName = async (appId: string, id: string) => {
+  return postWebChat(`conversations/${appId}/${id}/name`, { body: { auto_generate: true } }) as Promise<ConversationItem>
+}
+
+export const fetchUserChatList = async (appId: string, conversationId: string) => {
+  return getWebChat(`messages/${appId}`, { params: { conversation_id: conversationId, limit: 20, last_id: '' } }) as any
+}
+
+export const updateUserFeedback = async (appId: string, messageId: string, body?: FeedbackType) => {
+  return postWebChat(`/messages/${appId}/${messageId}/feedbacks`, { body })
+}
+
+export const stopUserChatMessageResponding = async (appId: string, taskId: string) => {
+  return postWebChat(`chat-messages/${appId}/${taskId}/stop`)
 }

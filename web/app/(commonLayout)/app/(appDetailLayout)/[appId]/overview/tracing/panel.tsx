@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { usePathname } from 'next/navigation'
 import { useBoolean } from 'ahooks'
-import type { LangFuseConfig, LangSmithConfig } from './type'
+import type { LangFuseConfig, LangSmithConfig, OpikConfig } from './type'
 import { TracingProvider } from './type'
 import TracingIcon from './tracing-icon'
 import ConfigButton from './config-button'
@@ -102,7 +102,7 @@ const Panel: FC = () => {
     const { tracing_config } = await doFetchTracingConfig({ appId, provider })
     if (provider === TracingProvider.langSmith)
       setLangSmithConfig(tracing_config as LangSmithConfig)
-    else if (provider === TracingProvider.langSmith)
+    else if (provider === TracingProvider.langfuse)
       setLangFuseConfig(tracing_config as LangFuseConfig)
     else if (provider === TracingProvider.opik)
       setOpikConfig(tracing_config as OpikConfig)
@@ -111,7 +111,7 @@ const Panel: FC = () => {
   const handleTracingConfigRemoved = (provider: TracingProvider) => {
     if (provider === TracingProvider.langSmith)
       setLangSmithConfig(null)
-    else if (provider === TracingProvider.langSmith)
+    else if (provider === TracingProvider.langfuse)
       setLangFuseConfig(null)
     else if (provider === TracingProvider.opik)
       setOpikConfig(null)

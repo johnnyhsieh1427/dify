@@ -1,5 +1,12 @@
 # 修改日期2025-01-13
 # 新增作者(created_by)的變數user，用於知道是哪個使用者在操作
+# 修改日期2025-02-28
+# create_child_chunk_vector
+# update_child_chunk_vector
+# update_segment_vector
+# create_segments_vector
+# 加入 user_id 和 process_id 參數
+
 from typing import Optional
 
 from core.model_manager import ModelInstance, ModelManager
@@ -18,7 +25,12 @@ from services.entities.knowledge_entities.knowledge_entities import ParentMode
 class VectorService:
     @classmethod
     def create_segments_vector(
-        cls, keywords_list: Optional[list[list[str]]], segments: list[DocumentSegment], dataset: Dataset, doc_form: str, **kwargs
+        cls, 
+        keywords_list: Optional[list[list[str]]], 
+        segments: list[DocumentSegment], 
+        dataset: Dataset, 
+        doc_form: str, 
+        **kwargs
     ):
         user_id = kwargs.get("user_id")
         process_id = kwargs.get("process_id")
@@ -69,12 +81,13 @@ class VectorService:
         if len(documents) > 0:
             index_processor = IndexProcessorFactory(doc_form).init_index_processor()
             index_processor.load(
-                dataset, 
-				documents, 
-				with_keywords=True, keywords_list=keywords_list, 
-				user_id=user_id, 
-				process_id=process_id
-			)
+                dataset,
+                documents,
+                with_keywords=True,
+                keywords_list=keywords_list,
+                user_id=user_id,
+                process_id=process_id,
+            )
 
     @classmethod
     def update_segment_vector(cls, keywords: Optional[list[str]], segment: DocumentSegment, dataset: Dataset, **kwargs):
@@ -95,7 +108,9 @@ class VectorService:
             # update vector index
             vector = Vector(dataset=dataset)
             vector.delete_by_ids([segment.index_node_id])
-            vector.add_texts([document], duplicate_check=True, user_id=user_id, process_id=process_id)
+            vector.add_texts(
+                [document], duplicate_check=True, user_id=user_id, process_id=process_id
+            )
 
         # update keyword index
         keyword = Keyword(dataset)
@@ -164,7 +179,9 @@ class VectorService:
         db.session.commit()
 
     @classmethod
-    def create_child_chunk_vector(cls, child_segment: ChildChunk, dataset: Dataset):
+    def create_child_chunk_vector(cls, child_segment: ChildChunk, dataset: Dataset, **kwargs):
+        user_id = kwargs.get("user_id")
+        process_id = kwargs.get("process_id")
         child_document = Document(
             page_content=child_segment.content,
             metadata={
@@ -177,7 +194,9 @@ class VectorService:
         if dataset.indexing_technique == "high_quality":
             # save vector index
             vector = Vector(dataset=dataset)
-            vector.add_texts([child_document], duplicate_check=True)
+            vector.add_texts(
+                [child_document], duplicate_check=True, user_id=user_id, process_id=process_id
+            )
 
     @classmethod
     def update_child_chunk_vector(
@@ -186,7 +205,10 @@ class VectorService:
         update_child_chunks: list[ChildChunk],
         delete_child_chunks: list[ChildChunk],
         dataset: Dataset,
+        **kwargs,
     ):
+        user_id = kwargs.get("user_id")
+        process_id = kwargs.get("process_id")
         documents = []
         delete_node_ids = []
         for new_child_chunk in new_child_chunks:
@@ -220,7 +242,9 @@ class VectorService:
             if delete_node_ids:
                 vector.delete_by_ids(delete_node_ids)
             if documents:
-                vector.add_texts(documents, duplicate_check=True)
+                vector.add_texts(
+                    documents, duplicate_check=True, user_id=user_id, process_id=process_id
+                )
 
     @classmethod
     def delete_child_chunk_vector(cls, child_chunk: ChildChunk, dataset: Dataset):

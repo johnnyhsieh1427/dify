@@ -1,3 +1,6 @@
+// 修改日期2025-02-28
+// 新增使用量usage變數
+
 import type { Var } from './types'
 import { BlockEnum, VarType } from './types'
 import StartNodeDefault from './nodes/start/default'
@@ -396,6 +399,10 @@ export const LLM_OUTPUT_STRUCT: Var[] = [
   {
     variable: 'text',
     type: VarType.string,
+  },
+  {
+    variable: 'usage',
+    type: VarType.object,
   },
 ]
 

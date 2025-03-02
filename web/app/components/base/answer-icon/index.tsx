@@ -1,3 +1,6 @@
+// 修改日期2025-02-28
+// 新增text變數輸入文字
+
 'use client'
 
 import type { FC } from 'react'
@@ -13,6 +16,7 @@ export type AnswerIconProps = {
   icon?: string | null
   background?: string | null
   imageUrl?: string | null
+  text?: string | null
 }
 
 const AnswerIcon: FC<AnswerIconProps> = ({
@@ -20,6 +24,7 @@ const AnswerIcon: FC<AnswerIconProps> = ({
   icon,
   background,
   imageUrl,
+  text,
 }) => {
   const wrapperClassName = classNames(
     'flex',
@@ -33,15 +38,23 @@ const AnswerIcon: FC<AnswerIconProps> = ({
     'text-xl',
   )
   const isValidImageIcon = iconType === 'image' && imageUrl
-  return <div
+  const iconStyle = text
+    ? {
+      background: background || '#D5F5F6',
+      display: text ? 'inline-block' : 'block',
+    }
+    : { background: background || '#D5F5F6' }
+  return <><div
     className={wrapperClassName}
-    style={{ background: background || '#D5F5F6' }}
+    style={iconStyle}
+    // style={{ background: background || '#D5F5F6' }}
   >
     {isValidImageIcon
       ? <img src={imageUrl} className="w-full h-full rounded-full" alt="answer icon" />
       : (icon && icon !== '') ? <em-emoji id={icon} /> : <em-emoji id='🤖' />
     }
   </div>
+  {text && <span className="ml-2">{text}</span>}</>
 }
 
 export default AnswerIcon

@@ -1,3 +1,7 @@
+# 修改日期2025-02-28
+# create_owner_tenant_if_not_exist()函數, 
+# 加入FeatureService.get_system_features().is_allow_create_workspace參數
+
 import base64
 import json
 import logging
@@ -578,7 +582,7 @@ class TenantService:
             TenantAccountJoin.query.filter_by(account_id=account.id).order_by(TenantAccountJoin.id.asc()).first()
         )
 
-        if available_ta:
+        if available_ta and not FeatureService.get_system_features().is_allow_create_workspace:
             return
 
         """Create owner tenant if not exist"""

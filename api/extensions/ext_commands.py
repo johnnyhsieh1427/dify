@@ -1,3 +1,6 @@
+# 修改日期2025-02-28
+# 新增create_workspace功能
+
 from dify_app import DifyApp
 
 
@@ -6,6 +9,7 @@ def init_app(app: DifyApp):
         add_qdrant_doc_id_index,
         convert_to_agent_apps,
         create_tenant,
+        create_workspace,
         fix_app_site_missing,
         reset_email,
         reset_encrypt_key_pair,
@@ -22,6 +26,7 @@ def init_app(app: DifyApp):
         convert_to_agent_apps,
         add_qdrant_doc_id_index,
         create_tenant,
+        create_workspace,
         upgrade_db,
         fix_app_site_missing,
     ]

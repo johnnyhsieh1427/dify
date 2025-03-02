@@ -1,3 +1,8 @@
+# 修改日期2025-01-23
+# 新增兩個欄位在app_partial_fields裡面
+# "enable_site": fields.Boolean,
+# "enable_api": fields.Boolean,
+
 from flask_restful import fields  # type: ignore
 
 from fields.workflow_fields import workflow_partial_fields
@@ -98,6 +103,8 @@ app_partial_fields = {
     "updated_by": fields.String,
     "updated_at": TimestampField,
     "tags": fields.List(fields.Nested(tag_fields)),
+    "enable_site": fields.Boolean,
+    "enable_api": fields.Boolean,
 }
 
 

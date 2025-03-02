@@ -1,3 +1,5 @@
+// 修改日期2025-02-28
+// 新增menus.webChat
 const translation = {
   api: {
     success: 'Success',
@@ -138,6 +140,7 @@ const translation = {
     newApp: 'New App',
     newDataset: 'Create Knowledge',
     tools: 'Tools',
+    webChat: 'Web Chat',
   },
   userProfile: {
     settings: 'Settings',

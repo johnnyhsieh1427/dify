@@ -1,3 +1,6 @@
+// 修改日期2025-02-28
+// 新增isWebChatAPI變數
+
 import {
   useCallback,
   useEffect,
@@ -38,6 +41,7 @@ type SendCallback = {
   onGetSuggestedQuestions?: (responseItemId: string, getAbortController: GetAbortController) => Promise<any>
   onConversationComplete?: (conversationId: string) => void
   isPublicAPI?: boolean
+  isWebChatAPI?: boolean
 }
 
 export const useChat = (
@@ -174,6 +178,7 @@ export const useChat = (
       onGetSuggestedQuestions,
       onConversationComplete,
       isPublicAPI,
+      isWebChatAPI,
     }: SendCallback,
   ) => {
     setSuggestQuestions([])
@@ -257,6 +262,7 @@ export const useChat = (
       },
       {
         isPublicAPI,
+        isWebChatAPI,
         onData: (message: string, isFirstMessage: boolean, { conversationId: newConversationId, messageId, taskId }: any) => {
           if (!isAgentMode) {
             responseItem.content = responseItem.content + message

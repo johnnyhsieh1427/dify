@@ -1,3 +1,6 @@
+// 修改日期2025-02-28
+// 非isCurrentWorkspaceEditor, 只能看到非workflow且enable_site的app
+
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -156,9 +159,20 @@ const Apps = () => {
         ? <div className='grid content-start grid-cols-1 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6 gap-4 px-12 pt-2 grow relative'>
           {isCurrentWorkspaceEditor
             && <NewAppCard onSuccess={mutate} />}
-          {data.map(({ data: apps }) => apps.map(app => (
+          {/* {data.map(({ data: apps }) => apps.map(app => (
             <AppCard key={app.id} app={app} onRefresh={mutate} />
-          )))}
+          )))} */}
+          {
+            isCurrentWorkspaceEditor
+              ? data.map(({ data: apps }) => apps.map(app => (
+                <AppCard key={app.id} app={app} onRefresh={mutate} />
+              )))
+              : data.map(({ data: apps }) => apps.map((app) => {
+                if (app.mode !== 'workflow' && app.enable_site)
+                  return <AppCard key={app.id} app={app} onRefresh={mutate} />
+                return null
+              }))
+          }
         </div>
         : <div className='grid content-start grid-cols-1 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6 gap-4 px-12 pt-2 grow relative overflow-hidden'>
           {isCurrentWorkspaceEditor

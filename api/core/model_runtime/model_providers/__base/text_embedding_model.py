@@ -2,8 +2,12 @@
 # 修改class TextEmbeddingModel()的內容
 # 修改function invoke()的參數
 # 新增dataset和metadata參數
+# 修改日期2025-01-23
+# 修改function invoke()
+# 改變偵測enable tracing的方式，先檢查dataset再檢查類型
 
 import json
+import logging
 import time
 from abc import abstractmethod
 from typing import Optional
@@ -53,10 +57,13 @@ class TextEmbeddingModel(AIModel):
         :return: embeddings result
         """
         is_enable = False
-        if dataset:
-            trace_config = json.loads(dataset.tracing)
-            is_enable = trace_config.get("enabled", False)
-            
+        if dataset and isinstance(dataset.tracing, str):
+            try:
+                trace_config = json.loads(dataset.tracing)
+                is_enable = trace_config.get("enabled", False)
+            except Exception as e:
+                logging.ERROR(f"Failed to parse tracing config: {e}")
+                        
         self.started_at = time.perf_counter()
 
         try:
