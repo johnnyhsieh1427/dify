@@ -3,6 +3,7 @@
 # 只能在下列關係的使用
 
 from flask import Blueprint
+
 from libs.external_api import ExternalApi
 
 # from .files import FileApi

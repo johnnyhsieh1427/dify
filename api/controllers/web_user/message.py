@@ -2,7 +2,6 @@
 # 專屬給chat-web的controllers
 
 import logging
-from typing import List
 
 from flask_restful import fields, marshal_with, reqparse  # type: ignore
 from flask_restful.inputs import int_range  # type: ignore
@@ -83,7 +82,7 @@ class MessageListApi(WebUserApiResource):
     }
 
     @marshal_with(message_infinite_scroll_pagination_fields)
-    def get(self, app_models: List[App], end_user, app_id):
+    def get(self, app_models: list[App], end_user, app_id):
 
         parser = reqparse.RequestParser()
         parser.add_argument("conversation_id", required=True, type=uuid_value, location="args")
@@ -112,7 +111,7 @@ class MessageListApi(WebUserApiResource):
 
 
 class MessageFeedbackApi(WebUserApiResource):
-    def post(self, app_models: List[App], end_user, app_id, message_id):
+    def post(self, app_models: list[App], end_user, app_id, message_id):
         message_id = str(message_id)
 
         parser = reqparse.RequestParser()
@@ -136,7 +135,7 @@ class MessageFeedbackApi(WebUserApiResource):
 
 
 class MessageMoreLikeThisApi(WebUserApiResource):
-    def get(self, app_models: List[App], end_user, app_id, message_id):
+    def get(self, app_models: list[App], end_user, app_id, message_id):
         
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
@@ -186,7 +185,7 @@ class MessageMoreLikeThisApi(WebUserApiResource):
 
 
 class MessageSuggestedQuestionApi(WebUserApiResource):
-    def get(self, app_models: List[App], end_user, app_id, message_id):
+    def get(self, app_models: list[App], end_user, app_id, message_id):
         
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))

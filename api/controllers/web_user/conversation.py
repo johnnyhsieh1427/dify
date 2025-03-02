@@ -1,7 +1,6 @@
 # 修改日期2025-02-28
 # 專屬給chat-web的controllers
 
-from typing import List
 from flask_restful import marshal_with, reqparse  # type: ignore
 from flask_restful.inputs import int_range  # type: ignore
 from sqlalchemy.orm import Session
@@ -22,7 +21,7 @@ from services.web_conversation_service import WebConversationService
 
 class ConversationListApi(WebUserApiResource):
     @marshal_with(conversation_infinite_scroll_pagination_fields)
-    def get(self, app_models: List[App], end_user, app_id):
+    def get(self, app_models: list[App], end_user, app_id):
 
         parser = reqparse.RequestParser()
         parser.add_argument("last_id", type=uuid_value, location="args")
@@ -68,7 +67,7 @@ class ConversationListApi(WebUserApiResource):
 
 
 class ConversationApi(WebUserApiResource):
-    def delete(self, app_models: List[App], end_user, app_id, c_id):
+    def delete(self, app_models: list[App], end_user, app_id, c_id):
 
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
@@ -91,7 +90,7 @@ class ConversationApi(WebUserApiResource):
 
 class ConversationRenameApi(WebUserApiResource):
     @marshal_with(simple_conversation_fields)
-    def post(self, app_models: List[App], end_user, app_id, c_id):
+    def post(self, app_models: list[App], end_user, app_id, c_id):
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
         except:
@@ -115,7 +114,7 @@ class ConversationRenameApi(WebUserApiResource):
 
 
 class ConversationPinApi(WebUserApiResource):
-    def patch(self, app_models: List[App], end_user, app_id, c_id):
+    def patch(self, app_models: list[App], end_user, app_id, c_id):
         
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
@@ -137,7 +136,7 @@ class ConversationPinApi(WebUserApiResource):
 
 
 class ConversationUnPinApi(WebUserApiResource):
-    def patch(self, app_models: List[App], end_user, app_id, c_id):
+    def patch(self, app_models: list[App], end_user, app_id, c_id):
         
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
@@ -154,7 +153,11 @@ class ConversationUnPinApi(WebUserApiResource):
         return {"result": "success"}
 
 
-api.add_resource(ConversationRenameApi, "/conversations/<uuid:app_id>/<uuid:c_id>/name", endpoint="web_conversation_name")
+api.add_resource(
+    ConversationRenameApi, 
+    "/conversations/<uuid:app_id>/<uuid:c_id>/name", 
+    endpoint="web_conversation_name"
+)
 api.add_resource(ConversationListApi, "/conversations/<uuid:app_id>")
 api.add_resource(ConversationApi, "/conversations/<uuid:app_id>/<uuid:c_id>")
 api.add_resource(ConversationPinApi, "/conversations/<uuid:app_id>/<uuid:c_id>/pin")

@@ -1,7 +1,6 @@
 # 修改日期2025-02-28
 # 專屬給chat-web的controllers
 
-from typing import List
 from flask_restful import marshal_with  # type: ignore
 
 from controllers.common import fields
@@ -17,7 +16,7 @@ class AppParameterApi(WebUserApiResource):
     """Resource for app variables."""
 
     @marshal_with(fields.parameters_fields)
-    def get(self, app_models: List[App], end_user):
+    def get(self, app_models: list[App], end_user):
         """Retrieve app parameters."""
         app_parameters = []
         for app_model in app_models:
@@ -51,7 +50,7 @@ class AppParameterApi(WebUserApiResource):
 
 
 class AppMeta(WebUserApiResource):
-    def get(self, app_models: List[App], end_user):
+    def get(self, app_models: list[App], end_user):
         """Get app meta"""
         app_metas = []
         for app_model in app_models:

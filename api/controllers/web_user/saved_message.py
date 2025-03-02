@@ -1,7 +1,6 @@
 # 修改日期2025-02-28
 # 專屬給chat-web的controllers
 
-from typing import List
 from flask_restful import fields, marshal_with, reqparse  # type: ignore
 from flask_restful.inputs import int_range  # type: ignore
 from werkzeug.exceptions import NotFound
@@ -36,7 +35,7 @@ class SavedMessageListApi(WebUserApiResource):
     }
 
     @marshal_with(saved_message_infinite_scroll_pagination_fields)
-    def get(self, app_models: List[App], end_user, app_id):
+    def get(self, app_models: list[App], end_user, app_id):
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
         except:
@@ -52,7 +51,12 @@ class SavedMessageListApi(WebUserApiResource):
         
         return SavedMessageService.pagination_by_last_id(app_model, end_user, args["last_id"], args["limit"])
 
-    def post(self, app_model, end_user):
+    def post(self, app_models: list[App], end_user, app_id):
+        try:
+            app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
+        except:
+            raise NotFound("App Not Exists.")
+        
         if app_model.mode != "completion":
             raise NotCompletionAppError()
 
@@ -69,7 +73,7 @@ class SavedMessageListApi(WebUserApiResource):
 
 
 class SavedMessageApi(WebUserApiResource):
-    def delete(self, app_models: List[App], end_user, app_id, message_id):
+    def delete(self, app_models: list[App], end_user, app_id, message_id):
         message_id = str(message_id)
         
         try:

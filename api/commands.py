@@ -574,6 +574,7 @@ def create_workspace(email: str, language: Optional[str] = None, name: Optional[
             )
         )
 
+
 def parse_emails(ctx, param, value):
     """
     Parse emails

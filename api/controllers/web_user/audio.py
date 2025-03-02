@@ -2,10 +2,9 @@
 # 專屬給chat-web的controllers
 
 import logging
-from typing import List
 
 from flask import request
-from werkzeug.exceptions import InternalServerError
+from werkzeug.exceptions import InternalServerError, NotFound
 
 import services
 from controllers.web_user import api
@@ -23,7 +22,6 @@ from controllers.web_user.error import (
 from controllers.web_user.wraps import WebUserApiResource
 from core.errors.error import ModelCurrentlyNotSupportError, ProviderTokenNotInitError, QuotaExceededError
 from core.model_runtime.errors.invoke import InvokeError
-from libs.helper import uuid_value
 from models.model import App, AppMode
 from services.audio_service import AudioService
 from services.errors.audio import (
@@ -32,13 +30,10 @@ from services.errors.audio import (
     ProviderNotSupportSpeechToTextServiceError,
     UnsupportedAudioTypeServiceError,
 )
-from werkzeug.exceptions import NotFound
-
 
 
 class AudioApi(WebUserApiResource):
-    def post(self, app_models: List[App], end_user, app_id):
-        from flask_restful import reqparse  # type: ignore
+    def post(self, app_models: list[App], end_user, app_id):
         file = request.files["file"]
         
         try:
@@ -77,7 +72,7 @@ class AudioApi(WebUserApiResource):
 
 
 class TextApi(WebUserApiResource):
-    def post(self, app_models: List[App], end_user, app_id):
+    def post(self, app_models: list[App], end_user, app_id):
         from flask_restful import reqparse  # type: ignore
 
         try:
