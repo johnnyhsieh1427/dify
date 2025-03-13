@@ -187,6 +187,7 @@ docker/middleware.env
 docker/langfuse/*
 docker/xinference/*
 docker/volumes/pgadmin/*
+docker/docker-compose.override.yaml
 
 sdks/python-client/build
 sdks/python-client/dist
@@ -210,6 +211,12 @@ docker/clickhouse_backups/bak_folder/docker_langfuse_clickhouse_logs_backup_2024
 docker/clickhouse_backups/backup - 複製.sh
 docker/langfuse.env
 api/migrations/versions/2025_01_08_0201-77e34d269b57_add_database_tracing_config.py.bak
+
+# pnpm
+/.pnpm-store
+
+# plugin migrate
+plugins.jsonl
 
 # pnpm
 /.pnpm-store

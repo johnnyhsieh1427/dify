@@ -5,7 +5,29 @@
 // 修改日期2025-02-28
 // 修改內容：
 // 新增function給web-chat使用
-import type { IOnCompleted, IOnData, IOnError, IOnFile, IOnIterationFinished, IOnIterationNext, IOnIterationStarted, IOnMessageEnd, IOnMessageReplace, IOnNodeFinished, IOnNodeStarted, IOnTTSChunk, IOnTTSEnd, IOnTextChunk, IOnTextReplace, IOnThought, IOnWorkflowFinished, IOnWorkflowStarted } from './base'
+import type {
+  IOnCompleted,
+  IOnData,
+  IOnError,
+  IOnFile,
+  IOnIterationFinished,
+  IOnIterationNext,
+  IOnIterationStarted,
+  IOnLoopFinished,
+  IOnLoopNext,
+  IOnLoopStarted,
+  IOnMessageEnd,
+  IOnMessageReplace,
+  IOnNodeFinished,
+  IOnNodeStarted,
+  IOnTTSChunk,
+  IOnTTSEnd,
+  IOnTextChunk,
+  IOnTextReplace,
+  IOnThought,
+  IOnWorkflowFinished,
+  IOnWorkflowStarted,
+} from './base'
 import {
   del as consoleDel, get as consoleGet, patch as consolePatch, post as consolePost,
   delPublic as del, delWebChat, getPublic as get, getWebChat, patchPublic as patch,
@@ -86,6 +108,9 @@ export const sendWorkflowMessage = async (
     onIterationStart,
     onIterationNext,
     onIterationFinish,
+    onLoopStart,
+    onLoopNext,
+    onLoopFinish,
     onTextChunk,
     onTextReplace,
   }: {
@@ -96,6 +121,9 @@ export const sendWorkflowMessage = async (
     onIterationStart: IOnIterationStarted
     onIterationNext: IOnIterationNext
     onIterationFinish: IOnIterationFinished
+    onLoopStart: IOnLoopStarted
+    onLoopNext: IOnLoopNext
+    onLoopFinish: IOnLoopFinished
     onTextChunk: IOnTextChunk
     onTextReplace: IOnTextReplace
   },
@@ -107,7 +135,21 @@ export const sendWorkflowMessage = async (
       ...body,
       response_mode: 'streaming',
     },
-  }, { onNodeStarted, onWorkflowStarted, onWorkflowFinished, isPublicAPI: !isInstalledApp, onNodeFinished, onIterationStart, onIterationNext, onIterationFinish, onTextChunk, onTextReplace })
+  }, {
+    onNodeStarted,
+    onWorkflowStarted,
+    onWorkflowFinished,
+    isPublicAPI: !isInstalledApp,
+    onNodeFinished,
+    onIterationStart,
+    onIterationNext,
+    onIterationFinish,
+    onLoopStart,
+    onLoopNext,
+    onLoopFinish,
+    onTextChunk,
+    onTextReplace,
+  })
 }
 
 export const fetchAppInfo = async () => {
@@ -250,7 +292,7 @@ export const fetchAppTenantPermission = async () => {
 // Location: web.controller.web_user.*
 
 export const fetchUserAppInfo = async () => {
-  return getWebChat('site') as Promise<{ 'items': AppData[] }>
+  return getWebChat('site') as Promise<{ items: AppData[] }>
 }
 
 export const fetchUserAppMeta = async () => {

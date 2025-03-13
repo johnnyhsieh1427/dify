@@ -39,6 +39,11 @@ def init_app(app: DifyApp):
         reset_encrypt_key_pair,
         upgrade_db,
         vdb_migrate,
+        convert_to_agent_apps,
+        add_qdrant_doc_id_index,
+        create_tenant,
+        upgrade_db,
+        fix_app_site_missing,
     ]
     for cmd in cmds_to_register:
         app.cli.add_command(cmd)

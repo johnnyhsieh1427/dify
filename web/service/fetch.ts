@@ -144,12 +144,6 @@ async function base<T>(url: string, options: FetchOptionType = {}, otherOptions:
     getAbortController,
   } = otherOptions
 
-  // const base
-  //   = isMarketplaceAPI
-  //     ? MARKETPLACE_API_PREFIX
-  //     : isPublicAPI
-  //       ? PUBLIC_API_PREFIX
-  //       : API_PREFIX
   const base
     = isMarketplaceAPI
       ? MARKETPLACE_API_PREFIX

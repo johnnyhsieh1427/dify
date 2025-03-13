@@ -34,7 +34,6 @@ from services.message_service import MessageService
 
 
 class MessageListApi(WebApiResource):
-
     message_fields = {
         "id": fields.String,
         "conversation_id": fields.String,
