@@ -2,7 +2,7 @@ from flask import Blueprint
 
 from libs.external_api import ExternalApi
 
-from .app.app_import import AppImportApi, AppImportConfirmApi
+from .app.app_import import AppImportApi, AppImportCheckDependenciesApi, AppImportConfirmApi
 from .explore.audio import ChatAudioApi, ChatTextApi
 from .explore.completion import ChatApi, ChatStopApi, CompletionApi, CompletionStopApi
 from .explore.conversation import (
@@ -40,6 +40,7 @@ api.add_resource(RemoteFileUploadApi, "/remote-files/upload")
 # Import App
 api.add_resource(AppImportApi, "/apps/imports")
 api.add_resource(AppImportConfirmApi, "/apps/imports/<string:import_id>/confirm")
+api.add_resource(AppImportCheckDependenciesApi, "/apps/imports/<string:app_id>/check-dependencies")
 
 # Import other controllers
 from . import admin, apikey, extension, feature, init_validate, ping, setup, version
@@ -169,4 +170,15 @@ from .tag import tags
 from .web import passport
 
 # Import workspace controllers
-from .workspace import account, load_balancing_config, members, model_providers, models, tool_providers, workspace
+from .workspace import (
+    account,
+    agent_providers,
+    endpoint,
+    load_balancing_config,
+    members,
+    model_providers,
+    models,
+    plugin,
+    tool_providers,
+    workspace,
+)

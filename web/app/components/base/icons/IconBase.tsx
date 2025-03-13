@@ -1,4 +1,3 @@
-/* eslint-disable react/display-name */
 import { forwardRef } from 'react'
 import { generate } from './utils'
 import type { AbstractNode } from './utils'
@@ -28,5 +27,7 @@ const IconBase = forwardRef<React.MutableRefObject<HTMLOrSVGElement>, IconBasePr
     'ref': ref,
   })
 })
+
+IconBase.displayName = 'IconBase'
 
 export default IconBase

@@ -1,5 +1,7 @@
 # 修改日期2025-01-13
 # 修改function _fetch_dataset_retriever()，修改判斷upload_file.storage_type是local或opendal時，才取得file_location
+# 修改日期2025-03-13
+# UploadFile為搜索
 
 import logging
 from collections.abc import Mapping, Sequence
@@ -22,7 +24,8 @@ from core.workflow.entities.node_entities import NodeRunResult
 from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.enums import NodeType
 from extensions.ext_database import db
-from models.dataset import Dataset, Document, UploadFile
+from models.dataset import Dataset, Document
+from models.model import UploadFile
 from models.workflow import WorkflowNodeExecutionStatus
 
 from .entities import KnowledgeRetrievalNodeData
@@ -235,21 +238,13 @@ class KnowledgeRetrievalNode(BaseNode[KnowledgeRetrievalNodeData]):
                             isDict = isinstance(source_info, dict)
                             hasUploadFileId = source_info.get("upload_file_id", False)
                             isUploadFile = document.data_source_type == "upload_file"
-                            
+
                             if (isDict and hasUploadFileId and isUploadFile):
-                                upload_file = UploadFile.query.filter(
-                                    UploadFile.id == source_info["upload_file_id"],
+                                upload_file = db.session.query(UploadFile).where(
+                                    UploadFile.id == source_info["upload_file_id"]
                                 ).first()
                                 if (upload_file and upload_file.storage_type in ["local", "opendal"]):
                                     file_location = upload_file.key
-
-                            # if (isDict and hasUploadFileId and isUploadFile):
-                            #     upload_file = UploadFile.query.filter(
-                            #         UploadFile.id == source_info["upload_file_id"],
-                            #     ).first()
-                            #     if upload_file:
-                            #         if upload_file.storage_type == "local" or upload_file.storage_type == "opendal":
-                            #             file_location = upload_file.key
                         except:
                             pass
                         
@@ -268,6 +263,7 @@ class KnowledgeRetrievalNode(BaseNode[KnowledgeRetrievalNodeData]):
                                 "segment_word_count": segment.word_count,
                                 "segment_position": segment.position,
                                 "segment_index_node_hash": segment.index_node_hash,
+                                "doc_metadata": document.doc_metadata,
                                 "file_location": file_location,
                             },
                             "title": document.name,

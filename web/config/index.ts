@@ -1,13 +1,14 @@
 // 修改日期2025-02-28
 // 新增NEXT_PUBLIC_WEB_CHAT_API_PREFIX變數
 
-/* eslint-disable import/no-mutable-exports */
 import { InputVarType } from '@/app/components/workflow/types'
 import { AgentStrategy } from '@/types/app'
 import { PromptRole } from '@/models/debug'
 
 export let apiPrefix = ''
 export let publicApiPrefix = ''
+export let marketplaceApiPrefix = ''
+export let marketplaceUrlPrefix = ''
 export let webChatApiPrefix = ''
 
 // NEXT_PUBLIC_API_PREFIX=/console/api NEXT_PUBLIC_PUBLIC_API_PREFIX=/api npm run start
@@ -34,11 +35,23 @@ else {
   // const env = domainParts.length === 2 ? 'ai' : domainParts?.[0];
   apiPrefix = 'http://localhost:5001/console/api'
   publicApiPrefix = 'http://localhost:5001/api' // avoid browser private mode api cross origin
+  marketplaceApiPrefix = 'http://localhost:5002/api'
+}
+
+if (process.env.NEXT_PUBLIC_MARKETPLACE_API_PREFIX && process.env.NEXT_PUBLIC_MARKETPLACE_URL_PREFIX) {
+  marketplaceApiPrefix = process.env.NEXT_PUBLIC_MARKETPLACE_API_PREFIX
+  marketplaceUrlPrefix = process.env.NEXT_PUBLIC_MARKETPLACE_URL_PREFIX
+}
+else {
+  marketplaceApiPrefix = globalThis.document?.body?.getAttribute('data-marketplace-api-prefix') || ''
+  marketplaceUrlPrefix = globalThis.document?.body?.getAttribute('data-marketplace-url-prefix') || ''
   webChatApiPrefix = 'http://localhost:5001/web-chat/api'
 }
 
 export const API_PREFIX: string = apiPrefix
 export const PUBLIC_API_PREFIX: string = publicApiPrefix
+export const MARKETPLACE_API_PREFIX: string = marketplaceApiPrefix
+export const MARKETPLACE_URL_PREFIX: string = marketplaceUrlPrefix
 export const WEB_CHAT_API_PREFIX: string = webChatApiPrefix
 
 const EDITION = process.env.NEXT_PUBLIC_EDITION || globalThis.document?.body?.getAttribute('data-public-edition') || 'SELF_HOSTED'
@@ -262,12 +275,15 @@ export const resetReg = () => VAR_REGEX.lastIndex = 0
 export let textGenerationTimeoutMs = 60000
 
 if (process.env.NEXT_PUBLIC_TEXT_GENERATION_TIMEOUT_MS && process.env.NEXT_PUBLIC_TEXT_GENERATION_TIMEOUT_MS !== '')
-  textGenerationTimeoutMs = parseInt(process.env.NEXT_PUBLIC_TEXT_GENERATION_TIMEOUT_MS)
+  textGenerationTimeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_TEXT_GENERATION_TIMEOUT_MS)
 else if (globalThis.document?.body?.getAttribute('data-public-text-generation-timeout-ms') && globalThis.document.body.getAttribute('data-public-text-generation-timeout-ms') !== '')
-  textGenerationTimeoutMs = parseInt(globalThis.document.body.getAttribute('data-public-text-generation-timeout-ms') as string)
+  textGenerationTimeoutMs = Number.parseInt(globalThis.document.body.getAttribute('data-public-text-generation-timeout-ms') as string)
 
 export const TEXT_GENERATION_TIMEOUT_MS = textGenerationTimeoutMs
 
 export const DISABLE_UPLOAD_IMAGE_AS_ICON = process.env.NEXT_PUBLIC_DISABLE_UPLOAD_IMAGE_AS_ICON === 'true'
 
+export const GITHUB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_GITHUB_ACCESS_TOKEN || ''
+
+export const SUPPORT_INSTALL_LOCAL_FILE_EXTENSIONS = '.difypkg,.difybndl'
 export const FULL_DOC_PREVIEW_LENGTH = 50

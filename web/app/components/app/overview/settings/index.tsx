@@ -290,6 +290,7 @@ const SettingsModal: FC<ISettingsModalProps> = ({
               items={languages.filter(item => item.supported)}
               defaultValue={language}
               onSelect={item => setLanguage(item.value as Language)}
+              notClearable
             />
           </div>
           {/* theme color */}
@@ -355,7 +356,7 @@ const SettingsModal: FC<ISettingsModalProps> = ({
                 <div className={cn('py-1 text-text-secondary system-sm-semibold')}>{t(`${prefixSettings}.more.entry`)}</div>
                 <p className={cn('pb-0.5 text-text-tertiary body-xs-regular')}>{t(`${prefixSettings}.more.copyRightPlaceholder`)} & {t(`${prefixSettings}.more.privacyPolicyPlaceholder`)}</p>
               </div>
-              <RiArrowRightSLine className='shrink-0 ml-1 w-4 h-4 text-text-secondary'/>
+              <RiArrowRightSLine className='shrink-0 ml-1 w-4 h-4 text-text-secondary' />
             </div>
           )}
           {/* more settings */}

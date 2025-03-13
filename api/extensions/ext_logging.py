@@ -1,3 +1,6 @@
+# 修改日期2025-03-13
+# 修正log功能
+
 import logging
 import os
 import sys
@@ -16,23 +19,29 @@ def init_app(app: DifyApp):
     if log_file:
         log_dir = os.path.dirname(log_file)
         os.makedirs(log_dir, exist_ok=True)
-        log_handlers.append(
-            RotatingFileHandler(
-                filename=log_file,
-                maxBytes=dify_config.LOG_FILE_MAX_SIZE * 1024 * 1024,
-                backupCount=dify_config.LOG_FILE_BACKUP_COUNT,
-            )
+        file_handler = RotatingFileHandler(
+            filename=log_file,
+            maxBytes=dify_config.LOG_FILE_MAX_SIZE * 1024 * 1024,
+            backupCount=dify_config.LOG_FILE_BACKUP_COUNT,
         )
+        file_handler.addFilter(RequestIdFilter())
+        log_handlers.append(file_handler)
+        # log_handlers.append(
+        #     RotatingFileHandler(
+        #         filename=log_file,
+        #         maxBytes=dify_config.LOG_FILE_MAX_SIZE * 1024 * 1024,
+        #         backupCount=dify_config.LOG_FILE_BACKUP_COUNT,
+        #     )
+        # )
 
     # Always add StreamHandler to log to console
     sh = logging.StreamHandler(sys.stdout)
     sh.addFilter(RequestIdFilter())
-    log_formatter = logging.Formatter(fmt=dify_config.LOG_FORMAT)
-    sh.setFormatter(log_formatter)
     log_handlers.append(sh)
 
     logging.basicConfig(
         level=dify_config.LOG_LEVEL,
+        format=dify_config.LOG_FORMAT,
         datefmt=dify_config.LOG_DATEFORMAT,
         handlers=log_handlers,
         force=True,

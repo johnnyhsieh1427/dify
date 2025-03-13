@@ -9,7 +9,6 @@
 import json
 import logging
 import time
-from abc import abstractmethod
 from typing import Optional
 
 from pydantic import ConfigDict
@@ -21,6 +20,7 @@ from core.model_runtime.model_providers.__base.ai_model import AIModel
 from core.ops.entities.trace_entity import TraceTaskName
 from core.ops.ops_trace_manager import TraceQueueManager, TraceTask
 from core.ops.utils import measure_time
+from core.plugin.manager.model import PluginModelManager
 
 # from extensions.ext_database import db
 from models.dataset import Dataset
@@ -63,13 +63,23 @@ class TextEmbeddingModel(AIModel):
                 is_enable = trace_config.get("enabled", False)
             except Exception as e:
                 logging.ERROR(f"Failed to parse tracing config: {e}")
-                        
+                
         self.started_at = time.perf_counter()
 
         try:
+            plugin_model_manager = PluginModelManager()
             if is_enable:
                 with measure_time() as timer:
-                    result = self._invoke(model, credentials, texts, user, input_type)
+                    result = plugin_model_manager.invoke_text_embedding(
+                        tenant_id=self.tenant_id,
+                        user_id=user or "unknown",
+                        plugin_id=self.plugin_id,
+                        provider=self.provider_name,
+                        model=model,
+                        credentials=credentials,
+                        texts=texts,
+                        input_type=input_type.value,
+                    )
                 trace_manager = TraceQueueManager(app_id=dataset.id, mode="dataset")
                 trace_manager.add_trace_task(
                     TraceTask(
@@ -83,34 +93,20 @@ class TextEmbeddingModel(AIModel):
                     )
                 )
             else:
-                result = self._invoke(model, credentials, texts, user, input_type)
-            return result
+                return plugin_model_manager.invoke_text_embedding(
+                    tenant_id=self.tenant_id,
+                    user_id=user or "unknown",
+                    plugin_id=self.plugin_id,
+                    provider=self.provider_name,
+                    model=model,
+                    credentials=credentials,
+                    texts=texts,
+                    input_type=input_type.value,
+                )
         except Exception as e:
             raise self._transform_invoke_error(e)
 
-    @abstractmethod
-    def _invoke(
-        self,
-        model: str,
-        credentials: dict,
-        texts: list[str],
-        user: Optional[str] = None,
-        input_type: EmbeddingInputType = EmbeddingInputType.DOCUMENT,
-    ) -> TextEmbeddingResult:
-        """
-        Invoke text embedding model
-
-        :param model: model name
-        :param credentials: model credentials
-        :param texts: texts to embed
-        :param user: unique user id
-        :param input_type: input type
-        :return: embeddings result
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_num_tokens(self, model: str, credentials: dict, texts: list[str]) -> int:
+    def get_num_tokens(self, model: str, credentials: dict, texts: list[str]) -> list[int]:
         """
         Get number of tokens for given prompt messages
 
@@ -119,7 +115,16 @@ class TextEmbeddingModel(AIModel):
         :param texts: texts to embed
         :return:
         """
-        raise NotImplementedError
+        plugin_model_manager = PluginModelManager()
+        return plugin_model_manager.get_text_embedding_num_tokens(
+            tenant_id=self.tenant_id,
+            user_id="unknown",
+            plugin_id=self.plugin_id,
+            provider=self.provider_name,
+            model=model,
+            credentials=credentials,
+            texts=texts,
+        )
 
     def _get_context_size(self, model: str, credentials: dict) -> int:
         """
