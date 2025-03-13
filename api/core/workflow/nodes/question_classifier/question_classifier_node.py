@@ -1,3 +1,6 @@
+# 修改日期2025-03-13
+# 修改問題分類可以輸出usage
+
 import json
 from collections.abc import Mapping, Sequence
 from typing import Any, Optional, cast
@@ -131,7 +134,7 @@ class QuestionClassifierNode(LLMNode):
                 "usage": jsonable_encoder(usage),
                 "finish_reason": finish_reason,
             }
-            outputs = {"class_name": category_name, "class_id": category_id}
+            outputs = {"class_name": category_name, "class_id": category_id, "usage": jsonable_encoder(usage)}
 
             return NodeRunResult(
                 status=WorkflowNodeExecutionStatus.SUCCEEDED,

@@ -6,7 +6,12 @@ from flask_restful import marshal_with  # type: ignore
 
 import services
 from controllers.common.errors import FilenameNotExistsError
-from controllers.web_user.error import FileTooLargeError, NoFileUploadedError, TooManyFilesError, UnsupportedFileTypeError
+from controllers.web_user.error import (
+    FileTooLargeError,
+    NoFileUploadedError,
+    TooManyFilesError,
+    UnsupportedFileTypeError,
+)
 from controllers.web_user.wraps import WebUserApiResource
 from fields.file_fields import file_fields
 from services.file_service import FileService

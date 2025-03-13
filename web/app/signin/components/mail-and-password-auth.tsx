@@ -1,3 +1,6 @@
+// 修改日期2025-03-13
+// 修改預設登入頁面
+
 import Link from 'next/link'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -73,7 +76,8 @@ export default function MailAndPasswordAuth({ isInvite, isEmailSetup, allowRegis
         else {
           localStorage.setItem('console_token', res.data.access_token)
           localStorage.setItem('refresh_token', res.data.refresh_token)
-          router.replace('/apps')
+          router.replace('/chat-app')
+          // router.replace('/apps')
         }
       }
       else if (res.code === 'account_not_found') {

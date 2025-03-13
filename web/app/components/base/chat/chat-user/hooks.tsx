@@ -15,12 +15,16 @@ import produce from 'immer'
 import type {
   Callback,
   ChatConfig,
+  ChatItem,
   Feedback,
 } from '../types'
+import { useAppContext } from '@/context/app-context'
 import { CONVERSATION_ID_INFO } from '../constants'
-import { getPrevChatList } from '../utils'
+import { buildChatItemTree } from '../utils'
+import { addFileInfos, sortAgentSorts } from '../../../tools/utils'
+import { getProcessedFilesFromResponse } from '@/app/components/base/file-uploader/utils'
 import {
-  delConversation,
+  delUserConversation,
   fetchUserAppInfo,
   fetchUserAppMeta,
   fetchUserAppParams,
@@ -30,11 +34,8 @@ import {
   pinUserConversation,
   renameUserConversation,
   unpinUserConversation,
-  // updateFeedback,
   updateUserFeedback,
 } from '@/service/share'
-import { useAppContext } from '@/context/app-context'
-
 import type { InstalledApp } from '@/models/explore'
 import type {
   ConversationItem,
@@ -45,22 +46,42 @@ import { useAppFavicon } from '@/hooks/use-app-favicon'
 import { InputVarType } from '@/app/components/workflow/types'
 import { TransferMethod } from '@/types/app'
 
+function getFormattedChatList(messages: any[]) {
+  const newChatList: ChatItem[] = []
+  messages.forEach((item) => {
+    const questionFiles = item.message_files?.filter((file: any) => file.belongs_to === 'user') || []
+    newChatList.push({
+      id: `question-${item.id}`,
+      content: item.query,
+      isAnswer: false,
+      message_files: getProcessedFilesFromResponse(questionFiles.map((item: any) => ({ ...item, related_id: item.id }))),
+      parentMessageId: item.parent_message_id || undefined,
+    })
+    const answerFiles = item.message_files?.filter((file: any) => file.belongs_to === 'assistant') || []
+    newChatList.push({
+      id: item.id,
+      content: item.answer,
+      agent_thoughts: addFileInfos(item.agent_thoughts ? sortAgentSorts(item.agent_thoughts) : item.agent_thoughts, item.message_files),
+      feedback: item.feedback,
+      isAnswer: true,
+      citation: item.retriever_resources,
+      message_files: getProcessedFilesFromResponse(answerFiles.map((item: any) => ({ ...item, related_id: item.id }))),
+      parentMessageId: `question-${item.id}`,
+    })
+  })
+  return newChatList
+}
+
 export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
   // 一律改成isInstalledApp = False
   const isInstalledApp = false
-  // const isInstalledApp = useMemo(() => !!installedAppInfo, [installedAppInfo])
-
   // 設定activeIndex，代表選擇哪個app
   const [activeIndex, setActiveIndex] = useState<number>(0)
-
   const { data: appInfos, isLoading: appInfoLoading, error: appInfoError } = useSWR('appInfos', () => fetchUserAppInfo())
   const appDataList = useMemo(() => appInfos?.items, [appInfos])
   const appInfo = useMemo(() => appDataList?.[activeIndex], [appDataList, activeIndex])
-  const appData = useMemo(() => appInfo, [appInfo])
-  const appId = useMemo(() => appData?.app_id || '00000000-0000-0000-0000-000000000000', [appData])
-  // const { data: appInfo, isLoading: appInfoLoading, error: appInfoError } = useSWR(installedAppInfo ? null : 'appInfo', fetchAppInfo)
-
   const { userProfile } = useAppContext()
+  // const { data: appInfo, isLoading: appInfoLoading, error: appInfoError } = useSWR(installedAppInfo ? null : 'appInfo', fetchAppInfo)
 
   useAppFavicon({
     enable: !installedAppInfo,
@@ -70,10 +91,9 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     icon_url: appInfo?.site.icon_url,
   })
 
-  // useEffect(() => {
-  //   if (appData?.site.default_language)
-  //     changeLanguage(appData.site.default_language)
-  // }, [appData])
+  const appData = useMemo(() => appInfo, [appInfo])
+  const appId = useMemo(() => appData?.app_id || '00000000-0000-0000-0000-000000000000', [appData])
+
   useEffect(() => {
     if (userProfile.interface_language)
       changeLanguage(userProfile.interface_language)
@@ -103,18 +123,15 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
 
   const { data: appParamsList } = useSWR('appParamsList', () => fetchUserAppParams())
   const { data: appMetaList } = useSWR('appMetaList', () => fetchUserAppMeta())
-  // const { data: appParams } = useSWR(['appParams', isInstalledApp, appId], () => fetchAppParams(isInstalledApp, appId))
-  // const { data: appMeta } = useSWR(['appMeta', isInstalledApp, appId], () => fetchAppMeta(isInstalledApp, appId))
   const appParams = useMemo(() => appParamsList?.[activeIndex], [appParamsList, activeIndex])
   const appMeta = useMemo(() => appMetaList?.[activeIndex], [appMetaList, activeIndex])
-
   const { data: appPinnedConversationData, mutate: mutateAppPinnedConversationData } = useSWR(['appConversationData', isInstalledApp, appId, true], () => fetchUserConversations(appId, undefined, true, 100))
   const { data: appConversationData, isLoading: appConversationDataLoading, mutate: mutateAppConversationData } = useSWR(['appConversationData', isInstalledApp, appId, false], () => fetchUserConversations(appId, undefined, false, 100))
   const { data: appChatListData, isLoading: appChatListDataLoading } = useSWR(chatShouldReloadKey ? ['appChatListData', chatShouldReloadKey, isInstalledApp, appId] : null, () => fetchUserChatList(appId, chatShouldReloadKey))
 
-  const appPrevChatList = useMemo(
+  const appPrevChatTree = useMemo(
     () => (currentConversationId && appChatListData?.data.length)
-      ? getPrevChatList(appChatListData.data)
+      ? buildChatItemTree(getFormattedChatList(appChatListData.data))
       : [],
     [appChatListData, currentConversationId],
   )
@@ -321,7 +338,8 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
 
     try {
       setConversationDeleting(true)
-      await delConversation(isInstalledApp, appId, conversationId)
+      await delUserConversation(appId, conversationId)
+      // await delConversation(isInstalledApp, appId, conversationId)
       notify({ type: 'success', message: t('common.api.success') })
       onSuccess()
     }
@@ -333,7 +351,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
       handleNewConversation()
 
     handleUpdateConversationList()
-  }, [isInstalledApp, appId, notify, t, handleUpdateConversationList, handleNewConversation, currentConversationId, conversationDeleting])
+  }, [appId, notify, t, handleUpdateConversationList, handleNewConversation, currentConversationId, conversationDeleting])
 
   const [conversationRenaming, setConversationRenaming] = useState(false)
   const handleRenameConversation = useCallback(async (
@@ -387,12 +405,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
   const handleFeedback = useCallback(async (messageId: string, feedback: Feedback) => {
     await updateUserFeedback(appId, messageId, { rating: feedback.rating })
     notify({ type: 'success', message: t('common.api.success') })
-  }
-  , [appId, t, notify])
-  // const handleFeedback = useCallback(async (messageId: string, feedback: Feedback) => {
-  //   await updateFeedback({ url: `/messages/${messageId}/feedbacks`, body: { rating: feedback.rating } }, isInstalledApp, appId)
-  //   notify({ type: 'success', message: t('common.api.success') })
-  // }, [isInstalledApp, appId, t, notify])
+  }, [appId, t, notify])
 
   return {
     activeIndex,
@@ -413,7 +426,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     appConversationDataLoading,
     appChatListData,
     appChatListDataLoading,
-    appPrevChatList,
+    appPrevChatTree,
     pinnedConversationList,
     conversationList,
     showConfigPanelBeforeChat,

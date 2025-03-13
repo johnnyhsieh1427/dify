@@ -2,7 +2,6 @@
 # 專屬給chat-web的controllers
 
 import logging
-from typing import List
 
 from flask_restful import reqparse  # type: ignore
 from werkzeug.exceptions import InternalServerError, NotFound
@@ -38,7 +37,7 @@ from services.errors.llm import InvokeRateLimitError
 
 # define completion api for user
 class CompletionApi(WebUserApiResource):
-    def post(self, app_models: List[App], end_user, app_id):
+    def post(self, app_models: list[App], end_user, app_id):
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
         except:
@@ -88,7 +87,7 @@ class CompletionApi(WebUserApiResource):
 
 
 class CompletionStopApi(WebUserApiResource):
-    def post(self, app_models: List[App], end_user, app_id, task_id):
+    def post(self, app_models: list[App], end_user, app_id, task_id):
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
         except:
@@ -102,7 +101,7 @@ class CompletionStopApi(WebUserApiResource):
 
 
 class ChatApi(WebUserApiResource):
-    def post(self, app_models: List[App], end_user, app_id):
+    def post(self, app_models: list[App], end_user, app_id):
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
         except:
@@ -157,7 +156,7 @@ class ChatApi(WebUserApiResource):
 
 
 class ChatStopApi(WebUserApiResource):
-    def post(self, app_models: List[App], end_user, app_id, task_id):
+    def post(self, app_models: list[App], end_user, app_id, task_id):
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))
         except:

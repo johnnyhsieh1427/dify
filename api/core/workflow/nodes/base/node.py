@@ -1,7 +1,7 @@
 import logging
 from abc import abstractmethod
 from collections.abc import Generator, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union, cast
 
 from core.workflow.entities.node_entities import NodeRunResult
 from core.workflow.nodes.enums import CONTINUE_ON_ERROR_NODE_TYPE, RETRY_ON_ERROR_NODE_TYPE, NodeType
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 GenericNodeData = TypeVar("GenericNodeData", bound=BaseNodeData)
 
 
-class BaseNode(Generic[GenericNodeData]):
+class BaseNode[GenericNodeData: BaseNodeData]:
     _node_data_cls: type[BaseNodeData]
     _node_type: NodeType
 

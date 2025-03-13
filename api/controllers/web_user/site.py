@@ -11,7 +11,9 @@ from extensions.ext_database import db
 from libs.helper import AppIconUrlField
 from models.account import TenantStatus
 from models.model import Site
+
 # from services.feature_service import FeatureService
+
 
 class UserAppSiteApi(WebUserApiResource):
     """Resource for user app sites."""
@@ -88,10 +90,11 @@ class UserAppSiteApi(WebUserApiResource):
             _list.append(AppSiteInfo(app_model.tenant, app_model, site, end_user.id, False))
         if not _list:
             raise Forbidden()
-        return { 'items': _list }
+        return {'items': _list}
 
 
 api.add_resource(UserAppSiteApi, "/site")
+
 
 class AppSiteInfo:
     """Class to store site information."""

@@ -2,7 +2,6 @@
 # 專屬給chat-web的controllers
 
 import logging
-from typing import List
 
 from flask_restful import reqparse  # type: ignore
 from werkzeug.exceptions import InternalServerError
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowRunApi(WebUserApiResource):
-    def post(self, app_models: List[App], end_user: EndUser):
+    def post(self, app_models: list[App], end_user: EndUser):
         """
         Run workflow
         """
@@ -74,7 +73,7 @@ class WorkflowRunApi(WebUserApiResource):
 
 
 class WorkflowTaskStopApi(WebUserApiResource):
-    def post(self, app_models: List[App], end_user: EndUser, task_id: str):
+    def post(self, app_models: list[App], end_user: EndUser, task_id: str):
         """
         Stop workflow task
         """

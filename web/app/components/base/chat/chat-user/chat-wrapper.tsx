@@ -1,15 +1,18 @@
 // 修改日期2025-02-28
 // 新增給web-chat介面使用
+// 修改日期2025-03-13
+// 修改ChatItemInTree, isValidGeneratedAnswer
 
 import { useCallback, useEffect, useMemo } from 'react'
 import Chat from '../chat'
 import type {
   ChatConfig,
   ChatItem,
+  ChatItemInTree,
   OnSend,
 } from '../types'
 import { useChat } from '../chat/hooks'
-import { getLastAnswer } from '../utils'
+import { getLastAnswer, isValidGeneratedAnswer } from '../utils'
 import { useChatWithHistoryContext } from './context'
 import Header from './header'
 import ConfigPanel from './config-panel'
@@ -23,7 +26,7 @@ import AnswerIcon from '@/app/components/base/answer-icon'
 const ChatWrapper = () => {
   const {
     appParams,
-    appPrevChatList,
+    appPrevChatTree,
     currentConversationId,
     currentConversationItem,
     inputsForms,
@@ -53,8 +56,7 @@ const ChatWrapper = () => {
   }, [appParams, currentConversationItem?.introduction, currentConversationId])
   const {
     chatList,
-    chatListRef,
-    handleUpdateChatList,
+    setTargetMessageId,
     handleSend,
     handleStop,
     isResponding,
@@ -65,9 +67,8 @@ const ChatWrapper = () => {
       inputs: (currentConversationId ? currentConversationItem?.inputs : newConversationInputs) as any,
       inputsForm: inputsForms,
     },
-    appPrevChatList,
+    appPrevChatTree,
     taskId => appData?.app_id ? stopUserChatMessageResponding(appData?.app_id, taskId) : null,
-    // taskId => stopChatMessageResponding('', taskId, isInstalledApp, activeAppId),
   )
 
   useEffect(() => {
@@ -76,17 +77,16 @@ const ChatWrapper = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const doSend: OnSend = useCallback((message, files, last_answer) => {
+  const doSend: OnSend = useCallback((message, files, isRegenerate = false, parentAnswer: ChatItem | null = null) => {
     const data: any = {
       query: message,
       files,
       inputs: currentConversationId ? currentConversationItem?.inputs : newConversationInputs,
       conversation_id: currentConversationId,
-      parent_message_id: last_answer?.id || getLastAnswer(chatListRef.current)?.id || null,
+      parent_message_id: (isRegenerate ? parentAnswer?.id : getLastAnswer(chatList)?.id) || null,
     }
 
     handleSend(
-      // getUrl('chat-messages/{app_id}', isInstalledApp, activeAppId || ''),
       getUrl(`chat-messages/${appData?.app_id}`, isInstalledApp, activeAppId || ''),
       data,
       {
@@ -97,32 +97,22 @@ const ChatWrapper = () => {
       },
     )
   }, [
-    chatListRef,
+    chatList,
+    handleNewConversationCompleted,
+    handleSend,
     currentConversationId,
     currentConversationItem,
-    handleSend,
     newConversationInputs,
-    handleNewConversationCompleted,
     isInstalledApp,
     activeAppId,
     appData,
   ])
 
-  const doRegenerate = useCallback((chatItem: ChatItem) => {
-    const index = chatList.findIndex(item => item.id === chatItem.id)
-    if (index === -1)
-      return
-
-    const prevMessages = chatList.slice(0, index)
-    const question = prevMessages.pop()
-    const lastAnswer = getLastAnswer(prevMessages)
-
-    if (!question)
-      return
-
-    handleUpdateChatList(prevMessages)
-    doSend(question.content, question.message_files, lastAnswer)
-  }, [chatList, handleUpdateChatList, doSend])
+  const doRegenerate = useCallback((chatItem: ChatItemInTree) => {
+    const question = chatList.find(item => item.id === chatItem.parentMessageId)!
+    const parentAnswer = chatList.find(item => item.id === question.parentMessageId)
+    doSend(question.content, question.message_files, true, isValidGeneratedAnswer(parentAnswer) ? parentAnswer : null)
+  }, [chatList, doSend])
 
   const chatNode = useMemo(() => {
     if (inputsForms.length) {
@@ -194,6 +184,7 @@ const ChatWrapper = () => {
         answerIcon={answerIcon}
         hideProcessDetail
         themeBuilder={themeBuilder}
+        switchSibling={siblingMessageId => setTargetMessageId(siblingMessageId)}
       />
     </div>
   )
