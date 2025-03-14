@@ -131,7 +131,7 @@ class VariablePool(BaseModel):
             if attr not in {item.value for item in FileAttribute}:
                 return None
             value = self.get(selector)
-            if not isinstance(value, (FileSegment, NoneSegment)):
+            if not isinstance(value, FileSegment | NoneSegment):
                 return None
             if isinstance(value, FileSegment):
                 attr = FileAttribute(attr)

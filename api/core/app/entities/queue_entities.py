@@ -430,22 +430,6 @@ class QueueAgentLogEvent(AppQueueEvent):
     node_id: str
 
 
-class QueueAgentLogEvent(AppQueueEvent):
-    """
-    QueueAgentLogEvent entity
-    """
-
-    event: QueueEvent = QueueEvent.AGENT_LOG
-    id: str
-    label: str
-    node_execution_id: str
-    parent_id: str | None
-    error: str | None
-    status: str
-    data: Mapping[str, Any]
-    metadata: Optional[Mapping[str, Any]] = None
-
-
 class QueueNodeRetryEvent(QueueNodeStartedEvent):
     """QueueNodeRetryEvent entity"""
 

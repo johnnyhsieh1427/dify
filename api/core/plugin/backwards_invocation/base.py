@@ -1,5 +1,5 @@
 from collections.abc import Generator, Mapping
-from typing import Generic, Optional, TypeVar
+from typing import Optional, TypeVar
 
 from pydantic import BaseModel
 
@@ -24,6 +24,6 @@ class BaseBackwardsInvocation:
 T = TypeVar("T", bound=dict | Mapping | str | bool | int | BaseModel)
 
 
-class BaseBackwardsInvocationResponse(BaseModel, Generic[T]):
+class BaseBackwardsInvocationResponse(BaseModel[T]):
     data: Optional[T] = None
     error: str = ""

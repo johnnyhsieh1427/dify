@@ -121,17 +121,6 @@ class File(BaseModel):
             "url": self.generate_url(),
         }
 
-    def to_plugin_parameter(self) -> dict[str, Any]:
-        return {
-            "dify_model_identity": FILE_MODEL_IDENTITY,
-            "mime_type": self.mime_type,
-            "filename": self.filename,
-            "extension": self.extension,
-            "size": self.size,
-            "type": self.type,
-            "url": self.generate_url(),
-        }
-
     @model_validator(mode="after")
     def validate_after(self):
         match self.transfer_method:
