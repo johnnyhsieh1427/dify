@@ -525,19 +525,6 @@ class WorkflowBasedAppRunner(AppRunner):
                     node_id=event.node_id,
                 )
             )
-        elif isinstance(event, AgentLogEvent):
-            self._publish_event(
-                QueueAgentLogEvent(
-                    id=event.id,
-                    label=event.label,
-                    node_execution_id=event.node_execution_id,
-                    parent_id=event.parent_id,
-                    error=event.error,
-                    status=event.status,
-                    data=event.data,
-                    metadata=event.metadata,
-                )
-            )
         elif isinstance(event, ParallelBranchRunStartedEvent):
             self._publish_event(
                 QueueParallelBranchRunStartedEvent(

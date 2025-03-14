@@ -85,7 +85,7 @@ const UpgradeOrDownload: FC<UpgradeOrDownloadProps> = ({ doc_name }) => {
     [Plan.sandbox]: t('common.compliance.sandboxUpgradeTooltip'),
     [Plan.professional]: t('common.compliance.professionalUpgradeTooltip'),
     [Plan.team]: '',
-    [Plan.enterprise]: '',
+    // [Plan.enterprise]: '',
   }
   return <Tooltip asChild={false} popupContent={upgradeTooltip[plan.type]}>
     <PremiumBadge color='blue' allowHover={true} onClick={handlePlanClick}>

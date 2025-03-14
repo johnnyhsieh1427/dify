@@ -1,5 +1,7 @@
 from contextvars import ContextVar
+from typing import TypeVar
 
+T = TypeVar("T")
 
 class HiddenValue:
     pass

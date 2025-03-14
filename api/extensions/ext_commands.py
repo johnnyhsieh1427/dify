@@ -44,6 +44,10 @@ def init_app(app: DifyApp):
         create_tenant,
         upgrade_db,
         fix_app_site_missing,
+        migrate_data_for_plugin,
+        extract_plugins,
+        extract_unique_plugins,
+        install_plugins,
     ]
     for cmd in cmds_to_register:
         app.cli.add_command(cmd)
