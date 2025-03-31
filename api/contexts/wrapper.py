@@ -3,6 +3,7 @@ from typing import TypeVar
 
 T = TypeVar("T")
 
+
 class HiddenValue:
     pass
 
