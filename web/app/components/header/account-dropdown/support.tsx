@@ -17,7 +17,8 @@ export default function Support() {
   const { t } = useTranslation()
   const { plan } = useProviderContext()
   const { userProfile, langeniusVersionInfo } = useAppContext()
-  const canEmailSupport = plan.type === Plan.professional || plan.type === Plan.team || plan.type === Plan.enterprise
+  const canEmailSupport = plan.type === Plan.professional || plan.type === Plan.team
+  // const canEmailSupport = plan.type === Plan.professional || plan.type === Plan.team || plan.type === Plan.enterprise
 
   return <Menu as="div" className="relative w-full h-full">
     {

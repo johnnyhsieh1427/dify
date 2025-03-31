@@ -60,7 +60,7 @@ const Popup: FC<PopupProps> = ({
               <FileIcon type={fileType} className='shrink-0 mr-1 w-4 h-4' />
               {data.fileLocation
                 ? <Link
-                  href={`${new URL(data.fileLocation, PUBLIC_API_PREFIX).href}`}
+                  href={`${new URL(data.fileLocation, PUBLIC_API_PREFIX).href}?original_name=${encodeURI(data.documentName)}`}
                   target='_blank'
                   className='system-xs-medium text-text-tertiary truncate'
                 >{data.documentName}</Link>

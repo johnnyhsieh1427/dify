@@ -24,6 +24,6 @@ class BaseBackwardsInvocation:
 T = TypeVar("T", bound=dict | Mapping | str | bool | int | BaseModel)
 
 
-class BaseBackwardsInvocationResponse(BaseModel[T]):
+class BaseBackwardsInvocationResponse[T](BaseModel):
     data: Optional[T] = None
     error: str = ""

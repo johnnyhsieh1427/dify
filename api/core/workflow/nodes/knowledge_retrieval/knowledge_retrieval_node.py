@@ -27,6 +27,7 @@ from core.workflow.nodes.enums import NodeType
 from extensions.ext_database import db
 from extensions.ext_redis import redis_client
 from models.dataset import Dataset, Document, RateLimitLog
+from models.model import UploadFile
 from models.workflow import WorkflowNodeExecutionStatus
 from services.feature_service import FeatureService
 

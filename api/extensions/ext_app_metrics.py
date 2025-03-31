@@ -5,7 +5,7 @@ import mimetypes
 import os
 import threading
 
-from flask import Response, send_file
+from flask import Response, request, send_file
 
 from configs import dify_config
 from dify_app import DifyApp
@@ -96,9 +96,14 @@ def init_app(app: DifyApp):
             if mime_type is None:
                 mime_type = "application/octet-stream"
 
-            # 設置回應，Content-Disposition 為 inline（直接顯示）
-            response = send_file(file_path, mimetype=mime_type)
-            response.headers["Content-Disposition"] = f"inline; filename={file_name}"
+            import urllib.parse
+            original_name = request.args.get("original_name", file_name)
+            encoded_name = urllib.parse.quote(original_name.encode('utf-8'))
+
+            # 設置回應，Content-Disposition 為 attachment（下載）並顯示原始檔案名稱
+            response = send_file(file_path, mimetype=mime_type, download_name=encoded_name)
+            # response.headers["Content-Disposition"] = f"inline; filename={file_name}"
+            response.headers["Content-Disposition"] = f"inline; filename*=utf-8''{encoded_name}"
             return response
 
         except FileNotFoundError:

@@ -15,7 +15,7 @@ from core.tools.entities.tool_entities import ToolProviderEntityWithPlugin
 T = TypeVar("T", bound=(BaseModel | dict | list | bool | str))
 
 
-class PluginDaemonBasicResponse(BaseModel[T]):
+class PluginDaemonBasicResponse[T](BaseModel):
     """
     Basic response from plugin daemon.
     """

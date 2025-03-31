@@ -73,6 +73,8 @@ function getFormattedChatList(messages: any[]) {
 }
 
 export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
+  // const isInstalledApp = useMemo(() => !!installedAppInfo, [installedAppInfo])
+  // const { data: appInfo, isLoading: appInfoLoading, error: appInfoError } = useSWR(installedAppInfo ? null : 'appInfo', fetchAppInfo)
   // 一律改成isInstalledApp = False
   const isInstalledApp = false
   // 設定activeIndex，代表選擇哪個app
@@ -81,7 +83,6 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
   const appDataList = useMemo(() => appInfos?.items, [appInfos])
   const appInfo = useMemo(() => appDataList?.[activeIndex], [appDataList, activeIndex])
   const { userProfile } = useAppContext()
-  // const { data: appInfo, isLoading: appInfoLoading, error: appInfoError } = useSWR(installedAppInfo ? null : 'appInfo', fetchAppInfo)
 
   useAppFavicon({
     enable: !installedAppInfo,
@@ -93,12 +94,26 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
 
   const appData = useMemo(() => appInfo, [appInfo])
   const appId = useMemo(() => appData?.app_id || '00000000-0000-0000-0000-000000000000', [appData])
+  // const appId = useMemo(() => appData?.app_id, [appData])
 
   useEffect(() => {
     if (userProfile.interface_language)
       changeLanguage(userProfile.interface_language)
   }, [userProfile])
 
+  const [sidebarCollapseState, setSidebarCollapseState] = useState<boolean>(false)
+  const handleSidebarCollapse = useCallback((state: boolean) => {
+    if (appId) {
+      setSidebarCollapseState(state)
+      localStorage.setItem('webappSidebarCollapse', state ? 'collapsed' : 'expanded')
+    }
+  }, [appId, setSidebarCollapseState])
+  useEffect(() => {
+    if (appId) {
+      const localState = localStorage.getItem('webappSidebarCollapse')
+      setSidebarCollapseState(localState === 'collapsed')
+    }
+  }, [appId])
   const [conversationIdInfo, setConversationIdInfo] = useLocalStorageState<Record<string, string>>(CONVERSATION_ID_INFO, {
     defaultValue: {},
   })
@@ -111,7 +126,6 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
       })
     }
   }, [appId, conversationIdInfo, setConversationIdInfo])
-  const [showConfigPanelBeforeChat, setShowConfigPanelBeforeChat] = useState(true)
 
   const [newConversationId, setNewConversationId] = useState('')
   const chatShouldReloadKey = useMemo(() => {
@@ -129,6 +143,8 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
   const { data: appConversationData, isLoading: appConversationDataLoading, mutate: mutateAppConversationData } = useSWR(['appConversationData', isInstalledApp, appId, false], () => fetchUserConversations(appId, undefined, false, 100))
   const { data: appChatListData, isLoading: appChatListDataLoading } = useSWR(chatShouldReloadKey ? ['appChatListData', chatShouldReloadKey, isInstalledApp, appId] : null, () => fetchUserChatList(appId, chatShouldReloadKey))
 
+  const [clearChatList, setClearChatList] = useState(false)
+  const [isResponding, setIsResponding] = useState(false)
   const appPrevChatTree = useMemo(
     () => (currentConversationId && appChatListData?.data.length)
       ? buildChatItemTree(getFormattedChatList(appChatListData.data))
@@ -278,37 +294,27 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
 
     return true
   }, [inputsForms, notify, t])
-  const handleStartChat = useCallback(() => {
+  const handleStartChat = useCallback((callback: any) => {
     if (checkInputsRequired()) {
-      setShowConfigPanelBeforeChat(false)
       setShowNewConversationItemInList(true)
+      callback?.()
     }
-  }, [setShowConfigPanelBeforeChat, setShowNewConversationItemInList, checkInputsRequired])
+  }, [setShowNewConversationItemInList, checkInputsRequired])
   const currentChatInstanceRef = useRef<{ handleStop: () => void }>({ handleStop: () => { } })
   const handleChangeConversation = useCallback((conversationId: string) => {
     currentChatInstanceRef.current.handleStop()
     setNewConversationId('')
     handleConversationIdInfoChange(conversationId)
-
-    if (conversationId === '' && !checkInputsRequired(true))
-      setShowConfigPanelBeforeChat(true)
-    else
-      setShowConfigPanelBeforeChat(false)
-  }, [handleConversationIdInfoChange, setShowConfigPanelBeforeChat, checkInputsRequired])
+    if (conversationId)
+      setClearChatList(false)
+  }, [handleConversationIdInfoChange, setClearChatList])
   const handleNewConversation = useCallback(() => {
     currentChatInstanceRef.current.handleStop()
-    setNewConversationId('')
-
-    if (showNewConversationItemInList) {
-      handleChangeConversation('')
-    }
-    else if (currentConversationId) {
-      handleConversationIdInfoChange('')
-      setShowConfigPanelBeforeChat(true)
-      setShowNewConversationItemInList(true)
-      handleNewConversationInputsChange({})
-    }
-  }, [handleChangeConversation, currentConversationId, handleConversationIdInfoChange, setShowConfigPanelBeforeChat, setShowNewConversationItemInList, showNewConversationItemInList, handleNewConversationInputsChange])
+    setShowNewConversationItemInList(true)
+    handleChangeConversation('')
+    handleNewConversationInputsChange({})
+    setClearChatList(true)
+  }, [handleChangeConversation, setShowNewConversationItemInList, handleNewConversationInputsChange, setClearChatList])
   const handleUpdateConversationList = useCallback(() => {
     mutateAppConversationData()
     mutateAppPinnedConversationData()
@@ -339,7 +345,6 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     try {
       setConversationDeleting(true)
       await delUserConversation(appId, conversationId)
-      // await delConversation(isInstalledApp, appId, conversationId)
       notify({ type: 'success', message: t('common.api.success') })
       onSuccess()
     }
@@ -402,6 +407,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     setShowNewConversationItemInList(false)
     mutateAppConversationData()
   }, [mutateAppConversationData, handleConversationIdInfoChange])
+
   const handleFeedback = useCallback(async (messageId: string, feedback: Feedback) => {
     await updateUserFeedback(appId, messageId, { rating: feedback.rating })
     notify({ type: 'success', message: t('common.api.success') })
@@ -429,8 +435,6 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     appPrevChatTree,
     pinnedConversationList,
     conversationList,
-    showConfigPanelBeforeChat,
-    setShowConfigPanelBeforeChat,
     setShowNewConversationItemInList,
     newConversationInputs,
     newConversationInputsRef,
@@ -450,5 +454,11 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     chatShouldReloadKey,
     handleFeedback,
     currentChatInstanceRef,
+    sidebarCollapseState,
+    handleSidebarCollapse,
+    clearChatList,
+    setClearChatList,
+    isResponding,
+    setIsResponding,
   }
 }
