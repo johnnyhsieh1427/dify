@@ -144,12 +144,6 @@ async function base<T>(url: string, options: FetchOptionType = {}, otherOptions:
     getAbortController,
   } = otherOptions
 
-  // const base
-  //   = isMarketplaceAPI
-  //     ? MARKETPLACE_API_PREFIX
-  //     : isPublicAPI
-  //       ? PUBLIC_API_PREFIX
-  //       : API_PREFIX
   const base
     = isMarketplaceAPI
       ? MARKETPLACE_API_PREFIX
@@ -177,16 +171,11 @@ async function base<T>(url: string, options: FetchOptionType = {}, otherOptions:
         ...baseHooks.beforeError || [],
         beforeErrorToast(otherOptions),
       ],
-      // beforeRequest: [
-      //   ...baseHooks.beforeRequest || [],
-      //   isPublicAPI && beforeRequestPublicAuthorization,
-      //   !isPublicAPI && !isMarketplaceAPI && beforeRequestAuthorization,
-      // ].filter(Boolean),
       beforeRequest: [
         ...baseHooks.beforeRequest || [],
-        ...(isPublicAPI ? [beforeRequestPublicAuthorization] : []),
-        ...(!isPublicAPI && !isMarketplaceAPI ? [beforeRequestAuthorization] : []),
-      ],
+        isPublicAPI && beforeRequestPublicAuthorization,
+        !isPublicAPI && !isMarketplaceAPI && beforeRequestAuthorization,
+      ].filter(Boolean),
       afterResponse: [
         ...baseHooks.afterResponse || [],
         afterResponseErrorCode(otherOptions),

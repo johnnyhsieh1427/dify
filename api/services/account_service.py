@@ -33,7 +33,6 @@ from models.account import (
     AccountStatus,
     Tenant,
     TenantAccountJoin,
-    TenantAccountJoinRole,
     TenantAccountRole,
     TenantStatus,
 )
@@ -630,8 +629,8 @@ class TenantService:
     @staticmethod
     def create_tenant_member(tenant: Tenant, account: Account, role: str = "normal") -> TenantAccountJoin:
         """Create tenant member"""
-        if role == TenantAccountJoinRole.OWNER.value:
-            if TenantService.has_roles(tenant, [TenantAccountJoinRole.OWNER]):
+        if role == TenantAccountRole.OWNER.value:
+            if TenantService.has_roles(tenant, [TenantAccountRole.OWNER]):
                 logging.error(f"Tenant {tenant.id} has already an owner.")
                 raise Exception("Tenant already has an owner.")
 
@@ -739,10 +738,10 @@ class TenantService:
         return updated_accounts
 
     @staticmethod
-    def has_roles(tenant: Tenant, roles: list[TenantAccountJoinRole]) -> bool:
+    def has_roles(tenant: Tenant, roles: list[TenantAccountRole]) -> bool:
         """Check if user has any of the given roles for a tenant"""
-        if not all(isinstance(role, TenantAccountJoinRole) for role in roles):
-            raise ValueError("all roles must be TenantAccountJoinRole")
+        if not all(isinstance(role, TenantAccountRole) for role in roles):
+            raise ValueError("all roles must be TenantAccountRole")
 
         return (
             db.session.query(TenantAccountJoin)
@@ -754,7 +753,7 @@ class TenantService:
         )
 
     @staticmethod
-    def get_user_role(account: Account, tenant: Tenant) -> Optional[TenantAccountJoinRole]:
+    def get_user_role(account: Account, tenant: Tenant) -> Optional[TenantAccountRole]:
         """Get the role of the current account for a given tenant"""
         join = (
             db.session.query(TenantAccountJoin)
@@ -791,8 +790,10 @@ class TenantService:
     @staticmethod
     def remove_member_from_tenant(tenant: Tenant, account: Account, operator: Account) -> None:
         """Remove member from tenant"""
-        if operator.id == account.id and TenantService.check_member_permission(tenant, operator, account, "remove"):
+        if operator.id == account.id:
             raise CannotOperateSelfError("Cannot operate self.")
+
+        TenantService.check_member_permission(tenant, operator, account, "remove")
 
         ta = TenantAccountJoin.query.filter_by(tenant_id=tenant.id, account_id=account.id).first()
         if not ta:
@@ -919,6 +920,8 @@ class RegisterService:
             db.session.commit()
         except WorkSpaceNotAllowedCreateError:
             db.session.rollback()
+            logging.exception("Register failed")
+            raise AccountRegisterError("Workspace is not allowed to create.")
         except AccountRegisterError as are:
             db.session.rollback()
             logging.exception("Register failed")

@@ -103,6 +103,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env-local
 .venv
 env/
 venv/
@@ -183,6 +184,7 @@ docker/nginx/conf.d/default.conf
 docker/nginx/ssl/*
 !docker/nginx/ssl/.gitkeep
 docker/middleware.env
+docker/docker-compose.override.yaml
 
 docker/langfuse/*
 docker/xinference/*
@@ -216,3 +218,6 @@ api/migrations/versions/2025_01_08_0201-77e34d269b57_add_database_tracing_config
 
 # plugin migrate
 plugins.jsonl
+
+# mise
+mise.toml

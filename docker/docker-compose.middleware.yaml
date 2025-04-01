@@ -82,7 +82,7 @@ services:
 
   # The DifySandbox
   sandbox:
-    image: langgenius/dify-sandbox:0.2.10
+    image: langgenius/dify-sandbox:0.2.11
     restart: always
     environment:
       # The DifySandbox configurations
@@ -105,7 +105,7 @@ services:
 
   # plugin daemon
   plugin_daemon:
-    image: langgenius/dify-plugin-daemon:0.0.3-local
+    image: langgenius/dify-plugin-daemon:0.0.6-local
     restart: always
     depends_on:
       - db

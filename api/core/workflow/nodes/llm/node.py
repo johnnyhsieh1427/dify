@@ -100,6 +100,9 @@ class LLMNode(BaseNode[LLMNodeData]):
     def _run(self) -> Generator[NodeEvent | InNodeEvent, None, None]:
         node_inputs: Optional[dict[str, Any]] = None
         process_data = None
+        result_text = ""
+        usage = LLMUsage.empty_usage()
+        finish_reason = None
 
         try:
             # init messages template
@@ -184,9 +187,6 @@ class LLMNode(BaseNode[LLMNodeData]):
                 stop=stop,
             )
 
-            result_text = ""
-            usage = LLMUsage.empty_usage()
-            finish_reason = None
             for event in generator:
                 if isinstance(event, RunStreamChunkEvent):
                     yield event
@@ -197,6 +197,22 @@ class LLMNode(BaseNode[LLMNodeData]):
                     # deduct quota
                     self.deduct_llm_quota(tenant_id=self.tenant_id, model_instance=model_instance, usage=usage)
                     break
+            outputs = {"text": result_text, "usage": jsonable_encoder(usage), "finish_reason": finish_reason}
+
+            yield RunCompletedEvent(
+                run_result=NodeRunResult(
+                    status=WorkflowNodeExecutionStatus.SUCCEEDED,
+                    inputs=node_inputs,
+                    process_data=process_data,
+                    outputs=outputs,
+                    metadata={
+                        NodeRunMetadataKey.TOTAL_TOKENS: usage.total_tokens,
+                        NodeRunMetadataKey.TOTAL_PRICE: usage.total_price,
+                        NodeRunMetadataKey.CURRENCY: usage.currency,
+                    },
+                    llm_usage=usage,
+                )
+            )
         except LLMNodeError as e:
             yield RunCompletedEvent(
                 run_result=NodeRunResult(
@@ -216,23 +232,6 @@ class LLMNode(BaseNode[LLMNodeData]):
                     process_data=process_data,
                 )
             )
-
-        outputs = {"text": result_text, "usage": jsonable_encoder(usage), "finish_reason": finish_reason}
-
-        yield RunCompletedEvent(
-            run_result=NodeRunResult(
-                status=WorkflowNodeExecutionStatus.SUCCEEDED,
-                inputs=node_inputs,
-                process_data=process_data,
-                outputs=outputs,
-                metadata={
-                    NodeRunMetadataKey.TOTAL_TOKENS: usage.total_tokens,
-                    NodeRunMetadataKey.TOTAL_PRICE: usage.total_price,
-                    NodeRunMetadataKey.CURRENCY: usage.currency,
-                },
-                llm_usage=usage,
-            )
-        )
 
     def _invoke_llm(
         self,

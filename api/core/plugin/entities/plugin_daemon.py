@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,7 +15,7 @@ from core.tools.entities.tool_entities import ToolProviderEntityWithPlugin
 T = TypeVar("T", bound=(BaseModel | dict | list | bool | str))
 
 
-class PluginDaemonBasicResponse[T: BaseModel | dict | list | bool | str](BaseModel):
+class PluginDaemonBasicResponse(BaseModel, Generic[T]):
     """
     Basic response from plugin daemon.
     """

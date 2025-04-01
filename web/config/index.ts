@@ -35,7 +35,7 @@ else {
   // const env = domainParts.length === 2 ? 'ai' : domainParts?.[0];
   apiPrefix = 'http://localhost:5001/console/api'
   publicApiPrefix = 'http://localhost:5001/api' // avoid browser private mode api cross origin
-  marketplaceApiPrefix = 'http://localhost:5002/api'
+  webChatApiPrefix = 'http://localhost:5001/web-chat/api'
 }
 
 if (process.env.NEXT_PUBLIC_MARKETPLACE_API_PREFIX && process.env.NEXT_PUBLIC_MARKETPLACE_URL_PREFIX) {
@@ -45,7 +45,6 @@ if (process.env.NEXT_PUBLIC_MARKETPLACE_API_PREFIX && process.env.NEXT_PUBLIC_MA
 else {
   marketplaceApiPrefix = globalThis.document?.body?.getAttribute('data-marketplace-api-prefix') || ''
   marketplaceUrlPrefix = globalThis.document?.body?.getAttribute('data-marketplace-url-prefix') || ''
-  webChatApiPrefix = 'http://localhost:5001/web-chat/api'
 }
 
 export const API_PREFIX: string = apiPrefix
@@ -56,6 +55,7 @@ export const WEB_CHAT_API_PREFIX: string = webChatApiPrefix
 
 const EDITION = process.env.NEXT_PUBLIC_EDITION || globalThis.document?.body?.getAttribute('data-public-edition') || 'SELF_HOSTED'
 export const IS_CE_EDITION = EDITION === 'SELF_HOSTED'
+export const IS_CLOUD_EDITION = EDITION === 'CLOUD'
 
 export const SUPPORT_MAIL_LOGIN = !!(process.env.NEXT_PUBLIC_SUPPORT_MAIL_LOGIN || globalThis.document?.body?.getAttribute('data-public-support-mail-login'))
 
@@ -172,7 +172,14 @@ export const ANNOTATION_DEFAULT = {
   score_threshold: 0.9,
 }
 
-export const MAX_TOOLS_NUM = 10
+export let maxToolsNum = 10
+
+if (process.env.NEXT_PUBLIC_MAX_TOOLS_NUM && process.env.NEXT_PUBLIC_MAX_TOOLS_NUM !== '')
+  maxToolsNum = Number.parseInt(process.env.NEXT_PUBLIC_MAX_TOOLS_NUM)
+else if (globalThis.document?.body?.getAttribute('data-public-max-tools-num') && globalThis.document.body.getAttribute('data-public-max-tools-num') !== '')
+  maxToolsNum = Number.parseInt(globalThis.document.body.getAttribute('data-public-max-tools-num') as string)
+
+export const MAX_TOOLS_NUM = maxToolsNum
 
 export const DEFAULT_AGENT_SETTING = {
   enabled: false,
@@ -287,3 +294,21 @@ export const GITHUB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_GITHUB_ACCESS_TOKEN |
 
 export const SUPPORT_INSTALL_LOCAL_FILE_EXTENSIONS = '.difypkg,.difybndl'
 export const FULL_DOC_PREVIEW_LENGTH = 50
+
+let loopNodeMaxCount = 100
+
+if (process.env.NEXT_PUBLIC_LOOP_NODE_MAX_COUNT && process.env.NEXT_PUBLIC_LOOP_NODE_MAX_COUNT !== '')
+  loopNodeMaxCount = Number.parseInt(process.env.NEXT_PUBLIC_LOOP_NODE_MAX_COUNT)
+else if (globalThis.document?.body?.getAttribute('data-public-loop-node-max-count') && globalThis.document.body.getAttribute('data-public-loop-node-max-count') !== '')
+  loopNodeMaxCount = Number.parseInt(globalThis.document.body.getAttribute('data-public-loop-node-max-count') as string)
+
+export const LOOP_NODE_MAX_COUNT = loopNodeMaxCount
+
+let maxIterationsNum = 5
+
+if (process.env.NEXT_PUBLIC_MAX_ITERATIONS_NUM && process.env.NEXT_PUBLIC_MAX_ITERATIONS_NUM !== '')
+  maxIterationsNum = Number.parseInt(process.env.NEXT_PUBLIC_MAX_ITERATIONS_NUM)
+else if (globalThis.document?.body?.getAttribute('data-public-max-iterations-num') && globalThis.document.body.getAttribute('data-public-max-iterations-num') !== '')
+  maxIterationsNum = Number.parseInt(globalThis.document.body.getAttribute('data-public-max-iterations-num') as string)
+
+export const MAX_ITERATIONS_NUM = maxIterationsNum

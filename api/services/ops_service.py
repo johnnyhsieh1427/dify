@@ -31,10 +31,10 @@ class OpsService:
             return None
 
         # decrypt_token and obfuscated_token
-        tenant = db.session.query(App).filter(App.id == app_id).first()
-        if not tenant:
+        app = db.session.query(App).filter(App.id == app_id).first()
+        if not app:
             return None
-        tenant_id = tenant.tenant_id
+        tenant_id = app.tenant_id
         decrypt_tracing_config = OpsTraceManager.decrypt_tracing_config(
             tenant_id, tracing_provider, trace_config_data.tracing_config
         )
@@ -179,10 +179,10 @@ class OpsService:
             return None
 
         # get tenant id
-        tenant = db.session.query(App).filter(App.id == app_id).first()
-        if not tenant:
+        app = db.session.query(App).filter(App.id == app_id).first()
+        if not app:
             return None
-        tenant_id = tenant.tenant_id
+        tenant_id = app.tenant_id
         tracing_config = OpsTraceManager.encrypt_tracing_config(tenant_id, tracing_provider, tracing_config)
         if project_url:
             tracing_config["project_url"] = project_url
@@ -281,7 +281,10 @@ class OpsService:
             return None
 
         # get tenant id
-        tenant_id = db.session.query(App).filter(App.id == app_id).first().tenant_id
+        app = db.session.query(App).filter(App.id == app_id).first()
+        if not app:
+            return None
+        tenant_id = app.tenant_id
         tracing_config = OpsTraceManager.encrypt_tracing_config(
             tenant_id, tracing_provider, tracing_config, current_trace_config.tracing_config
         )
