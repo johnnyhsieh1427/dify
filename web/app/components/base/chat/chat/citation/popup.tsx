@@ -50,14 +50,7 @@ const Popup: FC<PopupProps> = ({
       <PortalToFollowElemTrigger onClick={() => setOpen(v => !v)}>
         <div className='flex h-7 max-w-[240px] items-center rounded-lg bg-components-button-secondary-bg px-2'>
           <FileIcon type={fileType} className='mr-1 h-4 w-4 shrink-0' />
-          {data.fileLocation
-            ? <Link
-              href={`${new URL(data.fileLocation, PUBLIC_API_PREFIX).href}`}
-              target='_blank'
-              className='truncate text-xs font-medium text-gray-600'
-            >{data.documentName}</Link>
-            : <div className='truncate text-xs text-text-tertiary'>{data.documentName}</div>
-          }
+          <div className='truncate text-xs text-text-tertiary'>{data.documentName}</div>
         </div>
       </PortalToFollowElemTrigger>
       <PortalToFollowElemContent style={{ zIndex: 1000 }}>
@@ -65,7 +58,14 @@ const Popup: FC<PopupProps> = ({
           <div className='px-4 pb-2 pt-3'>
             <div className='flex h-[18px] items-center'>
               <FileIcon type={fileType} className='mr-1 h-4 w-4 shrink-0' />
-              <div className='system-xs-medium truncate text-text-tertiary'>{data.documentName}</div>
+              {data.fileLocation
+                ? <Link
+                  href={`${new URL(data.fileLocation, PUBLIC_API_PREFIX).href}`}
+                  target='_blank'
+                  className='truncate text-xs font-medium text-gray-600'
+                >{data.documentName}</Link>
+                : <div className='system-xs-medium truncate text-text-tertiary'>{data.documentName}</div>
+              }
             </div>
           </div>
           <div className='max-h-[450px] overflow-y-auto rounded-lg bg-components-panel-bg px-4 py-0.5'>
