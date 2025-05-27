@@ -60,7 +60,9 @@ class MetadataService:
             metadata.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
 
             # update related documents
-            dataset_metadata_bindings = db.session.query(DatasetMetadataBinding).filter_by(metadata_id=metadata_id).all()
+            dataset_metadata_bindings = db.session.query(DatasetMetadataBinding).filter_by(
+                metadata_id=metadata_id
+            ).all()
             if dataset_metadata_bindings:
                 document_ids = [binding.document_id for binding in dataset_metadata_bindings]
                 documents = DocumentService.get_document_by_ids(document_ids)
@@ -88,7 +90,9 @@ class MetadataService:
             db.session.delete(metadata)
 
             # deal related documents
-            dataset_metadata_bindings = db.session.query(DatasetMetadataBinding).filter_by(metadata_id=metadata_id).all()
+            dataset_metadata_bindings = db.session.query(DatasetMetadataBinding).filter_by(
+                metadata_id=metadata_id
+            ).all()
             if dataset_metadata_bindings:
                 document_ids = [binding.document_id for binding in dataset_metadata_bindings]
                 documents = DocumentService.get_document_by_ids(document_ids)

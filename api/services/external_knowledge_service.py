@@ -31,7 +31,9 @@ class ExternalDatasetService:
         if search:
             query = query.filter(ExternalKnowledgeApis.name.ilike(f"%{search}%"))
 
-        external_knowledge_apis = db.paginate(query.statement, page=page, per_page=per_page, max_per_page=100, error_out=False)
+        external_knowledge_apis = db.paginate(
+            query.statement, page=page, per_page=per_page, max_per_page=100, error_out=False
+        )
 
         return external_knowledge_apis.items, external_knowledge_apis.total
 
@@ -131,16 +133,18 @@ class ExternalDatasetService:
 
     @staticmethod
     def external_knowledge_api_use_check(external_knowledge_api_id: str) -> tuple[bool, int]:
-        count = db.session.query(ExternalKnowledgeBindings).filter_by(external_knowledge_api_id=external_knowledge_api_id).count()
+        count = db.session.query(ExternalKnowledgeBindings).filter_by(
+            external_knowledge_api_id=external_knowledge_api_id
+        ).count()
         if count > 0:
             return True, count
         return False, 0
 
     @staticmethod
     def get_external_knowledge_binding_with_dataset_id(tenant_id: str, dataset_id: str) -> ExternalKnowledgeBindings:
-        external_knowledge_binding: Optional[ExternalKnowledgeBindings] = db.session.query(ExternalKnowledgeBindings).filter_by(
-            dataset_id=dataset_id, tenant_id=tenant_id
-        ).first()
+        external_knowledge_binding: Optional[ExternalKnowledgeBindings] = db.session.query(
+            ExternalKnowledgeBindings
+        ).filter_by(dataset_id=dataset_id, tenant_id=tenant_id).first()
         if not external_knowledge_binding:
             raise ValueError("external knowledge binding not found")
         return external_knowledge_binding

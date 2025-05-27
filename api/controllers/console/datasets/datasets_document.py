@@ -184,7 +184,9 @@ class DatasetDocumentListApi(Resource):
         except services.errors.account.NoPermissionError as e:
             raise Forbidden(str(e))
 
-        query = db.session.query(Document).filter_by(dataset_id=str(dataset_id), tenant_id=current_user.current_tenant_id)
+        query = db.session.query(Document).filter_by(
+            dataset_id=str(dataset_id), tenant_id=current_user.current_tenant_id
+        )
 
         if search:
             search = f"%{search}%"

@@ -193,7 +193,9 @@ class ConversationService:
         source = "api" if isinstance(user, EndUser) else "console"
         user_id = user.id if user else None
         account_id = (
-            user.session_id if isinstance(user, EndUser) and db.session.query(Account).filter(Account.id == user.session_id).first()
+            user.session_id 
+            if isinstance(user, EndUser) and 
+            db.session.query(Account).filter(Account.id == user.session_id).first()
             else user_id
         )
 

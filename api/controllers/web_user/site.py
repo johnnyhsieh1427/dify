@@ -1,15 +1,16 @@
 # 修改日期2025-02-28
 # 專屬給chat-web的controllers
 
-from typing import List
+
 from flask_restful import fields, marshal_with  # type: ignore
 
-from controllers.web_user.error import AppUnavailableError
 from configs import dify_config
 from controllers.web_user import api
+from controllers.web_user.error import AppUnavailableError
 from controllers.web_user.wraps import WebUserApiResource
 from extensions.ext_database import db
 from libs.helper import AppIconUrlField
+
 # from models.account import TenantStatus
 from models.model import App, EndUser, Site
 
@@ -64,7 +65,7 @@ class UserAppSiteApi(WebUserApiResource):
 
     @marshal_with(app_list)
     # @marshal_with(app_fields)
-    def get(self, app_models: List[App], end_user: EndUser):
+    def get(self, app_models: list[App], end_user: EndUser):
         _list = []
         for app_model in app_models:
             site = db.session.query(Site).filter(Site.app_id == app_model.id).first()

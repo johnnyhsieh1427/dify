@@ -154,7 +154,11 @@ class ConversationUnPinApi(WebUserApiResource):
         return {"result": "success"}
 
 
-api.add_resource(ConversationRenameApi, "/conversations/<uuid:app_id>/<uuid:c_id>/name", endpoint="web_conversation_name")
+api.add_resource(
+    ConversationRenameApi, 
+    "/conversations/<uuid:app_id>/<uuid:c_id>/name", 
+    endpoint="web_conversation_name"
+)
 api.add_resource(ConversationListApi, "/conversations/<uuid:app_id>")
 api.add_resource(ConversationApi, "/conversations/<uuid:app_id>/<uuid:c_id>")
 api.add_resource(ConversationPinApi, "/conversations/<uuid:app_id>/<uuid:c_id>/pin")

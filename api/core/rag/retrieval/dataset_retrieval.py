@@ -517,8 +517,11 @@ class DatasetRetrieval:
                             ChildChunk.document_id == dataset_document.id,
                         ).first()
                         if child_chunk:
-                            segment = db.session.query(DocumentSegment).filter(DocumentSegment.id == child_chunk.segment_id).update(
-                                {DocumentSegment.hit_count: DocumentSegment.hit_count + 1}, synchronize_session=False
+                            segment = db.session.query(DocumentSegment).filter(
+                                DocumentSegment.id == child_chunk.segment_id
+                            ).update(
+                                {DocumentSegment.hit_count: DocumentSegment.hit_count + 1}, 
+                                synchronize_session=False
                             )
                             db.session.commit()
                     else:

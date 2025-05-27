@@ -14,11 +14,10 @@ from hashlib import sha256
 from typing import Any, Optional, cast
 
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import Unauthorized
 
-from sqlalchemy import select
 from configs import dify_config
 from constants.languages import language_timezone_mapping, languages
 from events.tenant_event import tenant_was_created
@@ -117,7 +116,9 @@ class AccountService:
         if current_tenant:
             account.set_tenant_id(current_tenant.tenant_id)
         else:
-            available_ta = db.session.query(TenantAccountJoin).filter_by(account_id=account.id).order_by(TenantAccountJoin.id.asc()).first()
+            available_ta = db.session.query(TenantAccountJoin).filter_by(account_id=account.id).order_by(
+                TenantAccountJoin.id.asc()
+            ).first()
             if not available_ta:
                 return None
 
@@ -614,7 +615,9 @@ class TenantService:
         account: Account, name: Optional[str] = None, is_setup: Optional[bool] = False
     ):
         """Check if user have a workspace or not"""
-        available_ta = db.session.query(TenantAccountJoin).filter_by(account_id=account.id).order_by(TenantAccountJoin.id.asc()).first()
+        available_ta = db.session.query(TenantAccountJoin).filter_by(account_id=account.id).order_by(
+            TenantAccountJoin.id.asc()
+        ).first()
 
         if available_ta and not FeatureService.get_system_features().is_allow_create_workspace:
             return
@@ -813,14 +816,18 @@ class TenantService:
         """Update member role"""
         TenantService.check_member_permission(tenant, operator, member, "update")
 
-        target_member_join = db.session.query(TenantAccountJoin).filter_by(tenant_id=tenant.id, account_id=member.id).first()
+        target_member_join = db.session.query(TenantAccountJoin).filter_by(
+            tenant_id=tenant.id, account_id=member.id
+        ).first()
 
         if target_member_join.role == new_role:
             raise RoleAlreadyAssignedError("The provided role is already assigned to the member.")
 
         if new_role == "owner":
             # Find the current owner and change their role to 'admin'
-            current_owner_join = db.session.query(TenantAccountJoin).filter_by(tenant_id=tenant.id, role="owner").first()
+            current_owner_join = db.session.query(TenantAccountJoin).filter_by(
+                tenant_id=tenant.id, role="owner"
+            ).first()
             current_owner_join.role = "admin"
 
         # Update the role of the target member

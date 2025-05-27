@@ -7,10 +7,10 @@ from controllers.common import fields
 from controllers.web import api
 from controllers.web.error import AppUnavailableError
 from controllers.web.wraps import WebApiResource
+from core.app.app_config.common.parameters_mapping import get_parameters_from_feature_dict
 from extensions.ext_database import db
 from models.account import TenantAccountJoin
 from models.model import App, AppMode, EndUser
-from core.app.app_config.common.parameters_mapping import get_parameters_from_feature_dict
 from services.app_service import AppService
 
 

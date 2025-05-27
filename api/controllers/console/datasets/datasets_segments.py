@@ -12,7 +12,6 @@ from flask_restful import Resource, marshal, reqparse
 from werkzeug.exceptions import Forbidden, NotFound
 
 import services
-from models import db
 from controllers.console import api
 from controllers.console.app.error import ProviderNotInitializeError
 from controllers.console.datasets.error import (
@@ -35,6 +34,7 @@ from core.model_runtime.entities.model_entities import ModelType
 from extensions.ext_redis import redis_client
 from fields.segment_fields import child_chunk_fields, segment_fields
 from libs.login import login_required
+from models import db
 from models.dataset import ChildChunk, DocumentSegment
 from services.dataset_service import DatasetService, DocumentService, SegmentService
 from services.entities.knowledge_entities.knowledge_entities import ChildChunkUpdateArgs, SegmentUpdateArgs

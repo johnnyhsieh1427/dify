@@ -3,9 +3,9 @@ import time
 import click
 
 import app
-from models import db
 from configs import dify_config
 from core.rag.datasource.vdb.tidb_on_qdrant.tidb_service import TidbService
+from models import db
 from models.dataset import TidbAuthBinding
 
 

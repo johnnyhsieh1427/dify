@@ -2,11 +2,10 @@ import datetime
 import time
 
 import click
-from sqlalchemy import func
+from sqlalchemy import func, select
 from werkzeug.exceptions import NotFound
 
 import app
-from sqlalchemy import select
 from configs import dify_config
 from core.rag.index_processor.index_processor_factory import IndexProcessorFactory
 from extensions.ext_database import db

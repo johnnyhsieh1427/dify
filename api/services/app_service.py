@@ -5,8 +5,8 @@ from typing import Optional, cast
 
 from flask_login import current_user
 from flask_sqlalchemy.pagination import Pagination
-
 from sqlalchemy import select
+
 from configs import dify_config
 from constants.model_template import default_app_templates
 from core.agent.entities import AgentToolEntity

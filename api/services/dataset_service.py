@@ -92,11 +92,15 @@ from tasks.sync_website_document_indexing_task import sync_website_document_inde
 class DatasetService:
     @staticmethod
     def get_datasets(page, per_page, tenant_id=None, user=None, search=None, tag_ids=None, include_all=False):
-        query = db.session.query(Dataset).filter(Dataset.tenant_id == tenant_id).order_by(Dataset.created_at.desc())
+        query = db.session.query(Dataset).filter(Dataset.tenant_id == tenant_id).order_by(
+            Dataset.created_at.desc()
+        )
 
         if user:
             # get permitted dataset ids
-            dataset_permission = db.session.query(DatasetPermission).filter_by(account_id=user.id, tenant_id=tenant_id).all()
+            dataset_permission = db.session.query(DatasetPermission).filter_by(
+                account_id=user.id, tenant_id=tenant_id
+            ).all()
             permitted_dataset_ids = {dp.dataset_id for dp in dataset_permission} if dataset_permission else None
 
             if user.current_role == TenantAccountRole.DATASET_OPERATOR:
@@ -499,7 +503,9 @@ class DatasetService:
                 logging.debug(f"User {user.id} does not have permission to access dataset {dataset.id}")
                 raise NoPermissionError("You do not have permission to access this dataset.")
             if dataset.permission == "partial_members":
-                user_permission = db.session.query(DatasetPermission).filter_by(dataset_id=dataset.id, account_id=user.id).first()
+                user_permission = db.session.query(DatasetPermission).filter_by(
+                    dataset_id=dataset.id, account_id=user.id
+                ).first()
                 if (
                     not user_permission
                     and dataset.tenant_id != user.current_tenant_id
@@ -523,7 +529,9 @@ class DatasetService:
 
             elif dataset.permission == DatasetPermissionEnum.PARTIAL_TEAM:
                 if not any(
-                    dp.dataset_id == dataset.id for dp in db.session.query(DatasetPermission).filter_by(account_id=user.id).all()
+                    dp.dataset_id == dataset.id for dp in db.session.query(DatasetPermission).filter_by(
+                        account_id=user.id
+                    ).all()
                 ):
                     raise NoPermissionError("You do not have permission to access this dataset.")
 
@@ -897,7 +905,9 @@ class DocumentService:
 
     @staticmethod
     def get_documents_position(dataset_id):
-        document = db.session.query(Document).filter_by(dataset_id=dataset_id).order_by(Document.position.desc()).first()
+        document = db.session.query(Document).filter_by(dataset_id=dataset_id).order_by(
+            Document.position.desc()
+        ).first()
         if document:
             return document.position + 1
         else:
@@ -2254,7 +2264,9 @@ class SegmentService:
     @classmethod
     def get_child_chunk_by_id(cls, child_chunk_id: str, tenant_id: str) -> Optional[ChildChunk]:
         """Get a child chunk by its ID."""
-        result = db.session.query(ChildChunk).filter(ChildChunk.id == child_chunk_id, ChildChunk.tenant_id == tenant_id).first()
+        result = db.session.query(ChildChunk).filter(
+            ChildChunk.id == child_chunk_id, ChildChunk.tenant_id == tenant_id
+        ).first()
         return result if isinstance(result, ChildChunk) else None
 
     @classmethod
