@@ -37,6 +37,7 @@ from core.ops.entities.config_entity import (
     LangSmithConfig,
     OpikConfig,
     TracingProviderEnum,
+    WeaveConfig,
 )
 from core.ops.entities.trace_entity import (
     DatasetRetrievalTraceInfo,
@@ -52,7 +53,9 @@ from core.ops.entities.trace_entity import (
 )
 from core.ops.langfuse_trace.langfuse_trace import LangFuseDataTrace
 from core.ops.langsmith_trace.langsmith_trace import LangSmithDataTrace
+from core.ops.opik_trace.opik_trace import OpikDataTrace
 from core.ops.utils import get_message_data
+from core.ops.weave_trace.weave_trace import WeaveDataTrace
 from extensions.ext_database import db
 from extensions.ext_storage import storage
 from models.dataset import Dataset
@@ -70,8 +73,6 @@ from tasks.ops_trace_task import process_trace_tasks
 
 
 def build_opik_trace_instance(config: OpikConfig):
-    from core.ops.opik_trace.opik_trace import OpikDataTrace
-
     return OpikDataTrace(config)
 
 
@@ -93,6 +94,12 @@ provider_config_map: dict[str, dict[str, Any]] = {
         "secret_keys": ["api_key"],
         "other_keys": ["project", "url", "workspace"],
         "trace_instance": lambda config: build_opik_trace_instance(config),
+    },
+    TracingProviderEnum.WEAVE.value: {
+        "config_class": WeaveConfig,
+        "secret_keys": ["api_key"],
+        "other_keys": ["project", "entity", "endpoint"],
+        "trace_instance": WeaveDataTrace,
     },
 }
 
@@ -295,8 +302,9 @@ class OpsTraceManager:
                 return None
 
             tracing_provider = app_ops_trace_config.get("tracing_provider")
+            tracing_enabled = app_ops_trace_config.get("enabled", False)
 
-            if tracing_provider is None or tracing_provider not in provider_config_map:
+            if tracing_provider is None or tracing_provider not in provider_config_map or not tracing_enabled:
                 return None
 
             # decrypt_token
@@ -576,7 +584,7 @@ class TraceTask:
                 "version": workflow_run_version,
                 "total_tokens": total_tokens,
                 "file_list": file_list,
-                "triggered_form": workflow_run.triggered_from,
+                "triggered_from": workflow_run.triggered_from,
                 "user_id": user_id,
             }
 

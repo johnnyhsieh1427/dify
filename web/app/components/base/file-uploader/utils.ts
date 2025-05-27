@@ -13,13 +13,13 @@ type FileUploadParams = {
   onSuccessCallback: (res: { id: string }) => void
   onErrorCallback: () => void
 }
-type FileUpload = (v: FileUploadParams, isPublic?: boolean, url?: string) => void
+type FileUpload = (v: FileUploadParams, isPublic?: boolean, isWebChat?: boolean, url?: string) => void
 export const fileUpload: FileUpload = ({
   file,
   onProgressCallback,
   onSuccessCallback,
   onErrorCallback,
-}, isPublic, url) => {
+}, isPublic, isWebChat, url) => {
   const formData = new FormData()
   formData.append('file', file)
   const onProgress = (e: ProgressEvent) => {
@@ -33,7 +33,7 @@ export const fileUpload: FileUpload = ({
     xhr: new XMLHttpRequest(),
     data: formData,
     onprogress: onProgress,
-  }, isPublic, url)
+  }, isPublic, isWebChat, url)
     .then((res: { id: string }) => {
       onSuccessCallback(res)
     })
@@ -134,7 +134,7 @@ export const getProcessedFilesFromResponse = (files: FileResponse[]) => {
       progress: 100,
       transferMethod: fileItem.transfer_method,
       supportFileType: fileItem.type,
-      uploadedId: fileItem.related_id,
+      uploadedId: fileItem.upload_file_id || fileItem.related_id,
       url: fileItem.url,
     }
   })

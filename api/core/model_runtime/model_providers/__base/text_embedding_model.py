@@ -20,7 +20,7 @@ from core.model_runtime.model_providers.__base.ai_model import AIModel
 from core.ops.entities.trace_entity import TraceTaskName
 from core.ops.ops_trace_manager import TraceQueueManager, TraceTask
 from core.ops.utils import measure_time
-from core.plugin.manager.model import PluginModelManager
+from core.plugin.impl.model import PluginModelClient
 
 # from extensions.ext_database import db
 from models.dataset import Dataset
@@ -67,7 +67,7 @@ class TextEmbeddingModel(AIModel):
         self.started_at = time.perf_counter()
 
         try:
-            plugin_model_manager = PluginModelManager()
+            plugin_model_manager = PluginModelClient()
             if is_enable:
                 with measure_time() as timer:
                     result = plugin_model_manager.invoke_text_embedding(
@@ -115,7 +115,7 @@ class TextEmbeddingModel(AIModel):
         :param texts: texts to embed
         :return:
         """
-        plugin_model_manager = PluginModelManager()
+        plugin_model_manager = PluginModelClient()
         return plugin_model_manager.get_text_embedding_num_tokens(
             tenant_id=self.tenant_id,
             user_id="unknown",

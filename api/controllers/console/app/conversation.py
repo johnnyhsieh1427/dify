@@ -1,10 +1,10 @@
 from datetime import UTC, datetime
 
 import pytz  # pip install pytz
-from flask_login import current_user  # type: ignore
-from flask_restful import Resource, marshal_with, reqparse  # type: ignore
-from flask_restful.inputs import int_range  # type: ignore
-from sqlalchemy import func, or_
+from flask_login import current_user
+from flask_restful import Resource, marshal_with, reqparse
+from flask_restful.inputs import int_range
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import joinedload
 from werkzeug.exceptions import Forbidden, NotFound
 
@@ -45,7 +45,7 @@ class CompletionConversationApi(Resource):
         parser.add_argument("limit", type=int_range(1, 100), default=20, location="args")
         args = parser.parse_args()
 
-        query = db.select(Conversation).where(Conversation.app_id == app_model.id, Conversation.mode == "completion")
+        query = select(Conversation).where(Conversation.app_id == app_model.id, Conversation.mode == "completion")
 
         if args["keyword"]:
             query = query.join(Message, Message.conversation_id == Conversation.id).filter(
@@ -171,7 +171,7 @@ class ChatConversationApi(Resource):
             .subquery()
         )
 
-        query = db.select(Conversation).where(Conversation.app_id == app_model.id)
+        query = select(Conversation).where(Conversation.app_id == app_model.id)
 
         if args["keyword"]:
             keyword_filter = "%{}%".format(args["keyword"])

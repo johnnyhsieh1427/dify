@@ -37,6 +37,7 @@ import {
   getProcessedFiles,
   getProcessedFilesFromResponse,
 } from '@/app/components/base/file-uploader/utils'
+import { noop } from 'lodash-es'
 
 type GetAbortController = (abortController: AbortController) => void
 type SendCallback = {
@@ -313,7 +314,7 @@ export const useChat = (
       else
         ttsUrl = `/apps/${params.appId}/text-to-audio`
     }
-    const player = AudioPlayerManager.getInstance().getAudioPlayer(ttsUrl, ttsIsPublic, uuidV4(), 'none', 'none', (_: any): any => { })
+    const player = AudioPlayerManager.getInstance().getAudioPlayer(ttsUrl, ttsIsPublic, uuidV4(), 'none', 'none', noop)
     ssePost(
       url,
       {
@@ -517,7 +518,7 @@ export const useChat = (
           responseItem.workflowProcess!.tracing!.push({
             ...iterationStartedData,
             status: WorkflowRunningStatus.Running,
-          } as any)
+          })
           updateCurrentQAOnTree({
             placeholderQuestionId,
             questionItem,
@@ -533,7 +534,7 @@ export const useChat = (
             ...tracing[iterationIndex],
             ...iterationFinishedData,
             status: WorkflowRunningStatus.Succeeded,
-          } as any
+          }
 
           updateCurrentQAOnTree({
             placeholderQuestionId,
@@ -552,7 +553,7 @@ export const useChat = (
           responseItem.workflowProcess!.tracing!.push({
             ...nodeStartedData,
             status: WorkflowRunningStatus.Running,
-          } as any)
+          })
           updateCurrentQAOnTree({
             placeholderQuestionId,
             questionItem,
@@ -595,7 +596,7 @@ export const useChat = (
           responseItem.workflowProcess!.tracing!.push({
             ...loopStartedData,
             status: WorkflowRunningStatus.Running,
-          } as any)
+          })
           updateCurrentQAOnTree({
             placeholderQuestionId,
             questionItem,
@@ -611,7 +612,7 @@ export const useChat = (
             ...tracing[loopIndex],
             ...loopFinishedData,
             status: WorkflowRunningStatus.Succeeded,
-          } as any
+          }
 
           updateCurrentQAOnTree({
             placeholderQuestionId,

@@ -6,6 +6,8 @@ import ky from 'ky'
 import type { IOtherOptions } from './base'
 import Toast from '@/app/components/base/toast'
 import { API_PREFIX, MARKETPLACE_API_PREFIX, PUBLIC_API_PREFIX, WEB_CHAT_API_PREFIX } from '@/config'
+import { getInitialTokenV2, isTokenV1 } from '@/app/components/share/utils'
+import { getProcessedSystemVariablesFromUrlParams } from '@/app/components/base/chat/utils'
 
 const TIME_OUT = 100000
 
@@ -37,7 +39,7 @@ export type ResponseError = {
 const afterResponseErrorCode = (otherOptions: IOtherOptions): AfterResponseHook => {
   return async (_request, _options, response) => {
     const clonedResponse = response.clone()
-    if (!/^(2|3)\d{2}$/.test(String(clonedResponse.status))) {
+    if (!/^([23])\d{2}$/.test(String(clonedResponse.status))) {
       const bodyJson = clonedResponse.json() as Promise<ResponseError>
       switch (clonedResponse.status) {
         case 403:
@@ -70,44 +72,34 @@ const beforeErrorToast = (otherOptions: IOtherOptions): BeforeErrorHook => {
   }
 }
 
-export const getPublicToken = () => {
-  let token = ''
-  const sharedToken = globalThis.location.pathname.split('/').slice(-1)[0]
-  const accessToken = localStorage.getItem('token') || JSON.stringify({ [sharedToken]: '' })
-  let accessTokenJson = { [sharedToken]: '' }
-  try {
-    accessTokenJson = JSON.parse(accessToken)
-  }
-  catch { }
-  token = accessTokenJson[sharedToken]
-  return token || ''
-}
-
-export function getAccessToken(isPublicAPI?: boolean) {
+export async function getAccessToken(isPublicAPI?: boolean) {
   if (isPublicAPI) {
     const sharedToken = globalThis.location.pathname.split('/').slice(-1)[0]
-    const accessToken = localStorage.getItem('token') || JSON.stringify({ [sharedToken]: '' })
-    let accessTokenJson = { [sharedToken]: '' }
+    const userId = (await getProcessedSystemVariablesFromUrlParams()).user_id
+    const accessToken = localStorage.getItem('token') || JSON.stringify({ version: 2 })
+    let accessTokenJson: Record<string, any> = { version: 2 }
     try {
       accessTokenJson = JSON.parse(accessToken)
+      if (isTokenV1(accessTokenJson))
+        accessTokenJson = getInitialTokenV2()
     }
-    catch (e) {
+    catch {
 
     }
-    return accessTokenJson[sharedToken]
+    return accessTokenJson[sharedToken]?.[userId || 'DEFAULT']
   }
   else {
     return localStorage.getItem('console_token') || ''
   }
 }
 
-const beforeRequestPublicAuthorization: BeforeRequestHook = (request) => {
-  const token = getAccessToken(true)
+const beforeRequestPublicAuthorization: BeforeRequestHook = async (request) => {
+  const token = await getAccessToken(true)
   request.headers.set('Authorization', `Bearer ${token}`)
 }
 
-const beforeRequestAuthorization: BeforeRequestHook = (request) => {
-  const accessToken = getAccessToken()
+const beforeRequestAuthorization: BeforeRequestHook = async (request) => {
+  const accessToken = await getAccessToken()
   request.headers.set('Authorization', `Bearer ${accessToken}`)
 }
 
@@ -144,14 +136,15 @@ async function base<T>(url: string, options: FetchOptionType = {}, otherOptions:
     getAbortController,
   } = otherOptions
 
-  const base
-    = isMarketplaceAPI
-      ? MARKETPLACE_API_PREFIX
-      : isWebChatAPI
-        ? WEB_CHAT_API_PREFIX
-        : isPublicAPI
-          ? PUBLIC_API_PREFIX
-          : API_PREFIX
+  let base: string
+  if (isMarketplaceAPI)
+    base = MARKETPLACE_API_PREFIX
+  else if (isWebChatAPI)
+    base = WEB_CHAT_API_PREFIX
+  else if (isPublicAPI)
+    base = PUBLIC_API_PREFIX
+  else
+    base = API_PREFIX
 
   if (getAbortController) {
     const abortController = new AbortController()
@@ -159,7 +152,7 @@ async function base<T>(url: string, options: FetchOptionType = {}, otherOptions:
     options.signal = abortController.signal
   }
 
-  const fetchPathname = `${base}${url.startsWith('/') ? url : `/${url}`}`
+  const fetchPathname = base + (url.startsWith('/') ? url : `/${url}`)
 
   if (deleteContentType)
     (headers as any).delete('Content-Type')
@@ -173,9 +166,14 @@ async function base<T>(url: string, options: FetchOptionType = {}, otherOptions:
       ],
       beforeRequest: [
         ...baseHooks.beforeRequest || [],
-        isPublicAPI && beforeRequestPublicAuthorization,
-        !isPublicAPI && !isMarketplaceAPI && beforeRequestAuthorization,
-      ].filter(Boolean),
+        ...(isPublicAPI ? [beforeRequestPublicAuthorization] : []),
+        ...(!isPublicAPI && !isMarketplaceAPI ? [beforeRequestAuthorization] : []),
+      ],
+      // beforeRequest: [
+      //   ...baseHooks.beforeRequest || [],
+      //   isPublicAPI && beforeRequestPublicAuthorization,
+      //   !isPublicAPI && !isMarketplaceAPI && beforeRequestAuthorization,
+      // ].filter(Boolean),
       afterResponse: [
         ...baseHooks.afterResponse || [],
         afterResponseErrorCode(otherOptions),
@@ -194,6 +192,16 @@ async function base<T>(url: string, options: FetchOptionType = {}, otherOptions:
     },
     ...(bodyStringify ? { json: body } : { body: body as BodyInit }),
     searchParams: params,
+    fetch(resource: RequestInfo | URL, options?: RequestInit) {
+      if (resource instanceof Request && options) {
+        const mergedHeaders = new Headers(options.headers || {})
+        resource.headers.forEach((value, key) => {
+          mergedHeaders.append(key, value)
+        })
+        options.headers = mergedHeaders
+      }
+      return globalThis.fetch(resource, options)
+    },
   })
 
   if (needAllResponseContent)

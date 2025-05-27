@@ -21,6 +21,7 @@ import type { InstalledApp } from '@/models/explore'
 import Loading from '@/app/components/base/loading'
 import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
 import { checkIsLogin } from '@/app/components/share/utils'
+// import { checkOrSetAccessToken } from '@/app/components/share/utils'
 import AppUnavailable from '@/app/components/base/app-unavailable'
 import cn from '@/utils/classnames'
 
@@ -227,13 +228,9 @@ const ChatWithHistoryWrapWithCheckToken: FC<ChatWithHistoryWrapProps> = ({
           // await checkOrSetAccessToken()
         }
         catch (e: any) {
-          if (e.status === 404) {
-            setAppUnavailable(true)
-          }
-          else {
+          if (e.status !== 404)
             setIsUnknownReason(true)
-            setAppUnavailable(true)
-          }
+          setAppUnavailable(true)
         }
       }
       setInitialized(true)

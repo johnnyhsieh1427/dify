@@ -18,7 +18,7 @@ else:
     # so we need to disable gevent in debug mode.
     # If you are using debugpy and set GEVENT_SUPPORT=True, you can debug with gevent.
     if (flask_debug := os.environ.get("FLASK_DEBUG", "0")) and flask_debug.lower() in {"false", "0", "no"}:
-        from gevent import monkey  # type: ignore
+        from gevent import monkey
 
         # gevent
         monkey.patch_all()
@@ -38,4 +38,4 @@ else:
     celery = app.extensions["celery"]
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5001)

@@ -7,7 +7,6 @@ import time
 
 import click
 from celery import shared_task  # type: ignore
-from werkzeug.exceptions import NotFound
 
 from core.rag.index_processor.constant.index_type import IndexType
 from core.rag.index_processor.index_processor_factory import IndexProcessorFactory
@@ -31,7 +30,9 @@ def add_document_to_index_task(dataset_document_id: str, **kwargs):
 
     dataset_document = db.session.query(DatasetDocument).filter(DatasetDocument.id == dataset_document_id).first()
     if not dataset_document:
-        raise NotFound("Document not found")
+        logging.info(click.style("Document not found: {}".format(dataset_document_id), fg="red"))
+        db.session.close()
+        return
 
     if dataset_document.indexing_status != "completed":
         return
@@ -39,6 +40,10 @@ def add_document_to_index_task(dataset_document_id: str, **kwargs):
     indexing_cache_key = "document_{}_indexing".format(dataset_document.id)
 
     try:
+        dataset = dataset_document.dataset
+        if not dataset:
+            raise Exception(f"Document {dataset_document.id} dataset {dataset_document.dataset_id} doesn't exist.")
+
         segments = (
             db.session.query(DocumentSegment)
             .filter(
@@ -78,11 +83,6 @@ def add_document_to_index_task(dataset_document_id: str, **kwargs):
                         child_documents.append(child_document)
                     document.children = child_documents
             documents.append(document)
-
-        dataset = dataset_document.dataset
-
-        if not dataset:
-            raise Exception("Document has no dataset")
 
         index_type = dataset.doc_form
         user_id = kwargs.get("user_id")

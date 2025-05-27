@@ -18,9 +18,8 @@ import type {
   ChatItem,
   Feedback,
 } from '../types'
-import { useAppContext } from '@/context/app-context'
 import { CONVERSATION_ID_INFO } from '../constants'
-import { buildChatItemTree } from '../utils'
+import { buildChatItemTree, getProcessedSystemVariablesFromUrlParams } from '../utils'
 import { addFileInfos, sortAgentSorts } from '../../../tools/utils'
 import { getProcessedFilesFromResponse } from '@/app/components/base/file-uploader/utils'
 import {
@@ -45,6 +44,8 @@ import { changeLanguage } from '@/i18n/i18next-config'
 import { useAppFavicon } from '@/hooks/use-app-favicon'
 import { InputVarType } from '@/app/components/workflow/types'
 import { TransferMethod } from '@/types/app'
+import { noop } from 'lodash-es'
+import { useAppContext } from '@/context/app-context'
 
 function getFormattedChatList(messages: any[]) {
   const newChatList: ChatItem[] = []
@@ -54,7 +55,7 @@ function getFormattedChatList(messages: any[]) {
       id: `question-${item.id}`,
       content: item.query,
       isAnswer: false,
-      message_files: getProcessedFilesFromResponse(questionFiles.map((item: any) => ({ ...item, related_id: item.id }))),
+      message_files: getProcessedFilesFromResponse(questionFiles.map((item: any) => ({ ...item, related_id: item.id, upload_file_id: item.upload_file_id }))),
       parentMessageId: item.parent_message_id || undefined,
     })
     const answerFiles = item.message_files?.filter((file: any) => file.belongs_to === 'assistant') || []
@@ -65,7 +66,7 @@ function getFormattedChatList(messages: any[]) {
       feedback: item.feedback,
       isAnswer: true,
       citation: item.retriever_resources,
-      message_files: getProcessedFilesFromResponse(answerFiles.map((item: any) => ({ ...item, related_id: item.id }))),
+      message_files: getProcessedFilesFromResponse(answerFiles.map((item: any) => ({ ...item, related_id: item.id, upload_file_id: item.upload_file_id }))),
       parentMessageId: `question-${item.id}`,
     })
   })
@@ -73,15 +74,12 @@ function getFormattedChatList(messages: any[]) {
 }
 
 export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
-  // 一律改成isInstalledApp = False
-  const isInstalledApp = false
-  // 設定activeIndex，代表選擇哪個app
   const [activeIndex, setActiveIndex] = useState<number>(0)
+  const isInstalledApp = false
+  const { userProfile } = useAppContext()
   const { data: appInfos, isLoading: appInfoLoading, error: appInfoError } = useSWR('appInfos', () => fetchUserAppInfo())
   const appDataList = useMemo(() => appInfos?.items, [appInfos])
   const appInfo = useMemo(() => appDataList?.[activeIndex], [appDataList, activeIndex])
-  const { userProfile } = useAppContext()
-  // const { data: appInfo, isLoading: appInfoLoading, error: appInfoError } = useSWR(installedAppInfo ? null : 'appInfo', fetchAppInfo)
 
   useAppFavicon({
     enable: !installedAppInfo,
@@ -92,26 +90,51 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
   })
 
   const appData = useMemo(() => appInfo, [appInfo])
-  const appId = useMemo(() => appData?.app_id || '00000000-0000-0000-0000-000000000000', [appData])
+  const appId = useMemo(() => appData?.app_id, [appData])
+
+  const [userId, setUserId] = useState<string>()
+  useEffect(() => {
+    getProcessedSystemVariablesFromUrlParams().then(({ user_id }) => {
+      setUserId(user_id)
+    })
+  }, [])
 
   useEffect(() => {
-    if (userProfile.interface_language)
-      changeLanguage(userProfile.interface_language)
+    if (userProfile?.interface_language)
+      changeLanguage(userProfile?.interface_language)
   }, [userProfile])
 
-  const [conversationIdInfo, setConversationIdInfo] = useLocalStorageState<Record<string, string>>(CONVERSATION_ID_INFO, {
+  const [sidebarCollapseState, setSidebarCollapseState] = useState<boolean>(false)
+  const handleSidebarCollapse = useCallback((state: boolean) => {
+    if (appId) {
+      setSidebarCollapseState(state)
+      localStorage.setItem('webappSidebarCollapse', state ? 'collapsed' : 'expanded')
+    }
+  }, [appId, setSidebarCollapseState])
+  useEffect(() => {
+    if (appId) {
+      const localState = localStorage.getItem('webappSidebarCollapse')
+      setSidebarCollapseState(localState === 'collapsed')
+    }
+  }, [appId])
+  const [conversationIdInfo, setConversationIdInfo] = useLocalStorageState<Record<string, Record<string, string>>>(CONVERSATION_ID_INFO, {
     defaultValue: {},
   })
-  const currentConversationId = useMemo(() => conversationIdInfo?.[appId || ''] || '', [appId, conversationIdInfo])
+  const currentConversationId = useMemo(() => conversationIdInfo?.[appId || '']?.[userId || 'DEFAULT'] || '', [appId, conversationIdInfo, userId])
   const handleConversationIdInfoChange = useCallback((changeConversationId: string) => {
     if (appId) {
+      let prevValue = conversationIdInfo?.[appId || '']
+      if (typeof prevValue === 'string')
+        prevValue = {}
       setConversationIdInfo({
         ...conversationIdInfo,
-        [appId || '']: changeConversationId,
+        [appId || '']: {
+          ...prevValue,
+          [userId || 'DEFAULT']: changeConversationId,
+        },
       })
     }
-  }, [appId, conversationIdInfo, setConversationIdInfo])
-  const [showConfigPanelBeforeChat, setShowConfigPanelBeforeChat] = useState(true)
+  }, [appId, conversationIdInfo, setConversationIdInfo, userId])
 
   const [newConversationId, setNewConversationId] = useState('')
   const chatShouldReloadKey = useMemo(() => {
@@ -125,10 +148,12 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
   const { data: appMetaList } = useSWR('appMetaList', () => fetchUserAppMeta())
   const appParams = useMemo(() => appParamsList?.[activeIndex], [appParamsList, activeIndex])
   const appMeta = useMemo(() => appMetaList?.[activeIndex], [appMetaList, activeIndex])
-  const { data: appPinnedConversationData, mutate: mutateAppPinnedConversationData } = useSWR(['appConversationData', isInstalledApp, appId, true], () => fetchUserConversations(appId, undefined, true, 100))
-  const { data: appConversationData, isLoading: appConversationDataLoading, mutate: mutateAppConversationData } = useSWR(['appConversationData', isInstalledApp, appId, false], () => fetchUserConversations(appId, undefined, false, 100))
-  const { data: appChatListData, isLoading: appChatListDataLoading } = useSWR(chatShouldReloadKey ? ['appChatListData', chatShouldReloadKey, isInstalledApp, appId] : null, () => fetchUserChatList(appId, chatShouldReloadKey))
+  const { data: appPinnedConversationData, mutate: mutateAppPinnedConversationData } = useSWR(appId ? ['appConversationData', isInstalledApp, appId, true] : null, () => fetchUserConversations(appId!, undefined, true, 100))
+  const { data: appConversationData, isLoading: appConversationDataLoading, mutate: mutateAppConversationData } = useSWR(appId ? ['appConversationData', isInstalledApp, appId, false] : null, () => fetchUserConversations(appId!, undefined, false, 100))
+  const { data: appChatListData, isLoading: appChatListDataLoading } = useSWR((appId && chatShouldReloadKey) ? ['appChatListData', chatShouldReloadKey, isInstalledApp, appId] : null, () => fetchUserChatList(appId!, chatShouldReloadKey!))
 
+  const [clearChatList, setClearChatList] = useState(false)
+  const [isResponding, setIsResponding] = useState(false)
   const appPrevChatTree = useMemo(
     () => (currentConversationId && appChatListData?.data.length)
       ? buildChatItemTree(getFormattedChatList(appChatListData.data))
@@ -198,7 +223,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     handleNewConversationInputsChange(conversationInputs)
   }, [handleNewConversationInputsChange, inputsForms])
 
-  const { data: newConversation } = useSWR(newConversationId ? [isInstalledApp, appId, newConversationId] : null, () => generationUserConversationName(appId, newConversationId), { revalidateOnFocus: false })
+  const { data: newConversation } = useSWR(newConversationId ? [isInstalledApp, appId, newConversationId] : null, () => generationUserConversationName(appId!, newConversationId), { revalidateOnFocus: false })
   const [originConversationList, setOriginConversationList] = useState<ConversationItem[]>([])
   useEffect(() => {
     if (appConversationData?.data && !appConversationDataLoading)
@@ -240,6 +265,17 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     return conversationItem
   }, [conversationList, currentConversationId, pinnedConversationList])
 
+  const currentConversationLatestInputs = useMemo(() => {
+    if (!currentConversationId || !appChatListData?.data.length)
+      return newConversationInputsRef.current || {}
+    return appChatListData.data.slice().pop().inputs || {}
+  }, [appChatListData, currentConversationId])
+  const [currentConversationInputs, setCurrentConversationInputs] = useState<Record<string, any>>(currentConversationLatestInputs || {})
+  useEffect(() => {
+    if (currentConversationItem)
+      setCurrentConversationInputs(currentConversationLatestInputs || {})
+  }, [currentConversationItem, currentConversationLatestInputs])
+
   const { notify } = useToastContext()
   const checkInputsRequired = useCallback((silent?: boolean) => {
     let hasEmptyInput = ''
@@ -278,50 +314,40 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
 
     return true
   }, [inputsForms, notify, t])
-  const handleStartChat = useCallback(() => {
+  const handleStartChat = useCallback((callback: any) => {
     if (checkInputsRequired()) {
-      setShowConfigPanelBeforeChat(false)
       setShowNewConversationItemInList(true)
+      callback?.()
     }
-  }, [setShowConfigPanelBeforeChat, setShowNewConversationItemInList, checkInputsRequired])
-  const currentChatInstanceRef = useRef<{ handleStop: () => void }>({ handleStop: () => { } })
+  }, [setShowNewConversationItemInList, checkInputsRequired])
+  const currentChatInstanceRef = useRef<{ handleStop: () => void }>({ handleStop: noop })
   const handleChangeConversation = useCallback((conversationId: string) => {
     currentChatInstanceRef.current.handleStop()
     setNewConversationId('')
     handleConversationIdInfoChange(conversationId)
-
-    if (conversationId === '' && !checkInputsRequired(true))
-      setShowConfigPanelBeforeChat(true)
-    else
-      setShowConfigPanelBeforeChat(false)
-  }, [handleConversationIdInfoChange, setShowConfigPanelBeforeChat, checkInputsRequired])
+    if (conversationId)
+      setClearChatList(false)
+  }, [handleConversationIdInfoChange, setClearChatList])
   const handleNewConversation = useCallback(() => {
     currentChatInstanceRef.current.handleStop()
-    setNewConversationId('')
-
-    if (showNewConversationItemInList) {
-      handleChangeConversation('')
-    }
-    else if (currentConversationId) {
-      handleConversationIdInfoChange('')
-      setShowConfigPanelBeforeChat(true)
-      setShowNewConversationItemInList(true)
-      handleNewConversationInputsChange({})
-    }
-  }, [handleChangeConversation, currentConversationId, handleConversationIdInfoChange, setShowConfigPanelBeforeChat, setShowNewConversationItemInList, showNewConversationItemInList, handleNewConversationInputsChange])
+    setShowNewConversationItemInList(true)
+    handleChangeConversation('')
+    handleNewConversationInputsChange({})
+    setClearChatList(true)
+  }, [handleChangeConversation, setShowNewConversationItemInList, handleNewConversationInputsChange, setClearChatList])
   const handleUpdateConversationList = useCallback(() => {
     mutateAppConversationData()
     mutateAppPinnedConversationData()
   }, [mutateAppConversationData, mutateAppPinnedConversationData])
 
   const handlePinConversation = useCallback(async (conversationId: string) => {
-    await pinUserConversation(appId, conversationId)
+    await pinUserConversation(appId!, conversationId)
     notify({ type: 'success', message: t('common.api.success') })
     handleUpdateConversationList()
   }, [appId, notify, t, handleUpdateConversationList])
 
   const handleUnpinConversation = useCallback(async (conversationId: string) => {
-    await unpinUserConversation(appId, conversationId)
+    await unpinUserConversation(appId!, conversationId)
     notify({ type: 'success', message: t('common.api.success') })
     handleUpdateConversationList()
   }, [appId, notify, t, handleUpdateConversationList])
@@ -338,8 +364,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
 
     try {
       setConversationDeleting(true)
-      await delUserConversation(appId, conversationId)
-      // await delConversation(isInstalledApp, appId, conversationId)
+      await delUserConversation(appId!, conversationId)
       notify({ type: 'success', message: t('common.api.success') })
       onSuccess()
     }
@@ -374,7 +399,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
 
     setConversationRenaming(true)
     try {
-      await renameUserConversation(appId, conversationId, newName)
+      await renameUserConversation(appId!, conversationId, newName)
 
       notify({
         type: 'success',
@@ -402,8 +427,9 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     setShowNewConversationItemInList(false)
     mutateAppConversationData()
   }, [mutateAppConversationData, handleConversationIdInfoChange])
+
   const handleFeedback = useCallback(async (messageId: string, feedback: Feedback) => {
-    await updateUserFeedback(appId, messageId, { rating: feedback.rating })
+    await updateUserFeedback(appId!, messageId, { rating: feedback.rating })
     notify({ type: 'success', message: t('common.api.success') })
   }, [appId, t, notify])
 
@@ -429,8 +455,6 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     appPrevChatTree,
     pinnedConversationList,
     conversationList,
-    showConfigPanelBeforeChat,
-    setShowConfigPanelBeforeChat,
     setShowNewConversationItemInList,
     newConversationInputs,
     newConversationInputsRef,
@@ -450,5 +474,13 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     chatShouldReloadKey,
     handleFeedback,
     currentChatInstanceRef,
+    sidebarCollapseState,
+    handleSidebarCollapse,
+    clearChatList,
+    setClearChatList,
+    isResponding,
+    setIsResponding,
+    currentConversationInputs,
+    setCurrentConversationInputs,
   }
 }

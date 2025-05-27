@@ -98,15 +98,9 @@ const TextGenerationImageUploader: FC<TextGenerationImageUploaderProps> = ({
       {
         hovering => (
           <div className={`
-<<<<<<< HEAD
-            flex h-8 cursor-pointer items-center justify-center rounded-lg 
-            bg-components-option-card-option-bg px-3 text-xs text-text-tertiary
-            ${hovering && 'bg-components-option-card-option-bg-hover'}
-=======
-            flex h-8 cursor-pointer items-center justify-center rounded-lg  
+            flex h-8 cursor-pointer items-center justify-center rounded-lg
             bg-components-button-tertiary-bg px-3 text-xs text-text-tertiary
             ${hovering && 'hover:bg-components-button-tertiary-bg-hover'}
->>>>>>> upstream/main
           `}>
             <ImagePlus className='mr-2 h-4 w-4' />
             {t('common.imageUploader.uploadFromComputer')}

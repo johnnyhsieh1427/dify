@@ -1,16 +1,16 @@
 # 修改日期2025-01-20
 # 新增API AppTenantPermission，用於檢查使用者是否有權限訪問聊天機器人應用
-from flask_restful import marshal_with  # type: ignore
+from flask_restful import marshal_with
 from werkzeug.exceptions import Forbidden
 
 from controllers.common import fields
-from controllers.common import helpers as controller_helpers
 from controllers.web import api
 from controllers.web.error import AppUnavailableError
 from controllers.web.wraps import WebApiResource
 from extensions.ext_database import db
 from models.account import TenantAccountJoin
 from models.model import App, AppMode, EndUser
+from core.app.app_config.common.parameters_mapping import get_parameters_from_feature_dict
 from services.app_service import AppService
 
 
@@ -36,9 +36,7 @@ class AppParameterApi(WebApiResource):
 
             user_input_form = features_dict.get("user_input_form", [])
 
-        return controller_helpers.get_parameters_from_feature_dict(
-            features_dict=features_dict, user_input_form=user_input_form
-        )
+        return get_parameters_from_feature_dict(features_dict=features_dict, user_input_form=user_input_form)
 
 
 class AppMeta(WebApiResource):

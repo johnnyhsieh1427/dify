@@ -1,3 +1,6 @@
+// 修改日期2025-05-27
+// 修改File API的預設參數isPublic和isWebChat
+
 import {
   useCallback,
   useRef,
@@ -41,6 +44,8 @@ type ChatInputAreaProps = {
   theme?: Theme | null
   isResponding?: boolean
   disabled?: boolean
+  isPublic?: boolean
+  isWebChat?: boolean
 }
 const ChatInputArea = ({
   showFeatureBar,
@@ -55,6 +60,8 @@ const ChatInputArea = ({
   theme,
   isResponding,
   disabled,
+  isPublic,
+  isWebChat,
 }: ChatInputAreaProps) => {
   const { t } = useTranslation()
   const { notify } = useToastContext()
@@ -76,7 +83,7 @@ const ChatInputArea = ({
     handleDropFile,
     handleClipboardPasteFile,
     isDragActive,
-  } = useFile(visionConfig!)
+  } = useFile(visionConfig!, isPublic, isWebChat)
   const { checkInputsForm } = useCheckInputsForms()
   const historyRef = useRef([''])
   const [currentIndex, setCurrentIndex] = useState(-1)

@@ -1,3 +1,5 @@
+// 修改日期2025-05-27
+// 修改內容: useFile新增isPublic和isWebChat參數
 import type { ClipboardEvent } from 'react'
 import {
   useCallback,
@@ -28,6 +30,7 @@ import type { FileUpload } from '@/app/components/base/features/types'
 import { formatFileSize } from '@/utils/format'
 import { uploadRemoteFileInfo } from '@/service/common'
 import type { FileUploadConfigResponse } from '@/models/common'
+import { noop } from 'lodash-es'
 
 export const useFileSizeLimit = (fileUploadConfig?: FileUploadConfigResponse) => {
   const imgSizeLimit = Number(fileUploadConfig?.image_file_size_limit) * 1024 * 1024 || IMG_SIZE_LIMIT
@@ -45,7 +48,7 @@ export const useFileSizeLimit = (fileUploadConfig?: FileUploadConfigResponse) =>
   }
 }
 
-export const useFile = (fileConfig: FileUpload) => {
+export const useFile = (fileConfig: FileUpload, isPublic?: boolean, isWebChat?: boolean) => {
   const { t } = useTranslation()
   const { notify } = useToastContext()
   const fileStore = useFileStore()
@@ -187,9 +190,9 @@ export const useFile = (fileConfig: FileUpload) => {
           notify({ type: 'error', message: t('common.fileUploader.uploadFromComputerUploadError') })
           handleUpdateFile({ ...uploadingFile, progress: -1 })
         },
-      }, !!params.token)
+      }, isPublic || !!params.token, isWebChat)
     }
-  }, [fileStore, notify, t, handleUpdateFile, params])
+  }, [fileStore, isPublic, isWebChat, params.token, handleUpdateFile, notify, t])
 
   const startProgressTimer = useCallback((fileId: string) => {
     const timer = setInterval(() => {
@@ -243,9 +246,9 @@ export const useFile = (fileConfig: FileUpload) => {
     })
   }, [checkSizeLimit, handleAddFile, handleUpdateFile, notify, t, handleRemoveFile, fileConfig?.allowed_file_types, fileConfig.allowed_file_extensions, startProgressTimer, params.token])
 
-  const handleLoadFileFromLinkSuccess = useCallback(() => { }, [])
+  const handleLoadFileFromLinkSuccess = useCallback(noop, [])
 
-  const handleLoadFileFromLinkError = useCallback(() => { }, [])
+  const handleLoadFileFromLinkError = useCallback(noop, [])
 
   const handleClearFiles = useCallback(() => {
     const {
@@ -294,7 +297,7 @@ export const useFile = (fileConfig: FileUpload) => {
             notify({ type: 'error', message: t('common.fileUploader.uploadFromComputerUploadError') })
             handleUpdateFile({ ...uploadingFile, progress: -1 })
           },
-        }, !!params.token)
+        }, isPublic || !!params.token, isWebChat)
       },
       false,
     )
@@ -306,7 +309,7 @@ export const useFile = (fileConfig: FileUpload) => {
       false,
     )
     reader.readAsDataURL(file)
-  }, [checkSizeLimit, notify, t, handleAddFile, handleUpdateFile, params.token, fileConfig?.allowed_file_types, fileConfig?.allowed_file_extensions])
+  }, [fileConfig.allowed_file_types, fileConfig.allowed_file_extensions, checkSizeLimit, notify, t, handleAddFile, isPublic, params.token, isWebChat, handleUpdateFile])
 
   const handleClipboardPasteFile = useCallback((e: ClipboardEvent<HTMLTextAreaElement>) => {
     const file = e.clipboardData?.files[0]

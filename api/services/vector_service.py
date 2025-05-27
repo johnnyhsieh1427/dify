@@ -38,7 +38,7 @@ class VectorService:
 
         for segment in segments:
             if doc_form == IndexType.PARENT_CHILD_INDEX:
-                document = DatasetDocument.query.filter_by(id=segment.document_id).first()
+                document = db.session.query(DatasetDocument).filter_by(id=segment.document_id).first()
                 # get the process rule
                 processing_rule = (
                     db.session.query(DatasetProcessRule)

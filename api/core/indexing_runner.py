@@ -18,7 +18,7 @@ import uuid
 from typing import Any, Optional, cast
 
 from flask import current_app
-from flask_login import current_user  # type: ignore
+from flask_login import current_user
 from sqlalchemy.orm.exc import ObjectDeletedError
 
 from configs import dify_config
@@ -60,7 +60,7 @@ class IndexingRunner:
         for dataset_document in dataset_documents:
             try:
                 # get dataset
-                dataset = Dataset.query.filter_by(id=dataset_document.dataset_id).first()
+                dataset = db.session.query(Dataset).filter_by(id=dataset_document.dataset_id).first()
 
                 if not dataset:
                     raise ValueError("no dataset found")
@@ -112,13 +112,13 @@ class IndexingRunner:
         """Run the indexing process when the index_status is splitting."""
         try:
             # get dataset
-            dataset = Dataset.query.filter_by(id=dataset_document.dataset_id).first()
+            dataset = db.session.query(Dataset).filter_by(id=dataset_document.dataset_id).first()
 
             if not dataset:
                 raise ValueError("no dataset found")
 
             # get exist document_segment list and delete
-            document_segments = DocumentSegment.query.filter_by(
+            document_segments = db.session.query(DocumentSegment).filter_by(
                 dataset_id=dataset.id, document_id=dataset_document.id
             ).all()
 
@@ -171,13 +171,13 @@ class IndexingRunner:
         """Run the indexing process when the index_status is indexing."""
         try:
             # get dataset
-            dataset = Dataset.query.filter_by(id=dataset_document.dataset_id).first()
+            dataset = db.session.query(Dataset).filter_by(id=dataset_document.dataset_id).first()
 
             if not dataset:
                 raise ValueError("no dataset found")
 
             # get exist document_segment list and delete
-            document_segments = DocumentSegment.query.filter_by(
+            document_segments = db.session.query(DocumentSegment).filter_by(
                 dataset_id=dataset.id, document_id=dataset_document.id
             ).all()
 
@@ -263,7 +263,7 @@ class IndexingRunner:
 
         embedding_model_instance = None
         if dataset_id:
-            dataset = Dataset.query.filter_by(id=dataset_id).first()
+            dataset = db.session.query(Dataset).filter_by(id=dataset_id).first()
             if not dataset:
                 raise ValueError("Dataset not found.")
             if dataset.indexing_technique == "high_quality" or indexing_technique == "high_quality":
@@ -601,7 +601,7 @@ class IndexingRunner:
     @staticmethod
     def _process_keyword_index(flask_app, dataset_id, document_id, documents):
         with flask_app.app_context():
-            dataset = Dataset.query.filter_by(id=dataset_id).first()
+            dataset = db.session.query(Dataset).filter_by(id=dataset_id).first()
             if not dataset:
                 raise ValueError("no dataset found")
             keyword = Keyword(dataset)
@@ -683,10 +683,10 @@ class IndexingRunner:
         """
         Update the document indexing status.
         """
-        count = DatasetDocument.query.filter_by(id=document_id, is_paused=True).count()
+        count = db.session.query(DatasetDocument).filter_by(id=document_id, is_paused=True).count()
         if count > 0:
             raise DocumentIsPausedError()
-        document = DatasetDocument.query.filter_by(id=document_id).first()
+        document = db.session.query(DatasetDocument).filter_by(id=document_id).first()
         if not document:
             raise DocumentIsDeletedPausedError()
 
@@ -695,7 +695,7 @@ class IndexingRunner:
         if extra_update_params:
             update_params.update(extra_update_params)
 
-        DatasetDocument.query.filter_by(id=document_id).update(update_params)
+        db.session.query(DatasetDocument).filter_by(id=document_id).update(update_params)
         db.session.commit()
 
     @staticmethod
@@ -703,7 +703,7 @@ class IndexingRunner:
         """
         Update the document segment by document id.
         """
-        DocumentSegment.query.filter_by(document_id=dataset_document_id).update(update_params)
+        db.session.query(DocumentSegment).filter_by(document_id=dataset_document_id).update(update_params)
         db.session.commit()
 
     def _transform(

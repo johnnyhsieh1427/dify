@@ -28,7 +28,7 @@ def deal_dataset_vector_index_task(dataset_id: str, action: str, **kwargs):
     user_id = kwargs.get("user_id")
     process_id = kwargs.get("process_id")
     try:
-        dataset = Dataset.query.filter_by(id=dataset_id).first()
+        dataset = db.session.query(Dataset).filter_by(id=dataset_id).first()
 
         if not dataset:
             raise Exception("Dataset not found")
@@ -183,3 +183,5 @@ def deal_dataset_vector_index_task(dataset_id: str, action: str, **kwargs):
         )
     except Exception:
         logging.exception("Deal dataset vector index failed")
+    finally:
+        db.session.close()

@@ -1,16 +1,17 @@
 # 修改日期2025-02-28
 # 專屬給chat-web的controllers
 
+from typing import List
 from flask_restful import fields, marshal_with  # type: ignore
-from werkzeug.exceptions import Forbidden
 
+from controllers.web_user.error import AppUnavailableError
 from configs import dify_config
 from controllers.web_user import api
 from controllers.web_user.wraps import WebUserApiResource
 from extensions.ext_database import db
 from libs.helper import AppIconUrlField
-from models.account import TenantStatus
-from models.model import Site
+# from models.account import TenantStatus
+from models.model import App, EndUser, Site
 
 # from services.feature_service import FeatureService
 
@@ -63,33 +64,25 @@ class UserAppSiteApi(WebUserApiResource):
 
     @marshal_with(app_list)
     # @marshal_with(app_fields)
-    def get(self, app_models, end_user):
+    def get(self, app_models: List[App], end_user: EndUser):
         _list = []
         for app_model in app_models:
             site = db.session.query(Site).filter(Site.app_id == app_model.id).first()
             # if not site:
+            #     _list.append(None)
             #     continue
             # if app_model.status != "normal":
+            #     _list.append(None)
             #     continue
             # if not app_model.enable_site:
+            #     _list.append(None)
             #     continue
             # if app_model.tenant.status == TenantStatus.ARCHIVE:
+            #     _list.append(None)
             #     continue
-            if not site:
-                _list.append(None)
-                continue
-            if app_model.status != "normal":
-                _list.append(None)
-                continue
-            if not app_model.enable_site:
-                _list.append(None)
-                continue
-            if app_model.tenant.status == TenantStatus.ARCHIVE:
-                _list.append(None)
-                continue
             _list.append(AppSiteInfo(app_model.tenant, app_model, site, end_user.id, False))
         if not _list:
-            raise Forbidden()
+            raise AppUnavailableError("No site available for this app.")
         return {'items': _list}
 
 

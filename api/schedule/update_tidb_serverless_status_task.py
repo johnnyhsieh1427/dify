@@ -3,6 +3,7 @@ import time
 import click
 
 import app
+from models import db
 from configs import dify_config
 from core.rag.datasource.vdb.tidb_on_qdrant.tidb_service import TidbService
 from models.dataset import TidbAuthBinding
@@ -14,7 +15,7 @@ def update_tidb_serverless_status_task():
     start_at = time.perf_counter()
     try:
         # check the number of idle tidb serverless
-        tidb_serverless_list = TidbAuthBinding.query.filter(
+        tidb_serverless_list = db.session.query(TidbAuthBinding).filter(
             TidbAuthBinding.active == False, TidbAuthBinding.status == "CREATING"
         ).all()
         if len(tidb_serverless_list) == 0:

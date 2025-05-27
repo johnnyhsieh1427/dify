@@ -8,7 +8,7 @@ import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useBoolean } from 'ahooks'
 import Field from './field'
-import type { LangFuseConfig, LangSmithConfig, OpikConfig } from './type'
+import type { LangFuseConfig, LangSmithConfig, OpikConfig, WeaveConfig } from './type'
 import { TracingProvider } from './type'
 import { docURL } from './config'
 import {
@@ -36,10 +36,10 @@ type Props = {
   appId: string
   mode?: string
   type: TracingProvider
-  payload?: LangSmithConfig | LangFuseConfig | OpikConfig | null
+  payload?: LangSmithConfig | LangFuseConfig | OpikConfig | WeaveConfig | null
   onRemoved: () => void
   onCancel: () => void
-  onSaved: (payload: LangSmithConfig | LangFuseConfig | OpikConfig) => void
+  onSaved: (payload: LangSmithConfig | LangFuseConfig | OpikConfig | WeaveConfig) => void
   onChosen: (provider: TracingProvider) => void
 }
 
@@ -64,6 +64,13 @@ const opikConfigTemplate = {
   workspace: '',
 }
 
+const weaveConfigTemplate = {
+  api_key: '',
+  entity: '',
+  project: '',
+  endpoint: '',
+}
+
 const ProviderConfigModal: FC<Props> = ({
   appId,
   mode,
@@ -78,7 +85,7 @@ const ProviderConfigModal: FC<Props> = ({
   const isEdit = !!payload
   const isAdd = !isEdit
   const [isSaving, setIsSaving] = useState(false)
-  const [config, setConfig] = useState<LangSmithConfig | LangFuseConfig | OpikConfig>((() => {
+  const [config, setConfig] = useState<LangSmithConfig | LangFuseConfig | OpikConfig | WeaveConfig>((() => {
     if (isEdit)
       return payload
 
@@ -88,7 +95,10 @@ const ProviderConfigModal: FC<Props> = ({
     else if (type === TracingProvider.langfuse)
       return langFuseConfigTemplate
 
-    return opikConfigTemplate
+    else if (type === TracingProvider.opik)
+      return opikConfigTemplate
+
+    return weaveConfigTemplate
   })())
   const [isShowRemoveConfirm, {
     setTrue: showRemoveConfirm,
@@ -150,6 +160,14 @@ const ProviderConfigModal: FC<Props> = ({
       // const postData = config as OpikConfig
     }
 
+    if (type === TracingProvider.weave) {
+      const postData = config as WeaveConfig
+      if (!errorMessage && !postData.api_key)
+        errorMessage = t('common.errorMsg.fieldRequired', { field: 'API Key' })
+      if (!errorMessage && !postData.project)
+        errorMessage = t('common.errorMsg.fieldRequired', { field: t(`${I18N_PREFIX}.project`) })
+    }
+
     return errorMessage
   }, [config, t, type])
   const handleSave = useCallback(async () => {
@@ -209,6 +227,40 @@ const ProviderConfigModal: FC<Props> = ({
                     </div>
 
                     <div className='space-y-4'>
+                      {type === TracingProvider.weave && (
+                        <>
+                          <Field
+                            label='API Key'
+                            labelClassName='!text-sm'
+                            isRequired
+                            value={(config as WeaveConfig).api_key}
+                            onChange={handleConfigChange('api_key')}
+                            placeholder={t(`${I18N_PREFIX}.placeholder`, { key: 'API Key' })!}
+                          />
+                          <Field
+                            label={t(`${I18N_PREFIX}.project`)!}
+                            labelClassName='!text-sm'
+                            isRequired
+                            value={(config as WeaveConfig).project}
+                            onChange={handleConfigChange('project')}
+                            placeholder={t(`${I18N_PREFIX}.placeholder`, { key: t(`${I18N_PREFIX}.project`) })!}
+                          />
+                          <Field
+                            label='Entity'
+                            labelClassName='!text-sm'
+                            value={(config as WeaveConfig).entity}
+                            onChange={handleConfigChange('entity')}
+                            placeholder={t(`${I18N_PREFIX}.placeholder`, { key: 'Entity' })!}
+                          />
+                          <Field
+                            label='Endpoint'
+                            labelClassName='!text-sm'
+                            value={(config as WeaveConfig).endpoint}
+                            onChange={handleConfigChange('endpoint')}
+                            placeholder={'https://trace.wandb.ai/'}
+                          />
+                        </>
+                      )}
                       {type === TracingProvider.langSmith && (
                         <>
                           <Field
@@ -296,7 +348,6 @@ const ProviderConfigModal: FC<Props> = ({
                           />
                         </>
                       )}
-
                     </div>
                     <div className='my-8 flex h-8 items-center justify-between'>
                       <a

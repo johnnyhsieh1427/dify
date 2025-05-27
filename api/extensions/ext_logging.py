@@ -1,6 +1,3 @@
-# 修改日期2025-03-13
-# 修正log功能
-
 import logging
 import os
 import sys
@@ -19,25 +16,21 @@ def init_app(app: DifyApp):
     if log_file:
         log_dir = os.path.dirname(log_file)
         os.makedirs(log_dir, exist_ok=True)
-        file_handler = RotatingFileHandler(
-            filename=log_file,
-            maxBytes=dify_config.LOG_FILE_MAX_SIZE * 1024 * 1024,
-            backupCount=dify_config.LOG_FILE_BACKUP_COUNT,
+        log_handlers.append(
+            RotatingFileHandler(
+                filename=log_file,
+                maxBytes=dify_config.LOG_FILE_MAX_SIZE * 1024 * 1024,
+                backupCount=dify_config.LOG_FILE_BACKUP_COUNT,
+            )
         )
-        file_handler.addFilter(RequestIdFilter())
-        log_handlers.append(file_handler)
-        # log_handlers.append(
-        #     RotatingFileHandler(
-        #         filename=log_file,
-        #         maxBytes=dify_config.LOG_FILE_MAX_SIZE * 1024 * 1024,
-        #         backupCount=dify_config.LOG_FILE_BACKUP_COUNT,
-        #     )
-        # )
 
     # Always add StreamHandler to log to console
     sh = logging.StreamHandler(sys.stdout)
-    sh.addFilter(RequestIdFilter())
     log_handlers.append(sh)
+
+    # Apply RequestIdFilter to all handlers
+    for handler in log_handlers:
+        handler.addFilter(RequestIdFilter())
 
     logging.basicConfig(
         level=dify_config.LOG_LEVEL,
@@ -46,6 +39,8 @@ def init_app(app: DifyApp):
         handlers=log_handlers,
         force=True,
     )
+    # Disable propagation for noisy loggers to avoid duplicate logs
+    logging.getLogger("sqlalchemy.engine").propagate = False
     log_tz = dify_config.LOG_TZ
     if log_tz:
         from datetime import datetime

@@ -4,7 +4,7 @@ import os
 import uuid
 from typing import Any, Literal, Union
 
-from flask_login import current_user  # type: ignore
+from flask_login import current_user
 from werkzeug.exceptions import NotFound
 
 from configs import dify_config
@@ -91,6 +91,11 @@ class FileService:
 
         db.session.add(upload_file)
         db.session.commit()
+
+        if not upload_file.source_url:
+            upload_file.source_url = file_helpers.get_signed_file_url(upload_file_id=upload_file.id)
+            db.session.add(upload_file)
+            db.session.commit()
 
         return upload_file
 

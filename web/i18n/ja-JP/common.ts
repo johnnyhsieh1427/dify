@@ -56,6 +56,8 @@ const translation = {
     viewDetails: '詳細を見る',
     copied: 'コピーしました',
     in: '中',
+    format: 'フォーマット',
+    more: 'もっと',
   },
   errorMsg: {
     fieldRequired: '{{field}}は必要です',
@@ -218,6 +220,9 @@ const translation = {
     feedbackLabel: 'アカウントを削除した理由を教えてください。',
     feedbackPlaceholder: '随意',
     sendVerificationButton: '確認コードの送信',
+    editWorkspaceInfo: 'ワークスペース情報を編集',
+    workspaceName: 'ワークスペース名',
+    workspaceIcon: 'ワークスペースアイコン',
   },
   members: {
     team: 'チーム',
@@ -471,7 +476,7 @@ const translation = {
   apiBasedExtension: {
     title: 'API拡張機能は、Difyのアプリケーション全体での簡単な使用のための設定を簡素化し、集中的なAPI管理を提供します。',
     link: '独自のAPI拡張機能を開発する方法について学ぶ。',
-    linkUrl: 'https://docs.dify.ai/features/extension/api_based_extension',
+    linkUrl: 'https://docs.dify.ai/en/guides/extension/api-based-extension/README',
     add: 'API拡張機能を追加',
     selector: {
       title: 'API拡張機能',

@@ -3,6 +3,8 @@
 // 將原有的function checkOrSetAccessToken改成checkIsLogin
 // 修改日期2025-02-28
 // 新增給web-chat介面使用
+// 修改日期2025-05-27
+// 新增mutate方法，清除appInfos、appParamsList、appMetaList的快取
 import type { FC } from 'react'
 import {
   useEffect,
@@ -16,14 +18,17 @@ import {
 } from './context'
 import { useChatWithHistory } from './hooks'
 import Sidebar from './sidebar'
+import Header from './header'
 import HeaderInMobile from './header-in-mobile'
-import ConfigPanel from './config-panel'
 import ChatWrapper from './chat-wrapper'
 import type { InstalledApp } from '@/models/explore'
 import Loading from '@/app/components/base/loading'
 import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
 import { checkUserAppLogin } from '@/app/components/share/utils'
 import AppUnavailable from '@/app/components/base/app-unavailable'
+import cn from '@/utils/classnames'
+import { CONVERSATION_ID_INFO } from '../constants'
+import { mutate } from 'swr'
 
 type ChatWithHistoryProps = {
   className?: string
@@ -35,17 +40,17 @@ const ChatWithHistory: FC<ChatWithHistoryProps> = ({
     appInfoError,
     appData,
     appInfoLoading,
-    appPrevChatTree,
-    showConfigPanelBeforeChat,
     appChatListDataLoading,
     chatShouldReloadKey,
     isMobile,
     themeBuilder,
+    sidebarCollapseState,
   } = useChatWithHistoryContext()
-
-  const chatReady = (!showConfigPanelBeforeChat || !!appPrevChatTree.length)
+  const isSidebarCollapsed = sidebarCollapseState
   const customConfig = appData?.custom_config
   const site = appData?.site
+
+  const [showSidePanel, setShowSidePanel] = useState(false)
 
   useEffect(() => {
     themeBuilder?.buildTheme(site?.chat_color_theme, site?.chat_color_theme_inverted)
@@ -70,35 +75,44 @@ const ChatWithHistory: FC<ChatWithHistoryProps> = ({
   }
 
   return (
-    <div className={`h-full flex bg-white ${className} ${isMobile && 'flex-col'}`}>
-      {
-        !isMobile && (
+    <div className={cn(
+      'flex h-full bg-background-default-burn',
+      isMobile && 'flex-col',
+      className,
+    )}>
+      {!isMobile && (
+        <div className={cn(
+          'flex w-[236px] flex-col p-1 pr-0 transition-all duration-200 ease-in-out',
+          isSidebarCollapsed && 'w-0 overflow-hidden !p-0',
+        )}>
           <Sidebar />
-        )
-      }
-      {
-        isMobile && (
-          <HeaderInMobile />
-        )
-      }
-      <div className={`grow overflow-hidden ${showConfigPanelBeforeChat && !appPrevChatTree.length && 'flex items-center justify-center'}`}>
-        {
-          showConfigPanelBeforeChat && !appChatListDataLoading && !appPrevChatTree.length && (
-            <div className={`flex w-full items-center justify-center h-full ${isMobile && 'px-4'}`}>
-              <ConfigPanel />
-            </div>
-          )
-        }
-        {
-          appChatListDataLoading && chatReady && (
+        </div>
+      )}
+      {isMobile && (
+        <HeaderInMobile />
+      )}
+      <div className={cn('relative grow p-2', isMobile && 'h-[calc(100%_-_56px)] p-0')}>
+        {isSidebarCollapsed && (
+          <div
+            className={cn(
+              'absolute top-0 z-20 flex h-full w-[256px] flex-col p-2 transition-all duration-500 ease-in-out',
+              showSidePanel ? 'left-0' : 'left-[-248px]',
+            )}
+            onMouseEnter={() => setShowSidePanel(true)}
+            onMouseLeave={() => setShowSidePanel(false)}
+          >
+            <Sidebar isPanel />
+          </div>
+        )}
+        <div className={cn('flex h-full flex-col overflow-hidden border-[0,5px] border-components-panel-border-subtle bg-chatbot-bg', isMobile ? 'rounded-t-2xl' : 'rounded-2xl')}>
+          {!isMobile && <Header />}
+          {appChatListDataLoading && (
             <Loading type='app' />
-          )
-        }
-        {
-          chatReady && !appChatListDataLoading && (
+          )}
+          {!appChatListDataLoading && (
             <ChatWrapper key={chatShouldReloadKey} />
-          )
-        }
+          )}
+        </div>
       </div>
     </div>
   )
@@ -129,7 +143,6 @@ const ChatWithHistoryWrap: FC<ChatWithHistoryWrapProps> = ({
     appPrevChatTree,
     pinnedConversationList,
     conversationList,
-    showConfigPanelBeforeChat,
     newConversationInputs,
     newConversationInputsRef,
     handleNewConversationInputsChange,
@@ -145,10 +158,19 @@ const ChatWithHistoryWrap: FC<ChatWithHistoryWrapProps> = ({
     handleNewConversationCompleted,
     chatShouldReloadKey,
     isInstalledApp,
-    activeIndex,
-    setActiveIndex,
+    appId,
     handleFeedback,
     currentChatInstanceRef,
+    sidebarCollapseState,
+    handleSidebarCollapse,
+    clearChatList,
+    setClearChatList,
+    isResponding,
+    setIsResponding,
+    currentConversationInputs,
+    setCurrentConversationInputs,
+    activeIndex,
+    setActiveIndex,
   } = useChatWithHistory(installedAppInfo)
 
   return (
@@ -165,7 +187,6 @@ const ChatWithHistoryWrap: FC<ChatWithHistoryWrapProps> = ({
       appPrevChatTree,
       pinnedConversationList,
       conversationList,
-      showConfigPanelBeforeChat,
       newConversationInputs,
       newConversationInputsRef,
       handleNewConversationInputsChange,
@@ -182,11 +203,20 @@ const ChatWithHistoryWrap: FC<ChatWithHistoryWrapProps> = ({
       chatShouldReloadKey,
       isMobile,
       isInstalledApp,
-      activeIndex,
-      setActiveIndex,
+      appId,
       handleFeedback,
       currentChatInstanceRef,
       themeBuilder,
+      sidebarCollapseState,
+      handleSidebarCollapse,
+      clearChatList,
+      setClearChatList,
+      isResponding,
+      setIsResponding,
+      currentConversationInputs,
+      setCurrentConversationInputs,
+      activeIndex,
+      setActiveIndex,
     }}>
       <ChatWithHistory className={className} />
     </ChatWithHistoryContext.Provider>
@@ -205,16 +235,17 @@ const ChatWithHistoryWrapWithCheckToken: FC<ChatWithHistoryWrapProps> = ({
     if (!initialized) {
       if (!installedAppInfo) {
         try {
+          localStorage.removeItem(CONVERSATION_ID_INFO)
+          mutate(() => true, undefined, { revalidate: false })
+          // ✅ 或者只清除特定 key
+          mutate('appInfos', undefined, { revalidate: false })
+          mutate('appParamsList', undefined, { revalidate: false })
+          mutate('appMetaList', undefined, { revalidate: false })
           await checkUserAppLogin()
         }
         catch (e: any) {
-          if (e.status === 404) {
-            setAppUnavailable(true)
-          }
-          else {
-            setIsUnknownReason(true)
-            setAppUnavailable(true)
-          }
+          (e.status !== 404) && setIsUnknownReason(true)
+          setAppUnavailable(true)
         }
       }
       setInitialized(true)

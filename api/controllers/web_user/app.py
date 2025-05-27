@@ -4,11 +4,11 @@
 from flask_restful import marshal_with  # type: ignore
 
 from controllers.common import fields
-from controllers.common import helpers as controller_helpers
 from controllers.web_user import api
 from controllers.web_user.error import AppUnavailableError
 from controllers.web_user.wraps import WebUserApiResource
 from models.model import App, AppMode
+from core.app.app_config.common.parameters_mapping import get_parameters_from_feature_dict
 from services.app_service import AppService
 
 
@@ -38,11 +38,7 @@ class AppParameterApi(WebUserApiResource):
 
                 user_input_form = features_dict.get("user_input_form", [])
 
-            app_parameters.append(
-                controller_helpers.get_parameters_from_feature_dict(
-                    features_dict=features_dict, user_input_form=user_input_form
-                )
-            )
+            app_parameters.append(get_parameters_from_feature_dict(features_dict=features_dict, user_input_form=user_input_form))
 
         if app_parameters:
             return app_parameters

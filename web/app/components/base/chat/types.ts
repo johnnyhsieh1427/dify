@@ -46,6 +46,7 @@ export type EnableType = {
 export type ChatConfig = Omit<ModelConfig, 'model'> & {
   supportAnnotation?: boolean
   appId?: string
+  questionEditEnable?: boolean
   supportFeedback?: boolean
   supportCitationHitInfo?: boolean
 }
@@ -74,7 +75,7 @@ export type OnSend = {
   (message: string, files: FileEntity[] | undefined, isRegenerate: boolean, lastAnswer?: ChatItem | null): void
 }
 
-export type OnRegenerate = (chatItem: ChatItem) => void
+export type OnRegenerate = (chatItem: ChatItem, editedQuestion?: { message: string, files?: FileEntity[] }) => void
 
 export type Callback = {
   onSuccess: () => void

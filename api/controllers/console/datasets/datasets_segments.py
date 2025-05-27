@@ -7,11 +7,12 @@ import uuid
 
 import pandas as pd
 from flask import request
-from flask_login import current_user  # type: ignore
-from flask_restful import Resource, marshal, reqparse  # type: ignore
+from flask_login import current_user
+from flask_restful import Resource, marshal, reqparse
 from werkzeug.exceptions import Forbidden, NotFound
 
 import services
+from models import db
 from controllers.console import api
 from controllers.console.app.error import ProviderNotInitializeError
 from controllers.console.datasets.error import (
@@ -79,7 +80,7 @@ class DatasetDocumentSegmentListApi(Resource):
         hit_count_gte = args["hit_count_gte"]
         keyword = args["keyword"]
 
-        query = DocumentSegment.query.filter(
+        query = db.session.query(DocumentSegment).filter(
             DocumentSegment.document_id == str(document_id), DocumentSegment.tenant_id == current_user.current_tenant_id
         ).order_by(DocumentSegment.position.asc())
 
@@ -98,7 +99,7 @@ class DatasetDocumentSegmentListApi(Resource):
             elif args["enabled"].lower() == "false":
                 query = query.filter(DocumentSegment.enabled == False)
 
-        segments = query.paginate(page=page, per_page=limit, max_per_page=100, error_out=False)
+        segments = db.paginate(query.statement, page=page, per_page=limit, max_per_page=100, error_out=False)
 
         response = {
             "data": marshal(segments.items, segment_fields),
@@ -136,7 +137,7 @@ class DatasetDocumentSegmentListApi(Resource):
         except services.errors.account.NoPermissionError as e:
             raise Forbidden(str(e))
         SegmentService.delete_segments(segment_ids, document, dataset)
-        return {"result": "success"}, 200
+        return {"result": "success"}, 204
 
 
 class DatasetDocumentSegmentApi(Resource):
@@ -293,7 +294,7 @@ class DatasetDocumentSegmentUpdateApi(Resource):
                 raise ProviderNotInitializeError(ex.description)
             # check segment
         segment_id = str(segment_id)
-        segment = DocumentSegment.query.filter(
+        segment = db.session.query(DocumentSegment).filter(
             DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id
         ).first()
         if not segment:
@@ -337,7 +338,7 @@ class DatasetDocumentSegmentUpdateApi(Resource):
             raise NotFound("Document not found.")
         # check segment
         segment_id = str(segment_id)
-        segment = DocumentSegment.query.filter(
+        segment = db.session.query(DocumentSegment).filter(
             DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id
         ).first()
         if not segment:
@@ -350,7 +351,7 @@ class DatasetDocumentSegmentUpdateApi(Resource):
         except services.errors.account.NoPermissionError as e:
             raise Forbidden(str(e))
         SegmentService.delete_segment(segment, document, dataset)
-        return {"result": "success"}, 200
+        return {"result": "success"}, 204
 
 
 class DatasetDocumentSegmentBatchImportApi(Resource):
@@ -415,7 +416,7 @@ class DatasetDocumentSegmentBatchImportApi(Resource):
         indexing_cache_key = "segment_batch_import_{}".format(job_id)
         cache_result = redis_client.get(indexing_cache_key)
         if cache_result is None:
-            raise ValueError("The job is not exist.")
+            raise ValueError("The job does not exist.")
 
         return {"job_id": job_id, "job_status": cache_result.decode()}, 200
 
@@ -440,7 +441,7 @@ class ChildChunkAddApi(Resource):
             raise NotFound("Document not found.")
         # check segment
         segment_id = str(segment_id)
-        segment = DocumentSegment.query.filter(
+        segment = db.session.query(DocumentSegment).filter(
             DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id
         ).first()
         if not segment:
@@ -495,7 +496,7 @@ class ChildChunkAddApi(Resource):
             raise NotFound("Document not found.")
         # check segment
         segment_id = str(segment_id)
-        segment = DocumentSegment.query.filter(
+        segment = db.session.query(DocumentSegment).filter(
             DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id
         ).first()
         if not segment:
@@ -540,7 +541,7 @@ class ChildChunkAddApi(Resource):
             raise NotFound("Document not found.")
             # check segment
         segment_id = str(segment_id)
-        segment = DocumentSegment.query.filter(
+        segment = db.session.query(DocumentSegment).filter(
             DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id
         ).first()
         if not segment:
@@ -584,14 +585,14 @@ class ChildChunkUpdateApi(Resource):
             raise NotFound("Document not found.")
         # check segment
         segment_id = str(segment_id)
-        segment = DocumentSegment.query.filter(
+        segment = db.session.query(DocumentSegment).filter(
             DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id
         ).first()
         if not segment:
             raise NotFound("Segment not found.")
         # check child chunk
         child_chunk_id = str(child_chunk_id)
-        child_chunk = ChildChunk.query.filter(
+        child_chunk = db.session.query(ChildChunk).filter(
             ChildChunk.id == str(child_chunk_id), ChildChunk.tenant_id == current_user.current_tenant_id
         ).first()
         if not child_chunk:
@@ -607,7 +608,7 @@ class ChildChunkUpdateApi(Resource):
             SegmentService.delete_child_chunk(child_chunk, dataset)
         except ChildChunkDeleteIndexServiceError as e:
             raise ChildChunkDeleteIndexError(str(e))
-        return {"result": "success"}, 200
+        return {"result": "success"}, 204
 
     @setup_required
     @login_required
@@ -629,14 +630,14 @@ class ChildChunkUpdateApi(Resource):
             raise NotFound("Document not found.")
             # check segment
         segment_id = str(segment_id)
-        segment = DocumentSegment.query.filter(
+        segment = db.session.query(DocumentSegment).filter(
             DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id
         ).first()
         if not segment:
             raise NotFound("Segment not found.")
         # check child chunk
         child_chunk_id = str(child_chunk_id)
-        child_chunk = ChildChunk.query.filter(
+        child_chunk = db.session.query(ChildChunk).filter(
             ChildChunk.id == str(child_chunk_id), ChildChunk.tenant_id == current_user.current_tenant_id
         ).first()
         if not child_chunk:

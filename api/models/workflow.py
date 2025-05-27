@@ -1,34 +1,32 @@
 import json
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, Optional, Self, Union
 from uuid import uuid4
 
 if TYPE_CHECKING:
     from models.model import AppMode
-from enum import StrEnum
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from models.model import AppMode
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy import Index, PrimaryKeyConstraint, func
+from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column
 
 import contexts
-from constants import HIDDEN_VALUE
+from constants import DEFAULT_FILE_NUMBER_LIMITS, HIDDEN_VALUE
 from core.helper import encrypter
 from core.variables import SecretVariable, Variable
 from factories import variable_factory
 from libs import helper
-from models.base import Base
-from models.enums import CreatedByRole
 
 from .account import Account
+from .base import Base
 from .engine import db
+from .enums import CreatedByRole
 from .types import StringUUID
 
 if TYPE_CHECKING:
@@ -190,7 +188,7 @@ class Workflow(Base):
         features = json.loads(self._features)
         if features.get("file_upload", {}).get("image", {}).get("enabled", False):
             image_enabled = True
-            image_number_limits = int(features["file_upload"]["image"].get("number_limits", 1))
+            image_number_limits = int(features["file_upload"]["image"].get("number_limits", DEFAULT_FILE_NUMBER_LIMITS))
             image_transfer_methods = features["file_upload"]["image"].get(
                 "transfer_methods", ["remote_url", "local_file"]
             )
@@ -249,6 +247,13 @@ class Workflow(Base):
 
     @property
     def tool_published(self) -> bool:
+        """
+        DEPRECATED: This property is not accurate for determining if a workflow is published as a tool.
+        It only checks if there's a WorkflowToolProvider for the app, not if this specific workflow version
+        is the one being used by the tool.
+
+        For accurate checking, use a direct query with tenant_id, app_id, and version.
+        """
         from models.tools import WorkflowToolProvider
 
         return (
@@ -514,7 +519,7 @@ class WorkflowRun(Base):
         )
 
 
-class WorkflowNodeExecutionTriggeredFrom(Enum):
+class WorkflowNodeExecutionTriggeredFrom(StrEnum):
     """
     Workflow Node Execution Triggered From Enum
     """
@@ -522,21 +527,8 @@ class WorkflowNodeExecutionTriggeredFrom(Enum):
     SINGLE_STEP = "single-step"
     WORKFLOW_RUN = "workflow-run"
 
-    @classmethod
-    def value_of(cls, value: str) -> "WorkflowNodeExecutionTriggeredFrom":
-        """
-        Get value of given mode.
 
-        :param value: mode value
-        :return: mode
-        """
-        for mode in cls:
-            if mode.value == value:
-                return mode
-        raise ValueError(f"invalid workflow node execution triggered from value {value}")
-
-
-class WorkflowNodeExecutionStatus(Enum):
+class WorkflowNodeExecutionStatus(StrEnum):
     """
     Workflow Node Execution Status Enum
     """
@@ -546,19 +538,6 @@ class WorkflowNodeExecutionStatus(Enum):
     FAILED = "failed"
     EXCEPTION = "exception"
     RETRY = "retry"
-
-    @classmethod
-    def value_of(cls, value: str) -> "WorkflowNodeExecutionStatus":
-        """
-        Get value of given mode.
-
-        :param value: mode value
-        :return: mode
-        """
-        for mode in cls:
-            if mode.value == value:
-                return mode
-        raise ValueError(f"invalid workflow node execution status value {value}")
 
 
 class WorkflowNodeExecution(Base):
@@ -660,6 +639,7 @@ class WorkflowNodeExecution(Base):
     @property
     def created_by_account(self):
         created_by_role = CreatedByRole(self.created_by_role)
+        # TODO(-LAN-): Avoid using db.session.get() here.
         return db.session.get(Account, self.created_by) if created_by_role == CreatedByRole.ACCOUNT else None
 
     @property
@@ -667,6 +647,7 @@ class WorkflowNodeExecution(Base):
         from models.model import EndUser
 
         created_by_role = CreatedByRole(self.created_by_role)
+        # TODO(-LAN-): Avoid using db.session.get() here.
         return db.session.get(EndUser, self.created_by) if created_by_role == CreatedByRole.END_USER else None
 
     @property
@@ -759,8 +740,7 @@ class WorkflowAppLog(Base):
     __tablename__ = "workflow_app_logs"
     __table_args__ = (
         db.PrimaryKeyConstraint("id", name="workflow_app_log_pkey"),
-        db.Index("workflow_app_log_app_idx", "tenant_id", "app_id", "created_at"),
-        db.Index("workflow_app_log_workflow_run_idx", "workflow_run_id"),
+        db.Index("workflow_app_log_app_idx", "tenant_id", "app_id"),
     )
 
     id: Mapped[str] = mapped_column(StringUUID, server_default=db.text("uuid_generate_v4()"))
@@ -792,17 +772,12 @@ class WorkflowAppLog(Base):
 
 class ConversationVariable(Base):
     __tablename__ = "workflow_conversation_variables"
-    __table_args__ = (
-        PrimaryKeyConstraint("id", "conversation_id", name="workflow_conversation_variables_pkey"),
-        Index("workflow__conversation_variables_app_id_idx", "app_id"),
-        Index("workflow__conversation_variables_created_at_idx", "created_at"),
-    )
 
     id: Mapped[str] = mapped_column(StringUUID, primary_key=True)
     conversation_id: Mapped[str] = mapped_column(StringUUID, nullable=False, primary_key=True)
-    app_id: Mapped[str] = mapped_column(StringUUID, nullable=False)
+    app_id: Mapped[str] = mapped_column(StringUUID, nullable=False, index=True)
     data = mapped_column(db.Text, nullable=False)
-    created_at = mapped_column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    created_at = mapped_column(db.DateTime, nullable=False, server_default=func.current_timestamp(), index=True)
     updated_at = mapped_column(
         db.DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp()
     )

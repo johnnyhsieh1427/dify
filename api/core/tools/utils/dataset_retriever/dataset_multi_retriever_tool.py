@@ -84,7 +84,7 @@ class DatasetMultiRetrieverTool(DatasetRetrieverBaseTool):
 
         document_context_list = []
         index_node_ids = [document.metadata["doc_id"] for document in all_documents if document.metadata]
-        segments = DocumentSegment.query.filter(
+        segments = db.session.query(DocumentSegment).filter(
             DocumentSegment.dataset_id.in_(self.dataset_ids),
             DocumentSegment.completed_at.isnot(None),
             DocumentSegment.status == "completed",
@@ -106,8 +106,8 @@ class DatasetMultiRetrieverTool(DatasetRetrieverBaseTool):
                 context_list = []
                 resource_number = 1
                 for segment in sorted_segments:
-                    dataset = Dataset.query.filter_by(id=segment.dataset_id).first()
-                    document = Document.query.filter(
+                    dataset = db.session.query(Dataset).filter_by(id=segment.dataset_id).first()
+                    document = db.session.query(Document).filter(
                         Document.id == segment.document_id,
                         Document.enabled == True,
                         Document.archived == False,

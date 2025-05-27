@@ -21,6 +21,7 @@ import type {
   AppMeta,
   ConversationItem,
 } from '@/models/share'
+import { noop } from 'lodash-es'
 
 export type ChatWithHistoryContextValue = {
   appInfoError?: any
@@ -35,13 +36,12 @@ export type ChatWithHistoryContextValue = {
   appPrevChatTree: ChatItemInTree[]
   pinnedConversationList: AppConversationData['data']
   conversationList: AppConversationData['data']
-  showConfigPanelBeforeChat: boolean
   newConversationInputs: Record<string, any>
   newConversationInputsRef: RefObject<Record<string, any>>
   handleNewConversationInputsChange: (v: Record<string, any>) => void
   inputsForms: any[]
   handleNewConversation: () => void
-  handleStartChat: () => void
+  handleStartChat: (callback?: any) => void
   handleChangeConversation: (conversationId: string) => void
   handlePinConversation: (conversationId: string) => void
   handleUnpinConversation: (conversationId: string) => void
@@ -52,12 +52,20 @@ export type ChatWithHistoryContextValue = {
   chatShouldReloadKey: string
   isMobile: boolean
   isInstalledApp: boolean
-  activeAppId?: string
-  activeIndex?: number
-  setActiveIndex: (index: number) => void
+  appId?: string
   handleFeedback: (messageId: string, feedback: Feedback) => void
   currentChatInstanceRef: RefObject<{ handleStop: () => void }>
   themeBuilder?: ThemeBuilder
+  sidebarCollapseState?: boolean
+  handleSidebarCollapse: (state: boolean) => void
+  clearChatList?: boolean
+  setClearChatList: (state: boolean) => void
+  isResponding?: boolean
+  setIsResponding: (state: boolean) => void,
+  currentConversationInputs: Record<string, any> | null,
+  setCurrentConversationInputs: (v: Record<string, any>) => void,
+  activeIndex?: number
+  setActiveIndex: (index: number) => void
 }
 
 export const ChatWithHistoryContext = createContext<ChatWithHistoryContextValue>({
@@ -65,25 +73,33 @@ export const ChatWithHistoryContext = createContext<ChatWithHistoryContextValue>
   appPrevChatTree: [],
   pinnedConversationList: [],
   conversationList: [],
-  showConfigPanelBeforeChat: false,
   newConversationInputs: {},
   newConversationInputsRef: { current: {} },
-  handleNewConversationInputsChange: () => {},
+  handleNewConversationInputsChange: noop,
   inputsForms: [],
-  handleNewConversation: () => {},
-  handleStartChat: () => {},
-  handleChangeConversation: () => {},
-  handlePinConversation: () => {},
-  handleUnpinConversation: () => {},
-  handleDeleteConversation: () => {},
+  handleNewConversation: noop,
+  handleStartChat: noop,
+  handleChangeConversation: noop,
+  handlePinConversation: noop,
+  handleUnpinConversation: noop,
+  handleDeleteConversation: noop,
   conversationRenaming: false,
-  handleRenameConversation: () => {},
-  handleNewConversationCompleted: () => {},
+  handleRenameConversation: noop,
+  handleNewConversationCompleted: noop,
   chatShouldReloadKey: '',
   isMobile: false,
   isInstalledApp: false,
-  setActiveIndex: () => {},
-  handleFeedback: () => {},
-  currentChatInstanceRef: { current: { handleStop: () => {} } },
+  handleFeedback: noop,
+  currentChatInstanceRef: { current: { handleStop: noop } },
+  sidebarCollapseState: false,
+  handleSidebarCollapse: noop,
+  clearChatList: false,
+  setClearChatList: noop,
+  isResponding: false,
+  setIsResponding: noop,
+  currentConversationInputs: {},
+  setCurrentConversationInputs: noop,
+  activeIndex: 0,
+  setActiveIndex: noop,
 })
 export const useChatWithHistoryContext = () => useContext(ChatWithHistoryContext)

@@ -19,8 +19,6 @@ from models.workflow import WorkflowRun
 def process_trace_tasks(file_info):
     """
     Async process trace tasks
-    :param tasks_data: List of dictionaries containing task data
-
     Usage: process_trace_tasks.delay(tasks_data)
     """
     from core.ops.ops_trace_manager import OpsTraceManager
@@ -52,7 +50,10 @@ def process_trace_tasks(file_info):
             logging.info(f"Processing trace tasks success, {mode}: {app_id}")
         else:
             logging.info(f"Processing trace tasks success, app_id: {app_id}")
-    except Exception:
+    except Exception as e:
+        logging.info(
+            f"error:\n\n\n{e}\n\n\n\n",
+        )
         failed_key = f"{OPS_TRACE_FAILED_KEY}_{app_id}"
         redis_client.incr(failed_key)
         if mode == "dataset":

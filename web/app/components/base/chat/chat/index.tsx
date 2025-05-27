@@ -1,3 +1,6 @@
+// 修改日期2025-05-27
+// 修改ChatProps類型，新增isPublic和isWebChat
+
 import type {
   FC,
   ReactNode,
@@ -73,6 +76,8 @@ export type ChatProps = {
   inputDisabled?: boolean
   isMobile?: boolean
   sidebarCollapseState?: boolean
+  isPublic?: boolean
+  isWebChat?: boolean
 }
 
 const Chat: FC<ChatProps> = ({
@@ -112,6 +117,8 @@ const Chat: FC<ChatProps> = ({
   inputDisabled,
   isMobile,
   sidebarCollapseState,
+  isPublic,
+  isWebChat,
 }) => {
   const { t } = useTranslation()
   const { currentLogItem, setCurrentLogItem, showPromptLogModal, setShowPromptLogModal, showAgentLogModal, setShowAgentLogModal } = useAppStore(useShallow(state => ({
@@ -196,7 +203,8 @@ const Chat: FC<ChatProps> = ({
     const chatContainer = chatContainerRef.current
     if (chatContainer) {
       const setUserScrolled = () => {
-        if (chatContainer)
+        // eslint-disable-next-line sonarjs/no-gratuitous-expressions
+        if (chatContainer) // its in event callback, chatContainer may be null
           userScrolledRef.current = chatContainer.scrollHeight - chatContainer.scrollTop > chatContainer.clientHeight
       }
       chatContainer.addEventListener('scroll', setUserScrolled)
@@ -207,7 +215,7 @@ const Chat: FC<ChatProps> = ({
   useEffect(() => {
     if (!sidebarCollapseState)
       setTimeout(() => handleWindowResize(), 200)
-  }, [sidebarCollapseState])
+  }, [handleWindowResize, sidebarCollapseState])
 
   const hasTryToAsk = config?.suggested_questions_after_answer?.enabled && !!suggestedQuestions?.length && onSend
 
@@ -264,6 +272,8 @@ const Chat: FC<ChatProps> = ({
                     item={item}
                     questionIcon={questionIcon}
                     theme={themeBuilder?.theme}
+                    enableEdit={config?.questionEditEnable}
+                    switchSibling={switchSibling}
                   />
                 )
               })
@@ -312,6 +322,8 @@ const Chat: FC<ChatProps> = ({
                   inputsForm={inputsForm}
                   theme={themeBuilder?.theme}
                   isResponding={isResponding}
+                  isPublic={isPublic}
+                  isWebChat={isWebChat}
                 />
               )
             }
