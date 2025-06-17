@@ -36,6 +36,7 @@ const Popup: FC<PopupProps> = ({
   const fileType = data.dataSourceType !== 'notion'
     ? (/\.([^.]*)$/g.exec(data.documentName)?.[1] || '')
     : 'notion'
+  const originalName = encodeURIComponent(data.documentName)
 
   return (
     <PortalToFollowElem
@@ -60,7 +61,7 @@ const Popup: FC<PopupProps> = ({
               <FileIcon type={fileType} className='mr-1 h-4 w-4 shrink-0' />
               {data.fileLocation
                 ? <Link
-                  href={`${new URL(data.fileLocation, PUBLIC_API_PREFIX).href}`}
+                  href={`${new URL(data.fileLocation, PUBLIC_API_PREFIX).href}?originalName=${originalName}`}
                   target='_blank'
                   className='truncate text-xs font-medium text-gray-600'
                 >{data.documentName}</Link>

@@ -1,6 +1,12 @@
 // 修改日期2025-02-28
 // 新增menus.webChat
 const translation = {
+  theme: {
+    theme: 'Theme',
+    light: 'light',
+    dark: 'dark',
+    auto: 'system',
+  },
   api: {
     success: 'Success',
     actionSuccess: 'Action succeeded',
@@ -143,6 +149,8 @@ const translation = {
     status: 'beta',
     explore: 'Explore',
     apps: 'Studio',
+    appDetail: 'App Detail',
+    account: 'Account',
     plugins: 'Plugins',
     exploreMarketplace: 'Explore Marketplace',
     pluginsTips: 'Integrate third-party plugins or create ChatGPT-compatible AI-Plugins.',
@@ -193,7 +201,7 @@ const translation = {
   account: {
     account: 'Account',
     myAccount: 'My Account',
-    studio: 'Dify Studio',
+    studio: 'Studio',
     avatar: 'Avatar',
     name: 'Name',
     email: 'Email',
@@ -205,8 +213,8 @@ const translation = {
     newPassword: 'New password',
     confirmPassword: 'Confirm password',
     notEqual: 'Two passwords are different.',
-    langGeniusAccount: 'Dify account',
-    langGeniusAccountTip: 'Your Dify account and associated user data.',
+    langGeniusAccount: 'Account\'s data',
+    langGeniusAccountTip: 'The user data of your account.',
     editName: 'Edit Name',
     showAppLength: 'Show {{length}} apps',
     delete: 'Delete Account',
@@ -654,6 +662,7 @@ const translation = {
   license: {
     expiring: 'Expiring in one day',
     expiring_plural: 'Expiring in {{count}} days',
+    unlimited: 'Unlimited',
   },
   pagination: {
     perPage: 'Items per page',
@@ -663,6 +672,7 @@ const translation = {
     browse: 'browse',
     supportedFormats: 'Supports PNG, JPG, JPEG, WEBP and GIF',
   },
+  you: 'You',
 }
 
 export default translation

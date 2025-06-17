@@ -1,6 +1,3 @@
-# 修改日期2025-01-13
-# 修改function load()，新增**kwargs參數
-# 加入user和process_id參數給vector.create()方法
 """Paragraph index processor."""
 
 import uuid
@@ -76,11 +73,9 @@ class ParagraphIndexProcessor(BaseIndexProcessor):
         return all_documents
 
     def load(self, dataset: Dataset, documents: list[Document], with_keywords: bool = True, **kwargs):
-        user_id = kwargs.get("user_id")
-        process_id = kwargs.get("process_id")
         if dataset.indexing_technique == "high_quality":
             vector = Vector(dataset)
-            vector.create(texts=documents, user_id=user_id, process_id=process_id)
+            vector.create(texts=documents)
         if with_keywords:
             keywords_list = kwargs.get("keywords_list")
             keyword = Keyword(dataset)

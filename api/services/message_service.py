@@ -181,6 +181,21 @@ class MessageService:
         return feedback
 
     @classmethod
+    def get_all_messages_feedbacks(cls, app_model: App, page: int, limit: int):
+        """Get all feedbacks of an app"""
+        offset = (page - 1) * limit
+        feedbacks = (
+            db.session.query(MessageFeedback)
+            .filter(MessageFeedback.app_id == app_model.id)
+            .order_by(MessageFeedback.created_at.desc(), MessageFeedback.id.desc())
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+
+        return [record.to_dict() for record in feedbacks]
+
+    @classmethod
     def get_message(cls, app_model: App, user: Optional[Union[Account, EndUser]], message_id: str):
         # 根據 user 類型決定來源與對應的欄位
         if isinstance(user, Account):

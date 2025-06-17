@@ -1,8 +1,8 @@
 // 修改日期2025-02-28
 // 新增NEXT_PUBLIC_WEB_CHAT_API_PREFIX常數變數
 
-import type { Viewport } from 'next'
 import RoutePrefixHandle from './routePrefixHandle'
+import type { Viewport } from 'next'
 import I18nServer from './components/i18n-server'
 import BrowserInitor from './components/browser-initor'
 import SentryInitor from './components/sentry-initor'
@@ -11,10 +11,7 @@ import { TanstackQueryIniter } from '@/context/query-client'
 import { ThemeProvider } from 'next-themes'
 import './styles/globals.css'
 import './styles/markdown.scss'
-
-export const metadata = {
-  title: 'Dify',
-}
+import GlobalPublicStoreProvider from '@/context/global-public-context'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -67,13 +64,14 @@ const LocaleLayout = async ({
             <TanstackQueryIniter>
               <ThemeProvider
                 attribute='data-theme'
-                forcedTheme='light'
-                defaultTheme='light' // TODO: change to 'system' when dark mode ready
+                defaultTheme='system'
                 enableSystem
                 disableTransitionOnChange
               >
                 <I18nServer>
-                  {children}
+                  <GlobalPublicStoreProvider>
+                    {children}
+                  </GlobalPublicStoreProvider>
                 </I18nServer>
               </ThemeProvider>
             </TanstackQueryIniter>

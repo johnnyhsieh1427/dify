@@ -125,6 +125,7 @@ class DatasetRetrieverTool(DatasetRetrieverBaseTool):
                 return ""
             # get retrieval model , if the model is not setting , using default
             retrieval_model: dict[str, Any] = dataset.retrieval_model or default_retrieval_model
+            retrieval_resource_list = []
             if dataset.indexing_technique == "economy":
                 # use keyword table query
                 documents = RetrievalService.retrieve(
@@ -181,16 +182,20 @@ class DatasetRetrieverTool(DatasetRetrieverBaseTool):
                                     score=record.score,
                                 )
                             )
-                    retrieval_resource_list = []
+
                     if self.return_resource:
                         for record in records:
                             segment = record.segment
                             dataset = db.session.query(Dataset).filter_by(id=segment.dataset_id).first()
-                            document = db.session.query(DatasetDocument).filter(
-                                DatasetDocument.id == segment.document_id,
-                                DatasetDocument.enabled == True,
-                                DatasetDocument.archived == False,
-                            ).first()
+                            document = (
+                                db.session.query(DatasetDocument)  # type: ignore
+                                .filter(
+                                    DatasetDocument.id == segment.document_id,
+                                    DatasetDocument.enabled == True,
+                                    DatasetDocument.archived == False,
+                                )
+                                .first()
+                            )
                             if dataset and document:
                                 source = {
                                     "dataset_id": dataset.id,

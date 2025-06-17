@@ -1,6 +1,3 @@
-# 修改日期2025-01-13
-# 修改function add_texts()和create()的參數
-# 增加user_id和process_id參數
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
@@ -173,14 +170,10 @@ class Vector:
     def create(self, texts: Optional[list] = None, **kwargs):
         if texts:
             try:
-                user_id = kwargs.get("user_id")
-                process_id = kwargs.get("process_id")
                 metadata = {}
                 for document in texts:
                     for k, v in dict(document.metadata).items():
                         metadata.setdefault(k, []).append(v)
-                metadata.setdefault("user_id", user_id)
-                metadata.setdefault("process_id", process_id)
             except Exception as e:
                 # logging.error(f"Error in create: {e}")
                 metadata = None
@@ -195,14 +188,10 @@ class Vector:
         if kwargs.get("duplicate_check", False):
             documents = self._filter_duplicate_texts(documents)
         try:
-            user_id = kwargs.get("user_id")
-            process_id = kwargs.get("process_id")
             metadata = {}
             for document in documents:
                 for k, v in dict(document.metadata).items():
                     metadata.setdefault(k, []).append(v)
-            metadata.setdefault("user_id", user_id)
-            metadata.setdefault("process_id", process_id)
         except Exception as e:
             # logging.error(f"Error in add_texts: {e}")
             metadata = None

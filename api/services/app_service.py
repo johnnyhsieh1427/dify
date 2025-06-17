@@ -19,8 +19,10 @@ from core.tools.utils.configuration import ToolParameterConfigurationManager
 from events.app_event import app_was_created
 from extensions.ext_database import db
 from models.account import Account
-from models.model import App, AppMode, AppModelConfig
+from models.model import App, AppMode, AppModelConfig, Site
 from models.tools import ApiToolProvider
+from services.enterprise.enterprise_service import EnterpriseService
+from services.feature_service import FeatureService
 from services.tag_service import TagService
 from tasks.remove_app_and_related_data_task import remove_app_and_related_data_task
 
@@ -155,6 +157,10 @@ class AppService:
         db.session.commit()
 
         app_was_created.send(app, account=account)
+
+        if FeatureService.get_system_features().webapp_auth.enabled:
+            # update web app setting as private
+            EnterpriseService.WebAppAuth.update_app_access_mode(app.id, "private")
 
         return app
 
@@ -308,6 +314,10 @@ class AppService:
         db.session.delete(app)
         db.session.commit()
 
+        # clean up web app settings
+        if FeatureService.get_system_features().webapp_auth.enabled:
+            EnterpriseService.WebAppAuth.cleanup_webapp(app.id)
+
         # Trigger asynchronous deletion of app and related data
         remove_app_and_related_data_task.delay(tenant_id=app.tenant_id, app_id=app.id)
 
@@ -374,3 +384,15 @@ class AppService:
                         meta["tool_icons"][tool_name] = {"background": "#252525", "content": "\ud83d\ude01"}
 
         return meta
+
+    @staticmethod
+    def get_app_code_by_id(app_id: str) -> str:
+        """
+        Get app code by app id
+        :param app_id: app id
+        :return: app code
+        """
+        site = db.session.query(Site).filter(Site.app_id == app_id).first()
+        if not site:
+            raise ValueError(f"App with id {app_id} not found")
+        return str(site.code)

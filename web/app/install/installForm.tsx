@@ -15,8 +15,8 @@ import classNames from '@/utils/classnames'
 import Button from '@/app/components/base/button'
 
 import { fetchInitValidateStatus, fetchSetupStatus, setup } from '@/service/common'
-import type { CommonResponse, InitValidateStatusResponse, SetupStatusResponse } from '@/models/common'
-import { basePath } from '@/utils/var'
+import type { InitValidateStatusResponse, SetupStatusResponse } from '@/models/common'
+import useDocumentTitle from '@/hooks/use-document-title'
 
 const validPassword = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/
 
@@ -34,6 +34,7 @@ const accountFormSchema = z.object({
 type AccountFormValues = z.infer<typeof accountFormSchema>
 
 const InstallForm = () => {
+  useDocumentTitle('')
   const { t } = useTranslation()
   const router = useRouter()
   const [showPassword, setShowPassword] = React.useState(false)
@@ -82,12 +83,12 @@ const InstallForm = () => {
     fetchSetupStatus().then((res: SetupStatusResponse) => {
       if (res.step === 'finished') {
         localStorage.setItem('setup_status', 'finished')
-        router.push(`${basePath}/signin`)
+        router.push('/signin')
       }
       else {
         fetchInitValidateStatus().then((res: InitValidateStatusResponse) => {
           if (res.status === 'not_started')
-            router.push(`${basePath}/init`)
+            router.push('/init')
         })
       }
       setLoading(false)

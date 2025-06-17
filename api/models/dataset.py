@@ -96,7 +96,8 @@ class Dataset(Base):
     @property
     def latest_process_rule(self):
         return (
-            db.session.query(DatasetProcessRule).filter(DatasetProcessRule.dataset_id == self.id)
+            db.session.query(DatasetProcessRule)
+            .filter(DatasetProcessRule.dataset_id == self.id)
             .order_by(DatasetProcessRule.created_at.desc())
             .first()
         )
@@ -141,7 +142,8 @@ class Dataset(Base):
     @property
     def word_count(self):
         return (
-            db.session.query(Document).with_entities(func.coalesce(func.sum(Document.word_count)))
+            db.session.query(Document)
+            .with_entities(func.coalesce(func.sum(Document.word_count)))
             .filter(Document.dataset_id == self.id)
             .scalar()
         )
@@ -448,7 +450,8 @@ class Document(Base):
     @property
     def hit_count(self):
         return (
-            db.session.query(DocumentSegment).with_entities(func.coalesce(func.sum(DocumentSegment.hit_count)))
+            db.session.query(DocumentSegment)
+            .with_entities(func.coalesce(func.sum(DocumentSegment.hit_count)))
             .filter(DocumentSegment.document_id == self.id)
             .scalar()
         )

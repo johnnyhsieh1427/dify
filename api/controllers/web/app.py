@@ -1,7 +1,7 @@
 # 修改日期2025-01-20
 # 新增API AppTenantPermission，用於檢查使用者是否有權限訪問聊天機器人應用
-from flask_restful import marshal_with
-from werkzeug.exceptions import Forbidden
+from flask import request
+from flask_restful import Resource, marshal_with, reqparse
 
 from controllers.common import fields
 from controllers.web import api
@@ -9,9 +9,11 @@ from controllers.web.error import AppUnavailableError
 from controllers.web.wraps import WebApiResource
 from core.app.app_config.common.parameters_mapping import get_parameters_from_feature_dict
 from extensions.ext_database import db
+from libs.passport import PassportService
 from models.account import TenantAccountJoin
 from models.model import App, AppMode, EndUser
 from services.app_service import AppService
+from services.enterprise.enterprise_service import EnterpriseService
 
 
 class AppParameterApi(WebApiResource):
@@ -55,9 +57,55 @@ class AppTenantPermission(WebApiResource):
             ).first()
             if result:
                 return {"result": "success"}
-        raise Forbidden()
+        raise AppUnavailableError()
+
+
+class AppAccessMode(Resource):
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument("appId", type=str, required=True, location="args")
+        args = parser.parse_args()
+
+        app_id = args["appId"]
+        res = EnterpriseService.WebAppAuth.get_app_access_mode_by_id(app_id)
+
+        return {"accessMode": res.access_mode}
+
+
+class AppWebAuthPermission(Resource):
+    def get(self):
+        user_id = "visitor"
+        try:
+            auth_header = request.headers.get("Authorization")
+            if auth_header is None:
+                raise
+            if " " not in auth_header:
+                raise
+
+            auth_scheme, tk = auth_header.split(None, 1)
+            auth_scheme = auth_scheme.lower()
+            if auth_scheme != "bearer":
+                raise
+
+            decoded = PassportService().verify(tk)
+            user_id = decoded.get("user_id", "visitor")
+        except Exception as e:
+            pass
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("appId", type=str, required=True, location="args")
+        args = parser.parse_args()
+
+        app_id = args["appId"]
+        app_code = AppService.get_app_code_by_id(app_id)
+
+        res = EnterpriseService.WebAppAuth.is_user_allowed_to_access_webapp(str(user_id), app_code)
+        return {"result": res}
 
 
 api.add_resource(AppParameterApi, "/parameters")
 api.add_resource(AppMeta, "/meta")
 api.add_resource(AppTenantPermission, "/permission")
+# webapp auth apis
+api.add_resource(AppAccessMode, "/webapp/access-mode")
+api.add_resource(AppWebAuthPermission, "/webapp/permission")

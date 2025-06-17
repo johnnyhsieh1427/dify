@@ -120,7 +120,7 @@ const FileUploader = ({
       xhr: new XMLHttpRequest(),
       data: formData,
       onprogress: onProgress,
-    }, false, undefined, '?source=datasets')
+    }, false, undefined, '/files/upload?source=datasets')
       .then((res: File) => {
         const completeFile = {
           fileID: fileItem.fileID,

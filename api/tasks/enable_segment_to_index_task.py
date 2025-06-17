@@ -1,6 +1,3 @@
-# 修改日期2025-01-14
-# 修改function enable_segment_to_index_task()的參數
-# 新增user_id和process_id參數，用於追蹤資料庫操作的使用者和程序
 import datetime
 import logging
 import time
@@ -17,7 +14,7 @@ from models.dataset import DocumentSegment
 
 
 @shared_task(queue="dataset")
-def enable_segment_to_index_task(segment_id: str, **kwargs):
+def enable_segment_to_index_task(segment_id: str):
     """
     Async enable segment to index
     :param segment_id:
@@ -85,9 +82,7 @@ def enable_segment_to_index_task(segment_id: str, **kwargs):
                     child_documents.append(child_document)
                 document.children = child_documents
         # save vector index
-        user_id = kwargs.get("user_id")
-        process_id = kwargs.get("process_id")
-        index_processor.load(dataset, [document], user_id=user_id, process_id=process_id)
+        index_processor.load(dataset, [document])
 
         end_at = time.perf_counter()
         logging.info(

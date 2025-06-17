@@ -3,7 +3,7 @@
 import React from 'react'
 import { getLocaleOnServer, useTranslation as translate } from '@/i18n/server'
 import Form from '@/app/components/datasets/settings/form'
-import Panel from '@/app/components/datasets/settings/tracing'
+// import Panel from '@/app/components/datasets/settings/tracing'
 
 const Settings = async () => {
   const locale = await getLocaleOnServer()
@@ -15,7 +15,7 @@ const Settings = async () => {
         <div className='system-xl-semibold mb-1 text-text-primary'>{t('title')}</div>
         <div className='system-sm-regular text-text-tertiary'>{t('desc')}</div>
       </div>
-      <Panel />
+      {/* <Panel /> */}
       <Form />
     </div>
   )

@@ -1,6 +1,3 @@
-# 修改日期2025-01-14
-# 修改function add_document_to_index_task()的參數
-# 新增user_id和process_id參數，用於追蹤資料庫操作的使用者和程序
 import datetime
 import logging
 import time
@@ -18,7 +15,7 @@ from models.dataset import Document as DatasetDocument
 
 
 @shared_task(queue="dataset")
-def add_document_to_index_task(dataset_document_id: str, **kwargs):
+def add_document_to_index_task(dataset_document_id: str):
     """
     Async Add document to index
     :param dataset_document_id:
@@ -85,15 +82,8 @@ def add_document_to_index_task(dataset_document_id: str, **kwargs):
             documents.append(document)
 
         index_type = dataset.doc_form
-        user_id = kwargs.get("user_id")
-        process_id = kwargs.get("process_id")
         index_processor = IndexProcessorFactory(index_type).init_index_processor()
-        index_processor.load(
-            dataset,
-            documents,
-            user_id=user_id,
-            process_id=process_id,
-        )
+        index_processor.load(dataset,documents)
 
         # delete auto disable log
         db.session.query(DatasetAutoDisableLog).filter(
@@ -121,7 +111,7 @@ def add_document_to_index_task(dataset_document_id: str, **kwargs):
         logging.exception("add document to index failed")
         dataset_document.enabled = False
         dataset_document.disabled_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
-        dataset_document.status = "error"
+        dataset_document.indexing_status = "error"
         dataset_document.error = str(e)
         db.session.commit()
     finally:

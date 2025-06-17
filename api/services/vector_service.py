@@ -1,12 +1,4 @@
-# 修改日期2025-01-13
-# 新增作者(created_by)的變數user，用於知道是哪個使用者在操作
-# 修改日期2025-02-28
-# create_child_chunk_vector
-# update_child_chunk_vector
-# update_segment_vector
-# create_segments_vector
-# 加入 user_id 和 process_id 參數
-
+import logging
 from typing import Optional
 
 from core.model_manager import ModelInstance, ModelManager
@@ -21,6 +13,8 @@ from models.dataset import ChildChunk, Dataset, DatasetProcessRule, DocumentSegm
 from models.dataset import Document as DatasetDocument
 from services.entities.knowledge_entities.knowledge_entities import ParentMode
 
+_logger = logging.getLogger(__name__)
+
 
 class VectorService:
     @classmethod
@@ -30,19 +24,23 @@ class VectorService:
         segments: list[DocumentSegment], 
         dataset: Dataset, 
         doc_form: str, 
-        **kwargs
     ):
-        user_id = kwargs.get("user_id")
-        process_id = kwargs.get("process_id")
-        documents = []
+        documents: list[Document] = []
 
         for segment in segments:
             if doc_form == IndexType.PARENT_CHILD_INDEX:
-                document = db.session.query(DatasetDocument).filter_by(id=segment.document_id).first()
+                dataset_document = db.session.query(DatasetDocument).filter_by(id=segment.document_id).first()
+                if not dataset_document:
+                    _logger.warning(
+                        "Expected DatasetDocument record to exist, but none was found, document_id=%s, segment_id=%s",
+                        segment.document_id,
+                        segment.id,
+                    )
+                    continue
                 # get the process rule
                 processing_rule = (
                     db.session.query(DatasetProcessRule)
-                    .filter(DatasetProcessRule.id == document.dataset_process_rule_id)
+                    .filter(DatasetProcessRule.id == dataset_document.dataset_process_rule_id)
                     .first()
                 )
                 if not processing_rule:
@@ -66,9 +64,11 @@ class VectorService:
                         )
                 else:
                     raise ValueError("The knowledge base index technique is not high quality!")
-                cls.generate_child_chunks(segment, document, dataset, embedding_model_instance, processing_rule, False)
+                cls.generate_child_chunks(
+                    segment, dataset_document, dataset, embedding_model_instance, processing_rule, False
+                )
             else:
-                document = Document(
+                rag_document = Document(
                     page_content=segment.content,
                     metadata={
                         "doc_id": segment.index_node_id,
@@ -77,7 +77,7 @@ class VectorService:
                         "dataset_id": segment.dataset_id,
                     },
                 )
-                documents.append(document)
+                documents.append(rag_document)
         if len(documents) > 0:
             index_processor = IndexProcessorFactory(doc_form).init_index_processor()
             index_processor.load(
@@ -85,15 +85,12 @@ class VectorService:
                 documents,
                 with_keywords=True,
                 keywords_list=keywords_list,
-                user_id=user_id,
-                process_id=process_id,
             )
 
     @classmethod
-    def update_segment_vector(cls, keywords: Optional[list[str]], segment: DocumentSegment, dataset: Dataset, **kwargs):
+    def update_segment_vector(cls, keywords: Optional[list[str]], segment: DocumentSegment, dataset: Dataset):
         # update segment index task
-        user_id = kwargs.get("user_id")
-        process_id = kwargs.get("process_id")
+
         # format new index
         document = Document(
             page_content=segment.content,
@@ -108,9 +105,7 @@ class VectorService:
             # update vector index
             vector = Vector(dataset=dataset)
             vector.delete_by_ids([segment.index_node_id])
-            vector.add_texts(
-                [document], duplicate_check=True, user_id=user_id, process_id=process_id
-            )
+            vector.add_texts([document], duplicate_check=True)
 
         # update keyword index
         keyword = Keyword(dataset)
@@ -179,9 +174,7 @@ class VectorService:
         db.session.commit()
 
     @classmethod
-    def create_child_chunk_vector(cls, child_segment: ChildChunk, dataset: Dataset, **kwargs):
-        user_id = kwargs.get("user_id")
-        process_id = kwargs.get("process_id")
+    def create_child_chunk_vector(cls, child_segment: ChildChunk, dataset: Dataset):
         child_document = Document(
             page_content=child_segment.content,
             metadata={
@@ -194,9 +187,7 @@ class VectorService:
         if dataset.indexing_technique == "high_quality":
             # save vector index
             vector = Vector(dataset=dataset)
-            vector.add_texts(
-                [child_document], duplicate_check=True, user_id=user_id, process_id=process_id
-            )
+            vector.add_texts([child_document], duplicate_check=True)
 
     @classmethod
     def update_child_chunk_vector(
@@ -205,10 +196,7 @@ class VectorService:
         update_child_chunks: list[ChildChunk],
         delete_child_chunks: list[ChildChunk],
         dataset: Dataset,
-        **kwargs,
     ):
-        user_id = kwargs.get("user_id")
-        process_id = kwargs.get("process_id")
         documents = []
         delete_node_ids = []
         for new_child_chunk in new_child_chunks:
@@ -242,9 +230,7 @@ class VectorService:
             if delete_node_ids:
                 vector.delete_by_ids(delete_node_ids)
             if documents:
-                vector.add_texts(
-                    documents, duplicate_check=True, user_id=user_id, process_id=process_id
-                )
+                vector.add_texts(documents, duplicate_check=True)
 
     @classmethod
     def delete_child_chunk_vector(cls, child_chunk: ChildChunk, dataset: Dataset):

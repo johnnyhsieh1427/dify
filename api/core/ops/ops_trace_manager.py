@@ -33,11 +33,7 @@ from sqlalchemy.orm import Session
 from core.helper.encrypter import decrypt_token, encrypt_token, obfuscated_token
 from core.ops.entities.config_entity import (
     OPS_FILE_PATH,
-    LangfuseConfig,
-    LangSmithConfig,
-    OpikConfig,
     TracingProviderEnum,
-    WeaveConfig,
 )
 from core.ops.entities.trace_entity import (
     DatasetRetrievalTraceInfo,
@@ -51,11 +47,8 @@ from core.ops.entities.trace_entity import (
     TraceTaskName,
     WorkflowTraceInfo,
 )
-from core.ops.langfuse_trace.langfuse_trace import LangFuseDataTrace
-from core.ops.langsmith_trace.langsmith_trace import LangSmithDataTrace
-from core.ops.opik_trace.opik_trace import OpikDataTrace
 from core.ops.utils import get_message_data
-from core.ops.weave_trace.weave_trace import WeaveDataTrace
+from core.workflow.entities.workflow_execution_entities import WorkflowExecution
 from extensions.ext_database import db
 from extensions.ext_storage import storage
 from models.dataset import Dataset
@@ -72,36 +65,58 @@ from models.workflow import WorkflowAppLog, WorkflowRun
 from tasks.ops_trace_task import process_trace_tasks
 
 
-def build_opik_trace_instance(config: OpikConfig):
-    return OpikDataTrace(config)
+class OpsTraceProviderConfigMap(dict[str, dict[str, Any]]):
+    def __getitem__(self, provider: str) -> dict[str, Any]:
+        match provider:
+            case TracingProviderEnum.LANGFUSE:
+                from core.ops.entities.config_entity import LangfuseConfig
+                from core.ops.langfuse_trace.langfuse_trace import LangFuseDataTrace
+
+                return {
+                    "config_class": LangfuseConfig,
+                    "secret_keys": ["public_key", "secret_key"],
+                    "other_keys": ["host", "project_key"],
+                    "trace_instance": LangFuseDataTrace,
+                }
+
+            case TracingProviderEnum.LANGSMITH:
+                from core.ops.entities.config_entity import LangSmithConfig
+                from core.ops.langsmith_trace.langsmith_trace import LangSmithDataTrace
+
+                return {
+                    "config_class": LangSmithConfig,
+                    "secret_keys": ["api_key"],
+                    "other_keys": ["project", "endpoint"],
+                    "trace_instance": LangSmithDataTrace,
+                }
+
+            case TracingProviderEnum.OPIK:
+                from core.ops.entities.config_entity import OpikConfig
+                from core.ops.opik_trace.opik_trace import OpikDataTrace
+
+                return {
+                    "config_class": OpikConfig,
+                    "secret_keys": ["api_key"],
+                    "other_keys": ["project", "url", "workspace"],
+                    "trace_instance": OpikDataTrace,
+                }
+
+            case TracingProviderEnum.WEAVE:
+                from core.ops.entities.config_entity import WeaveConfig
+                from core.ops.weave_trace.weave_trace import WeaveDataTrace
+
+                return {
+                    "config_class": WeaveConfig,
+                    "secret_keys": ["api_key"],
+                    "other_keys": ["project", "entity", "endpoint"],
+                    "trace_instance": WeaveDataTrace,
+                }
+
+            case _:
+                raise KeyError(f"Unsupported tracing provider: {provider}")
 
 
-provider_config_map: dict[str, dict[str, Any]] = {
-    TracingProviderEnum.LANGFUSE.value: {
-        "config_class": LangfuseConfig,
-        "secret_keys": ["public_key", "secret_key"],
-        "other_keys": ["host", "project_key"],
-        "trace_instance": LangFuseDataTrace,
-    },
-    TracingProviderEnum.LANGSMITH.value: {
-        "config_class": LangSmithConfig,
-        "secret_keys": ["api_key"],
-        "other_keys": ["project", "endpoint"],
-        "trace_instance": LangSmithDataTrace,
-    },
-    TracingProviderEnum.OPIK.value: {
-        "config_class": OpikConfig,
-        "secret_keys": ["api_key"],
-        "other_keys": ["project", "url", "workspace"],
-        "trace_instance": lambda config: build_opik_trace_instance(config),
-    },
-    TracingProviderEnum.WEAVE.value: {
-        "config_class": WeaveConfig,
-        "secret_keys": ["api_key"],
-        "other_keys": ["project", "entity", "endpoint"],
-        "trace_instance": WeaveDataTrace,
-    },
-}
+provider_config_map: dict[str, dict[str, Any]] = OpsTraceProviderConfigMap()
 
 
 class OpsTraceManager:
@@ -301,11 +316,14 @@ class OpsTraceManager:
             if app_ops_trace_config is None:
                 return None
 
-            tracing_provider = app_ops_trace_config.get("tracing_provider")
-            tracing_enabled = app_ops_trace_config.get("enabled", False)
-
-            if tracing_provider is None or tracing_provider not in provider_config_map or not tracing_enabled:
-                return None
+        tracing_provider = app_ops_trace_config.get("tracing_provider")
+        tracing_enabled = app_ops_trace_config.get("enabled", False)
+        if tracing_provider is None or not tracing_enabled:
+            return None
+        try:
+            provider_config_map[tracing_provider]
+        except KeyError:
+            return None
 
             # decrypt_token
             decrypt_trace_config = cls.get_decrypted_tracing_config(app_id, tracing_provider)
@@ -357,8 +375,14 @@ class OpsTraceManager:
         :return:
         """
         # auth check
-        if tracing_provider not in provider_config_map and tracing_provider is not None:
-            raise ValueError(f"Invalid tracing provider: {tracing_provider}")
+        if enabled == True:
+            try:
+                provider_config_map[tracing_provider]
+            except KeyError:
+                raise ValueError(f"Invalid tracing provider: {tracing_provider}")
+        else:
+            if tracing_provider is not None:
+                raise ValueError(f"Invalid tracing provider: {tracing_provider}")
 
         app_config: Optional[App] = db.session.query(App).filter(App.id == app_id).first()
         if not app_config:
@@ -472,7 +496,7 @@ class TraceTask:
         self,
         trace_type: Any,
         message_id: Optional[str] = None,
-        workflow_run: Optional[WorkflowRun] = None,
+        workflow_execution: Optional[WorkflowExecution] = None,
         conversation_id: Optional[str] = None,
         dataset_id: Optional[str] = None,
         user_id: Optional[str] = None,
@@ -481,7 +505,7 @@ class TraceTask:
     ):
         self.trace_type = trace_type
         self.message_id = message_id
-        self.workflow_run_id = workflow_run.id if workflow_run else None
+        self.workflow_run_id = workflow_execution.id if workflow_execution else None
         self.conversation_id = conversation_id
         self.dataset_id = dataset_id
         self.user_id = user_id

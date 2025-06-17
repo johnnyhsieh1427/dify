@@ -190,7 +190,7 @@ class DatasetRetrieval:
                 retrieve_config.rerank_mode or "reranking_model",
                 retrieve_config.reranking_model,
                 retrieve_config.weights,
-                retrieve_config.reranking_enabled or True,
+                True if retrieve_config.reranking_enabled is None else retrieve_config.reranking_enabled,
                 message_id,
                 metadata_filter_document_ids,
                 metadata_condition,
@@ -238,11 +238,15 @@ class DatasetRetrieval:
                     for record in records:
                         segment = record.segment
                         dataset = db.session.query(Dataset).filter_by(id=segment.dataset_id).first()
-                        document = db.session.query(DatasetDocument).filter(
-                            DatasetDocument.id == segment.document_id,
-                            DatasetDocument.enabled == True,
-                            DatasetDocument.archived == False,
-                        ).first()
+                        document = (
+                            db.session.query(DatasetDocument)
+                            .filter(
+                                DatasetDocument.id == segment.document_id,
+                                DatasetDocument.enabled == True,
+                                DatasetDocument.archived == False,
+                            )
+                            .first()
+                        )
                         if dataset and document:
                             source = {
                                 "dataset_id": dataset.id,
@@ -506,22 +510,30 @@ class DatasetRetrieval:
         dify_documents = [document for document in documents if document.provider == "dify"]
         for document in dify_documents:
             if document.metadata is not None:
-                dataset_document = db.session.query(DatasetDocument).filter(
-                    DatasetDocument.id == document.metadata["document_id"]
-                ).first()
+                dataset_document = (
+                    db.session.query(DatasetDocument)
+                    .filter(DatasetDocument.id == document.metadata["document_id"])
+                    .first()
+                )
                 if dataset_document:
                     if dataset_document.doc_form == IndexType.PARENT_CHILD_INDEX:
-                        child_chunk = db.session.query(ChildChunk).filter(
-                            ChildChunk.index_node_id == document.metadata["doc_id"],
-                            ChildChunk.dataset_id == dataset_document.dataset_id,
-                            ChildChunk.document_id == dataset_document.id,
-                        ).first()
+                        child_chunk = (
+                            db.session.query(ChildChunk)
+                            .filter(
+                                ChildChunk.index_node_id == document.metadata["doc_id"],
+                                ChildChunk.dataset_id == dataset_document.dataset_id,
+                                ChildChunk.document_id == dataset_document.id,
+                            )
+                            .first()
+                        )
                         if child_chunk:
-                            segment = db.session.query(DocumentSegment).filter(
-                                DocumentSegment.id == child_chunk.segment_id
-                            ).update(
-                                {DocumentSegment.hit_count: DocumentSegment.hit_count + 1}, 
-                                synchronize_session=False
+                            segment = (
+                                db.session.query(DocumentSegment)
+                                .filter(DocumentSegment.id == child_chunk.segment_id)
+                                .update(
+                                    {DocumentSegment.hit_count: DocumentSegment.hit_count + 1},
+                                    synchronize_session=False,
+                                )
                             )
                             db.session.commit()
                     else:

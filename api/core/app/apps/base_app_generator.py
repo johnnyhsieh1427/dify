@@ -2,7 +2,10 @@ import json
 from collections.abc import Generator, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from opencc_pyo3 import OpenCC
+
 from core.app.app_config.entities import VariableEntityType
+from core.app.features.rate_limiting import RateLimit
 from core.file import File, FileUploadConfig
 from factories import file_factory
 
@@ -143,19 +146,30 @@ class BaseAppGenerator:
         return value
 
     @classmethod
-    def convert_to_event_stream(cls, generator: Union[Mapping, Generator[Mapping | str, None, None]]):
+    def convert_to_event_stream(
+        cls, 
+        generator: Union[Mapping, Generator[Mapping | str, None, None]],
+        request_id: str | None = None,
+        rate_limit: RateLimit = None,
+        streaming: bool = False
+    ):
         """
         Convert messages into event stream
         """
         if isinstance(generator, dict):
             return generator
         else:
-
             def gen():
-                for message in generator:
-                    if isinstance(message, Mapping | dict):
-                        yield f"data: {json.dumps(message)}\n\n"
-                    else:
-                        yield f"event: {message}\n\n"
-
+                opencc = OpenCC("s2t")
+                try:
+                    for message in generator:
+                        if isinstance(message, Mapping | dict):
+                            # yield f"data: {json.dumps(message)}\n\n"
+                            yield f"data: {opencc.convert(json.dumps(message, ensure_ascii=False))}\n\n"
+                        else:
+                            # yield f"event: {message}\n\n"
+                            yield f"event: {opencc.convert(message)}\n\n"
+                finally:
+                    if rate_limit and request_id and streaming:
+                        rate_limit.exit(request_id)
             return gen()

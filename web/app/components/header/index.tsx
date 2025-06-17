@@ -17,7 +17,7 @@ import ToolsNav from './tools-nav'
 import UserChat from './user-chat'
 import { WorkspaceProvider } from '@/context/workspace-context'
 import { useAppContext } from '@/context/app-context'
-import LogoSite from '@/app/components/base/logo/logo-site'
+import DifyLogo from '@/app/components/base/logo/dify-logo'
 import WorkplaceSelector from '@/app/components/header/account-dropdown/workplace-selector'
 import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
 import { useProviderContext } from '@/context/provider-context'
@@ -64,8 +64,8 @@ const Header = () => {
         {
           !isMobile
           && <div className='flex shrink-0 items-center gap-1.5 self-stretch pl-3'>
-            <Link href="/apps" className='flex h-8 w-8 shrink-0 items-center justify-center gap-2'>
-              <LogoSite className='object-contain' />
+            <Link href="/apps" className='flex h-8 shrink-0 items-center justify-center gap-2 px-0.5'>
+              <DifyLogo />
             </Link>
             <div className='font-light text-divider-deep'>/</div>
             <div className='flex items-center gap-0.5'>
@@ -80,7 +80,7 @@ const Header = () => {
       {isMobile && (
         <div className='flex'>
           <Link href="/apps" className='mr-4 flex items-center'>
-            <LogoSite />
+            <DifyLogo />
           </Link>
           <div className='font-light text-divider-deep'>/</div>
           {enableBilling ? <PlanBadge allowHover sandboxAsUpgrade plan={plan.type} onClick={handlePlanClick} /> : <LicenseNav />}

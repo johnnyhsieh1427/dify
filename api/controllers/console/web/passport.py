@@ -11,7 +11,7 @@ from werkzeug.exceptions import NotFound, Unauthorized
 
 from controllers.console import api
 from controllers.console.wraps import account_initialization_required, setup_required
-from controllers.web.error import WebSSOAuthRequiredError
+from controllers.web.error import WebAppAuthRequiredError
 from extensions.ext_database import db
 from libs.login import login_required
 from libs.passport import PassportService
@@ -107,10 +107,10 @@ class PassportUserAuthResource(Resource):
         # if app_code is None:
         #     raise Unauthorized("X-App-Code header is missing.")
 
-        if system_features.sso_enforced_for_web:
+        if system_features.sso_enforced_for_signin:
             app_web_sso_enabled = EnterpriseService.get_app_web_sso_enabled(app_code).get("enabled", False)
             if app_web_sso_enabled:
-                raise WebSSOAuthRequiredError()
+                raise WebAppAuthRequiredError()
             
         if account is None or account.is_anonymous:
             raise Unauthorized("User login required.")

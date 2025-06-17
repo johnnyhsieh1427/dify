@@ -1,6 +1,3 @@
-# 修改日期2025-01-14
-# 修改function create_segment_to_index_task()的參數
-# 新增user_id和process_id參數，用於追蹤資料庫操作的使用者和程序
 import datetime
 import logging
 import time
@@ -17,7 +14,7 @@ from models.dataset import DocumentSegment
 
 
 @shared_task(queue="dataset")
-def create_segment_to_index_task(segment_id: str, keywords: Optional[list[str]] = None, **kwargs):
+def create_segment_to_index_task(segment_id: str, keywords: Optional[list[str]] = None):
     """
     Async create segment to index
     :param segment_id:
@@ -26,8 +23,6 @@ def create_segment_to_index_task(segment_id: str, keywords: Optional[list[str]] 
     """
     logging.info(click.style("Start create segment to index: {}".format(segment_id), fg="green"))
     start_at = time.perf_counter()
-    user_id = kwargs.get("user_id")
-    process_id = kwargs.get("process_id")
     segment = db.session.query(DocumentSegment).filter(DocumentSegment.id == segment_id).first()
     if not segment:
         logging.info(click.style("Segment not found: {}".format(segment_id), fg="red"))
@@ -75,7 +70,7 @@ def create_segment_to_index_task(segment_id: str, keywords: Optional[list[str]] 
 
         index_type = dataset.doc_form
         index_processor = IndexProcessorFactory(index_type).init_index_processor()
-        index_processor.load(dataset, [document], user_id=user_id, process_id=process_id)
+        index_processor.load(dataset, [document])
 
         # update segment to completed
         update_params = {

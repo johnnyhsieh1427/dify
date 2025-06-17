@@ -5,7 +5,7 @@ import mimetypes
 import os
 import threading
 
-from flask import Response, send_file
+from flask import Response, request, send_file
 
 from configs import dify_config
 from dify_app import DifyApp
@@ -22,7 +22,8 @@ def init_app(app: DifyApp):
     @app.route("/health")
     def health():
         return Response(
-            json.dumps({"pid": os.getpid(), "status": "ok", "version": dify_config.CURRENT_VERSION}),
+            json.dumps({"pid": os.getpid(), "status": "ok",
+                       "version": dify_config.CURRENT_VERSION}),
             status=200,
             content_type="application/json",
         )
@@ -68,7 +69,7 @@ def init_app(app: DifyApp):
             "connection_timeout": engine.pool.timeout(),  # type: ignore
             "recycle_time": db.engine.pool._recycle,  # type: ignore
         }
-        
+
     @app.route("/upload_files/<folder_name>/<file_name>")
     def upload_files(folder_name: str, file_name: str):
         try:
@@ -80,11 +81,11 @@ def init_app(app: DifyApp):
                 root_path = dify_config.OPENDAL_FS_ROOT
             else:
                 raise ValueError(f"Unsupport storage type: {storage_type}")
-            
+
             file_path = os.path.join(
                 root_path,
                 "upload_files",
-                folder_name, 
+                folder_name,
                 file_name
             )
 
@@ -96,9 +97,13 @@ def init_app(app: DifyApp):
             if mime_type is None:
                 mime_type = "application/octet-stream"
 
+            # 從query parameter獲取檔案名稱
+            originalName = request.args.get("originalName", "")
             # 設置回應，Content-Disposition 為 inline（直接顯示）
             response = send_file(file_path, mimetype=mime_type)
-            response.headers["Content-Disposition"] = f"inline; filename={file_name}"
+            response.headers["Content-Disposition"] = f"inline; filename={
+                originalName if len(originalName) else file_name
+            }"
             return response
 
         except FileNotFoundError:
@@ -113,4 +118,3 @@ def init_app(app: DifyApp):
                 status=500,
                 content_type="application/json",
             )
-            

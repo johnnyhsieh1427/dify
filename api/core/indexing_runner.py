@@ -1,12 +1,3 @@
-# 修改日期2025-01-14
-# 修改function _load()的參數
-# 新增process_id參數，用於追蹤資料庫操作的程序
-
-# 修改function _process_chunk()的參數
-# 新增process_id和user_id參數，用於追蹤資料庫操作的程序
-
-# 修改function batch_add_segments()的參數
-# 新增process_id和user_id參數，用於追蹤資料庫操作的程序
 import concurrent.futures
 import datetime
 import json
@@ -118,9 +109,11 @@ class IndexingRunner:
                 raise ValueError("no dataset found")
 
             # get exist document_segment list and delete
-            document_segments = db.session.query(DocumentSegment).filter_by(
-                dataset_id=dataset.id, document_id=dataset_document.id
-            ).all()
+            document_segments = (
+                db.session.query(DocumentSegment)
+                .filter_by(dataset_id=dataset.id, document_id=dataset_document.id)
+                .all()
+            )
 
             for document_segment in document_segments:
                 db.session.delete(document_segment)
@@ -177,9 +170,11 @@ class IndexingRunner:
                 raise ValueError("no dataset found")
 
             # get exist document_segment list and delete
-            document_segments = db.session.query(DocumentSegment).filter_by(
-                dataset_id=dataset.id, document_id=dataset_document.id
-            ).all()
+            document_segments = (
+                db.session.query(DocumentSegment)
+                .filter_by(dataset_id=dataset.id, document_id=dataset_document.id)
+                .all()
+            )
 
             documents = []
             if document_segments:
@@ -550,10 +545,6 @@ class IndexingRunner:
         max_workers = 10
         if dataset.indexing_technique == "high_quality":
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                process_id = str(uuid.uuid5(
-                    uuid.NAMESPACE_DNS,
-                    datetime.datetime.now().isoformat()
-                ))
                 futures = []
 
                 # Distribute documents into multiple groups based on the hash values of page_content
@@ -576,7 +567,6 @@ class IndexingRunner:
                             dataset,
                             dataset_document,
                             embedding_model_instance,
-                            process_id,
                         )
                     )
 
@@ -630,7 +620,6 @@ class IndexingRunner:
         chunk_documents, 
         dataset, dataset_document, 
         embedding_model_instance, 
-        process_id
     ):
         with flask_app.app_context():
             # check document is paused
@@ -642,13 +631,10 @@ class IndexingRunner:
                 tokens += sum(embedding_model_instance.get_text_embedding_num_tokens(page_content_list))
 
             # load index
-            user_id = dataset_document.created_by
             index_processor.load(
                 dataset, 
                 chunk_documents, 
                 with_keywords=False, 
-                user_id=user_id, 
-                process_id=process_id
             )
 
             document_ids = [document.metadata["doc_id"] for document in chunk_documents]

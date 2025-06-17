@@ -53,26 +53,17 @@ def clean_unused_datasets_task():
             # Main query with join and filter
             stmt = (
                 select(Dataset)
-                .outerjoin(
-                    document_subquery_new,
-                    Dataset.id == document_subquery_new.c.dataset_id
-                )
-                .outerjoin(
-                    document_subquery_old,
-                    Dataset.id == document_subquery_old.c.dataset_id
-                )
-                .where(
+                .outerjoin(document_subquery_new, Dataset.id == document_subquery_new.c.dataset_id)
+                .outerjoin(document_subquery_old, Dataset.id == document_subquery_old.c.dataset_id)
+                .filter(
                     Dataset.created_at < plan_sandbox_clean_day,
                     func.coalesce(document_subquery_new.c.document_count, 0) == 0,
                     func.coalesce(document_subquery_old.c.document_count, 0) > 0,
                 )
                 .order_by(Dataset.created_at.desc())
             )
-            datasets = db.paginate(
-                stmt,
-                page=1,
-                per_page=50
-            )
+
+            datasets = db.paginate(stmt, page=1, per_page=50)
 
         except NotFound:
             break
@@ -148,26 +139,16 @@ def clean_unused_datasets_task():
             # Main query with join and filter
             stmt = (
                 select(Dataset)
-                .outerjoin(
-                    document_subquery_new,
-                    Dataset.id == document_subquery_new.c.dataset_id
-                )
-                .outerjoin(
-                    document_subquery_old,
-                    Dataset.id == document_subquery_old.c.dataset_id
-                )
-                .where(
-                    Dataset.created_at < plan_sandbox_clean_day,
+                .outerjoin(document_subquery_new, Dataset.id == document_subquery_new.c.dataset_id)
+                .outerjoin(document_subquery_old, Dataset.id == document_subquery_old.c.dataset_id)
+                .filter(
+                    Dataset.created_at < plan_pro_clean_day,
                     func.coalesce(document_subquery_new.c.document_count, 0) == 0,
                     func.coalesce(document_subquery_old.c.document_count, 0) > 0,
                 )
                 .order_by(Dataset.created_at.desc())
             )
-            datasets = db.paginate(
-                stmt,
-                page=1,
-                per_page=50
-            )
+            datasets = db.paginate(stmt, page=1, per_page=50)
 
         except NotFound:
             break

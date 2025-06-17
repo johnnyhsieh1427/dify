@@ -1,6 +1,3 @@
-# 修改日期2025-01-14
-# 修改function deal_dataset_vector_index_task()的參數
-# 新增user_id和process_id參數，用於追蹤資料庫操作的使用者和程序
 import logging
 import time
 
@@ -16,7 +13,7 @@ from models.dataset import Document as DatasetDocument
 
 
 @shared_task(queue="dataset")
-def deal_dataset_vector_index_task(dataset_id: str, action: str, **kwargs):
+def deal_dataset_vector_index_task(dataset_id: str, action: str):
     """
     Async deal dataset from index
     :param dataset_id: dataset_id
@@ -25,8 +22,6 @@ def deal_dataset_vector_index_task(dataset_id: str, action: str, **kwargs):
     """
     logging.info(click.style("Start deal dataset vector index: {}".format(dataset_id), fg="green"))
     start_at = time.perf_counter()
-    user_id = kwargs.get("user_id")
-    process_id = kwargs.get("process_id")
     try:
         dataset = db.session.query(Dataset).filter_by(id=dataset_id).first()
 
@@ -83,8 +78,6 @@ def deal_dataset_vector_index_task(dataset_id: str, action: str, **kwargs):
                                 dataset, 
                                 documents, 
                                 with_keywords=False, 
-                                user_id=user_id, 
-                                process_id=process_id
                             )
                         db.session.query(DatasetDocument).filter(DatasetDocument.id == dataset_document.id).update(
                             {"indexing_status": "completed"}, synchronize_session=False
@@ -161,8 +154,6 @@ def deal_dataset_vector_index_task(dataset_id: str, action: str, **kwargs):
                                 dataset, 
                                 documents, 
                                 with_keywords=False, 
-                                user_id=user_id, 
-                                process_id=process_id
                             )
                         db.session.query(DatasetDocument).filter(DatasetDocument.id == dataset_document.id).update(
                             {"indexing_status": "completed"}, synchronize_session=False

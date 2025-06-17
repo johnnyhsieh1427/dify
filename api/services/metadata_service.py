@@ -20,9 +20,11 @@ class MetadataService:
     @staticmethod
     def create_metadata(dataset_id: str, metadata_args: MetadataArgs) -> DatasetMetadata:
         # check if metadata name already exists
-        if db.session.query(DatasetMetadata).filter_by(
-            tenant_id=current_user.current_tenant_id, dataset_id=dataset_id, name=metadata_args.name
-        ).first():
+        if (
+            db.session.query(DatasetMetadata)
+            .filter_by(tenant_id=current_user.current_tenant_id, dataset_id=dataset_id, name=metadata_args.name)
+            .first()
+        ):
             raise ValueError("Metadata name already exists.")
         for field in BuiltInField:
             if field.value == metadata_args.name:
@@ -42,9 +44,11 @@ class MetadataService:
     def update_metadata_name(dataset_id: str, metadata_id: str, name: str) -> DatasetMetadata:  # type: ignore
         lock_key = f"dataset_metadata_lock_{dataset_id}"
         # check if metadata name already exists
-        if db.session.query(DatasetMetadata).filter_by(
-            tenant_id=current_user.current_tenant_id, dataset_id=dataset_id, name=name
-        ).first():
+        if (
+            db.session.query(DatasetMetadata)
+            .filter_by(tenant_id=current_user.current_tenant_id, dataset_id=dataset_id, name=name)
+            .first()
+        ):
             raise ValueError("Metadata name already exists.")
         for field in BuiltInField:
             if field.value == name:
@@ -60,9 +64,9 @@ class MetadataService:
             metadata.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
 
             # update related documents
-            dataset_metadata_bindings = db.session.query(DatasetMetadataBinding).filter_by(
-                metadata_id=metadata_id
-            ).all()
+            dataset_metadata_bindings = (
+                db.session.query(DatasetMetadataBinding).filter_by(metadata_id=metadata_id).all()
+            )
             if dataset_metadata_bindings:
                 document_ids = [binding.document_id for binding in dataset_metadata_bindings]
                 documents = DocumentService.get_document_by_ids(document_ids)
@@ -90,9 +94,9 @@ class MetadataService:
             db.session.delete(metadata)
 
             # deal related documents
-            dataset_metadata_bindings = db.session.query(DatasetMetadataBinding).filter_by(
-                metadata_id=metadata_id
-            ).all()
+            dataset_metadata_bindings = (
+                db.session.query(DatasetMetadataBinding).filter_by(metadata_id=metadata_id).all()
+            )
             if dataset_metadata_bindings:
                 document_ids = [binding.document_id for binding in dataset_metadata_bindings]
                 documents = DocumentService.get_document_by_ids(document_ids)
@@ -234,9 +238,9 @@ class MetadataService:
                     "id": item.get("id"),
                     "name": item.get("name"),
                     "type": item.get("type"),
-                    "count": db.session.query(DatasetMetadataBinding).filter_by(
-                        metadata_id=item.get("id"), dataset_id=dataset.id
-                    ).count(),
+                    "count": db.session.query(DatasetMetadataBinding)
+                    .filter_by(metadata_id=item.get("id"), dataset_id=dataset.id)
+                    .count(),
                 }
                 for item in dataset.doc_metadata or []
                 if item.get("id") != "built-in"
