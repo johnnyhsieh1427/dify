@@ -4,8 +4,9 @@
 # 2. create_tracing_dataset_config
 # 3. update_tracing_dataset_config
 # 4. delete_tracing_dataset_config
-from typing import Optional
+from typing import Any, Optional
 
+from core.ops.entities.config_entity import BaseTracingConfig
 from core.ops.ops_trace_manager import OpsTraceManager, provider_config_map
 from extensions.ext_database import db
 from models.dataset import Dataset
@@ -154,13 +155,12 @@ class OpsService:
         except KeyError:
             return {"error": f"Invalid tracing provider: {tracing_provider}"}
 
-        config_class, other_keys = (
-            provider_config_map[tracing_provider]["config_class"],
-            provider_config_map[tracing_provider]["other_keys"],
-        )
-        # FIXME: ignore type error
-        default_config_instance = config_class(**tracing_config)  # type: ignore
-        for key in other_keys:  # type: ignore
+        provider_config: dict[str, Any] = provider_config_map[tracing_provider]
+        config_class: type[BaseTracingConfig] = provider_config["config_class"]
+        other_keys: list[str] = provider_config["other_keys"]
+
+        default_config_instance: BaseTracingConfig = config_class(**tracing_config)
+        for key in other_keys:
             if key in tracing_config and tracing_config[key] == "":
                 tracing_config[key] = getattr(default_config_instance, key, None)
 

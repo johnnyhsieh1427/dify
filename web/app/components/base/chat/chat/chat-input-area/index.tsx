@@ -32,6 +32,7 @@ import type { FileUpload } from '@/app/components/base/features/types'
 import { TransferMethod } from '@/types/app'
 
 type ChatInputAreaProps = {
+  botName?: string
   showFeatureBar?: boolean
   showFileUpload?: boolean
   featureBarDisabled?: boolean
@@ -48,6 +49,7 @@ type ChatInputAreaProps = {
   isWebChat?: boolean
 }
 const ChatInputArea = ({
+  botName,
   showFeatureBar,
   showFileUpload,
   featureBarDisabled,
@@ -197,9 +199,9 @@ const ChatInputArea = ({
               <Textarea
                 ref={ref => textareaRef.current = ref as any}
                 className={cn(
-                  'body-lg-regular w-full resize-none bg-transparent p-1 leading-6 text-text-tertiary outline-none',
+                  'body-lg-regular w-full resize-none bg-transparent p-1 leading-6 text-text-primary outline-none',
                 )}
-                placeholder={t('common.chat.inputPlaceholder') || ''}
+                placeholder={t('common.chat.inputPlaceholder', { botName }) || ''}
                 autoFocus
                 minRows={1}
                 onResize={handleTextareaResize}

@@ -48,7 +48,7 @@ from core.ops.entities.trace_entity import (
     WorkflowTraceInfo,
 )
 from core.ops.utils import get_message_data
-from core.workflow.entities.workflow_execution_entities import WorkflowExecution
+from core.workflow.entities.workflow_execution import WorkflowExecution
 from extensions.ext_database import db
 from extensions.ext_storage import storage
 from models.dataset import Dataset
@@ -108,7 +108,7 @@ class OpsTraceProviderConfigMap(dict[str, dict[str, Any]]):
                 return {
                     "config_class": WeaveConfig,
                     "secret_keys": ["api_key"],
-                    "other_keys": ["project", "entity", "endpoint"],
+                    "other_keys": ["project", "entity", "endpoint", "host"],
                     "trace_instance": WeaveDataTrace,
                 }
 
@@ -300,6 +300,11 @@ class OpsTraceManager:
 
             return None
         else:
+            """
+            Get ops trace through model config
+            :param app_id: app_id
+            :return:
+            """
             if isinstance(app_id, UUID):
                 app_id = str(app_id)
 
@@ -312,19 +317,20 @@ class OpsTraceManager:
                 return None
 
             app_ops_trace_config = json.loads(app.tracing) if app.tracing else None
-
             if app_ops_trace_config is None:
                 return None
+            if not app_ops_trace_config.get("enabled"):
+                return None
 
-        tracing_provider = app_ops_trace_config.get("tracing_provider")
-        tracing_enabled = app_ops_trace_config.get("enabled", False)
-        if tracing_provider is None or not tracing_enabled:
-            return None
-        try:
-            provider_config_map[tracing_provider]
-        except KeyError:
-            return None
-
+            tracing_provider = app_ops_trace_config.get("tracing_provider")
+            tracing_enabled = app_ops_trace_config.get("enabled", False)
+            if tracing_provider is None or not tracing_enabled:
+                return None
+            try:
+                provider_config_map[tracing_provider]
+            except KeyError:
+                return None
+            
             # decrypt_token
             decrypt_trace_config = cls.get_decrypted_tracing_config(app_id, tracing_provider)
             if not decrypt_trace_config:
@@ -334,7 +340,7 @@ class OpsTraceManager:
                 provider_config_map[tracing_provider]["trace_instance"],
                 provider_config_map[tracing_provider]["config_class"],
             )
-            decrypt_trace_config_key = str(decrypt_trace_config)
+            decrypt_trace_config_key = json.dumps(decrypt_trace_config, sort_keys=True)
             tracing_instance = cls.ops_trace_instances_cache.get(decrypt_trace_config_key)
             if tracing_instance is None:
                 # create new tracing_instance and update the cache if it absent
@@ -505,7 +511,7 @@ class TraceTask:
     ):
         self.trace_type = trace_type
         self.message_id = message_id
-        self.workflow_run_id = workflow_execution.id if workflow_execution else None
+        self.workflow_run_id = workflow_execution.id_ if workflow_execution else None
         self.conversation_id = conversation_id
         self.dataset_id = dataset_id
         self.user_id = user_id
@@ -610,6 +616,7 @@ class TraceTask:
                 "file_list": file_list,
                 "triggered_from": workflow_run.triggered_from,
                 "user_id": user_id,
+                "app_id": workflow_run.app_id,
             }
 
             workflow_trace_info = WorkflowTraceInfo(

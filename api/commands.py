@@ -71,6 +71,7 @@ def reset_password(email, new_password, password_confirm):
     account.password = base64_password_hashed
     account.password_salt = base64_salt
     db.session.commit()
+    AccountService.reset_login_error_rate_limit(email)
     click.echo(click.style("Password reset successfully.", fg="green"))
 
 
@@ -961,6 +962,9 @@ def clear_orphaned_file_records(force: bool):
         {"type": "text", "table": "workflow_node_executions", "column": "outputs"},
         {"type": "text", "table": "conversations", "column": "introduction"},
         {"type": "text", "table": "conversations", "column": "system_instruction"},
+        {"type": "text", "table": "accounts", "column": "avatar"},
+        {"type": "text", "table": "apps", "column": "icon"},
+        {"type": "text", "table": "sites", "column": "icon"},
         {"type": "json", "table": "messages", "column": "inputs"},
         {"type": "json", "table": "messages", "column": "message"},
     ]
@@ -1265,3 +1269,63 @@ def remove_orphaned_files_on_storage(force: bool):
         click.echo(click.style(f"Removed {removed_files} orphaned files without errors.", fg="green"))
     else:
         click.echo(click.style(f"Removed {removed_files} orphaned files, with {error_files} errors.", fg="yellow"))
+
+@click.option("-f", "--force", is_flag=True, help="Skip user confirmation and force the command to execute.")
+@click.command("remove-disposal-files-on-storage", help="Remove orphaned files on the storage.")
+def remove_disposal_files_on_storage(force: bool):
+    # storage_paths = ["image_files", "tools", "upload_files"]
+
+    if not force:
+        click.confirm("Do you want to proceed?", abort=True)
+        
+    # fetch file id and keys from each table
+    all_files_in_tables = []
+    try:
+        click.echo(click.style("- Listing files from table upload_files", fg="white"))
+        query = """SELECT key FROM upload_files WHERE id NOT IN (
+            SELECT (data_source_info::json ->> 'upload_file_id')::uuid
+            FROM documents
+            WHERE data_source_type = 'upload_file'
+        );"""
+        with db.engine.begin() as conn:
+            rs = conn.execute(db.text(query))
+        for i in rs:
+            all_files_in_tables.append(str(i[0]))
+        click.echo(click.style(f"Found {len(all_files_in_tables)} files in tables.", fg="white"))
+    except Exception as e:
+        click.echo(click.style(f"Error fetching keys: {str(e)}", fg="red"))
+        
+    all_files_on_storage = []
+    try:
+        click.echo(click.style("- Scanning files on storage path upload_files", fg="white"))
+        files = storage.scan(path="upload_files", files=True, directories=False)
+        all_files_on_storage.extend(files)
+    except FileNotFoundError as e:
+        click.echo(click.style("  -> Skipping path upload_files as it does not exist.", fg="yellow"))
+    except Exception as e:
+        click.echo(click.style(f"  -> Error scanning files on storage path upload_files: {str(e)}", fg="red"))
+    click.echo(click.style(f"Found {len(all_files_on_storage)} files on storage.", fg="white"))
+
+    # Find disposal files: files present in both the table and storage
+    disposal_files = list(set(all_files_in_tables) & set(all_files_on_storage))
+    # delete orphaned files
+    removed_files = 0
+    error_files = 0
+    for file in disposal_files:
+        try:
+            storage.delete(file)
+            removed_files += 1
+            with db.engine.begin() as conn:
+                conn.execute(
+                    db.text("DELETE FROM public.upload_files WHERE key = :file_key"),
+                    {"file_key": file}
+                )
+            click.echo(click.style(f"- Removing disposal file: {file}", fg="white"))
+        except Exception as e:
+            error_files += 1
+            click.echo(click.style(f"- Error deleting disposal file {file}: {str(e)}", fg="red"))
+            continue
+    if error_files == 0:
+        click.echo(click.style(f"Removed {removed_files} disposal files without errors.", fg="green"))
+    else:
+        click.echo(click.style(f"Removed {removed_files} disposal files, with {error_files} errors.", fg="yellow"))

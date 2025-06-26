@@ -13,7 +13,7 @@ from typing import cast
 from flask import request
 from flask_login import current_user
 from flask_restful import Resource, fields, marshal, marshal_with, reqparse
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, select
 from werkzeug.exceptions import Forbidden, NotFound
 
 import services
@@ -196,13 +196,13 @@ class DatasetDocumentListApi(Resource):
 
         if sort == "hit_count":
             sub_query = (
-                select(DocumentSegment.document_id, func.sum(DocumentSegment.hit_count).label("total_hit_count"))
+                select(DocumentSegment.document_id, db.func.sum(DocumentSegment.hit_count).label("total_hit_count"))
                 .group_by(DocumentSegment.document_id)
                 .subquery()
             )
 
             query = query.outerjoin(sub_query, sub_query.c.document_id == Document.id).order_by(
-                sort_logic(func.coalesce(sub_query.c.total_hit_count, 0)),
+                sort_logic(db.func.coalesce(sub_query.c.total_hit_count, 0)),
                 sort_logic(Document.position),
             )
         elif sort == "created_at":

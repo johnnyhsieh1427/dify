@@ -46,7 +46,12 @@ def decode_user_jwt_token():
         app_ids = decoded.get("app_ids")
         end_user_id = decoded.get("end_user_id")
         
-        app_models = db.session.query(App).filter(App.id.in_(app_ids)).all()
+        app_models = (
+            db.session.query(App)
+            .filter(App.id.in_(app_ids))
+            .order_by(App.created_at.desc())
+            .all()
+        )
         end_user = db.session.query(EndUser).filter(EndUser.id == end_user_id).first()
                 
         if not end_user:

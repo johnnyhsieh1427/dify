@@ -113,11 +113,13 @@ function unicodeToChar(text: string) {
   })
 }
 
-function requiredWebSSOLogin(message?: string) {
+function requiredWebSSOLogin(message?: string, code?: number) {
   const params = new URLSearchParams()
   params.append('redirect_url', globalThis.location.pathname)
   if (message)
     params.append('message', message)
+  if (code)
+    params.append('code', String(code))
   globalThis.location.href = `/webapp-signin?${params.toString()}`
 }
 
@@ -297,7 +299,13 @@ const handleStream = (
 const baseFetch = base
 
 export const upload = async (options: any, isPublicAPI?: boolean, isWebChatAPI?: boolean, url?: string, searchParams?: string): Promise<any> => {
-  const urlPrefix = isWebChatAPI ? WEB_CHAT_API_PREFIX : (isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX)
+  let urlPrefix: string
+  if (isWebChatAPI)
+    urlPrefix = WEB_CHAT_API_PREFIX
+  else if (isPublicAPI)
+    urlPrefix = PUBLIC_API_PREFIX
+  else
+    urlPrefix = API_PREFIX
   const token = await getAccessToken(isPublicAPI)
   const defaultOptions = {
     method: 'POST',
@@ -387,11 +395,18 @@ export const ssePost = async (
   getAbortController?.(abortController)
 
   // const urlPrefix = isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX
-  const urlPrefix = isWebChatAPI ? WEB_CHAT_API_PREFIX : (isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX)
+  let urlPrefix: string
+  if (isWebChatAPI)
+    urlPrefix = WEB_CHAT_API_PREFIX
+  else if (isPublicAPI)
+    urlPrefix = PUBLIC_API_PREFIX
+  else
+    urlPrefix = API_PREFIX
 
+  const normalizedUrl = url.startsWith('/') ? url : `/${url}`
   const urlWithPrefix = (url.startsWith('http://') || url.startsWith('https://'))
     ? url
-    : `${urlPrefix}${url.startsWith('/') ? url : `/${url}`}`
+    : urlPrefix + normalizedUrl
 
   const { body } = options
   if (body)
@@ -408,17 +423,20 @@ export const ssePost = async (
             ssePost(url, fetchOptions, otherOptions)
           }).catch(() => {
             res.json().then((data: any) => {
-              if (isPublicAPI) {
-                if (data.code === 'web_app_access_denied')
-                  requiredWebSSOLogin(data.message)
+              if (!isPublicAPI) return
 
-                if (data.code === 'web_sso_auth_required')
+              switch (data.code) {
+                case 'web_app_access_denied':
+                  requiredWebSSOLogin(data.message, 403)
+                  break
+                case 'web_sso_auth_required':
+                  removeAccessToken()
                   requiredWebSSOLogin()
-
-                if (data.code === 'unauthorized') {
+                  break
+                case 'unauthorized':
                   removeAccessToken()
                   globalThis.location.reload()
-                }
+                  break
               }
             })
           })
@@ -491,10 +509,11 @@ export const request = async<T>(url: string, options = {}, otherOptions?: IOther
       const { code, message } = errRespData
       // webapp sso
       if (code === 'web_app_access_denied') {
-        requiredWebSSOLogin(message)
+        requiredWebSSOLogin(message, 403)
         return Promise.reject(err)
       }
       if (code === 'web_sso_auth_required') {
+        removeAccessToken()
         requiredWebSSOLogin()
         return Promise.reject(err)
       }

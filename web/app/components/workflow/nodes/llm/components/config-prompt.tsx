@@ -172,11 +172,7 @@ const ConfigPrompt: FC<Props> = ({
                     const canDrag = (() => {
                       if (readOnly)
                         return false
-
-                      if (index === 0 && item.role === PromptRole.system)
-                        return false
-
-                      return true
+                      return !(index === 0 && item.role === PromptRole.system)
                     })()
                     return (
                       <div key={item.id || index} className='group relative'>

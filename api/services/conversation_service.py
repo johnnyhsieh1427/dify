@@ -53,9 +53,14 @@ class ConversationService:
             Conversation.is_deleted == False,
             Conversation.app_id == app_model.id,
             Conversation.from_source == ("api" if isinstance(user, EndUser) else "console"),
-            Conversation.from_end_user_id == user.id if isinstance(user, EndUser) else None,
-            Conversation.from_account_id == account_id,
-            or_(Conversation.invoke_from.is_(None), Conversation.invoke_from == invoke_from.value),
+            or_(
+                Conversation.from_end_user_id == user.id if isinstance(user, EndUser) else None,
+                Conversation.from_account_id == account_id
+            ),
+            or_(
+                Conversation.invoke_from.is_(None),
+                Conversation.invoke_from == invoke_from.value
+            ),
         )
         if include_ids is not None:
             stmt = stmt.where(Conversation.id.in_(include_ids))
@@ -203,8 +208,10 @@ class ConversationService:
             Conversation.id == conversation_id,
             Conversation.app_id == app_model.id,
             Conversation.from_source == source,
-            Conversation.from_end_user_id == (user_id if isinstance(user, EndUser) else None),
-            Conversation.from_account_id == account_id,
+            or_(
+                Conversation.from_end_user_id == (user_id if isinstance(user, EndUser) else None),
+                Conversation.from_account_id == account_id,
+            ),
             Conversation.is_deleted == False,
         ]
 

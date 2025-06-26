@@ -100,10 +100,12 @@ def init_app(app: DifyApp):
             # 從query parameter獲取檔案名稱
             originalName = request.args.get("originalName", "")
             # 設置回應，Content-Disposition 為 inline（直接顯示）
-            response = send_file(file_path, mimetype=mime_type)
-            response.headers["Content-Disposition"] = f"inline; filename={
-                originalName if len(originalName) else file_name
-            }"
+            response = send_file(
+                path_or_file=file_path, 
+                mimetype=mime_type, 
+                download_name=originalName if len(originalName) else file_name
+            )
+            response.headers["Content-Disposition"] = f"inline; filename={file_name}"
             return response
 
         except FileNotFoundError:

@@ -1,6 +1,7 @@
 # 修改日期2025-02-28
 # 新增Class PassportUserAppResource, 在chat-web可以讀取使用者所有可用的app聊天機器人
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import cast
 
 from flask import request
@@ -9,6 +10,7 @@ from flask_restful import Resource
 from sqlalchemy import select
 from werkzeug.exceptions import NotFound, Unauthorized
 
+from configs import dify_config
 from controllers.console import api
 from controllers.console.wraps import account_initialization_required, setup_required
 from controllers.web.error import WebAppAuthRequiredError
@@ -42,7 +44,6 @@ class PassportUserAppResource(Resource):
         # **使用子查詢查找符合條件的 App**
         app_subquery = (
             select(App.id)
-            # .where(App.tenant_id.in_(tenant_subquery))
             .where(App.tenant_id.in_(select(tenant_subquery.c.tenant_id)))
             .where(App.enable_site == True)
             .where(App.status == "normal")
@@ -53,14 +54,12 @@ class PassportUserAppResource(Resource):
         # **使用子查詢查找可用的站點**
         site_subquery = (
             select(Site.app_id)
-            # .where(Site.app_id.in_(app_subquery))
             .where(Site.app_id.in_(select(app_subquery.c.id)))
             .where(Site.status == "normal")
             .subquery()
         )
 
         # **查詢符合條件的 App**
-        # app_models = db.session.query(App).filter(App.id.in_(site_subquery)).all()
         app_models = db.session.query(App).filter(App.id.in_(select(site_subquery.c.app_id))).all()
         
         if not app_models:
@@ -78,10 +77,14 @@ class PassportUserAppResource(Resource):
             )
             db.session.add(end_user)
             db.session.commit()
-
+            
+        exp_dt = datetime.now(UTC) + timedelta(minutes=dify_config.ACCESS_TOKEN_EXPIRE_MINUTES)
+        exp = int(exp_dt.timestamp())
+        
         payload = {
             "iss": account.id,
-            "sub": "Web API Passport",
+            "exp": exp,
+            "sub": "Web User API Passport",
             "app_ids": [i.id for i in app_models],
             "app_code": account.id,
             "end_user_id": end_user.id,
