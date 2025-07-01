@@ -552,8 +552,6 @@ class LBModelManager:
 
             return config
 
-        return None
-
     def cooldown(self, config: ModelLoadBalancingConfiguration, expire: int = 60) -> None:
         """
         Cooldown model load balancing config

@@ -284,6 +284,7 @@ def migrate_knowledge_vector_database():
         VectorType.ELASTICSEARCH,
         VectorType.OPENGAUSS,
         VectorType.TABLESTORE,
+        VectorType.MATRIXONE,
     }
     lower_collection_vector_types = {
         VectorType.ANALYTICDB,
@@ -549,8 +550,7 @@ def add_qdrant_index(field: str):
 @click.command("create-workspace", help="Create workspace on existing account.")
 @click.option("--email", prompt=True, help="Owner account email.")
 @click.option("--name", prompt=True, help="Workspace name.")
-@click.option("--language", prompt=True, help="Account language, default: en-US.")
-def create_workspace(email: str, language: Optional[str] = None, name: Optional[str] = None):
+def create_workspace(email: str, name: Optional[str] = None):
     """
     Create workspace
     """
@@ -564,10 +564,6 @@ def create_workspace(email: str, language: Optional[str] = None, name: Optional[
     if "@" not in email:
         click.echo(click.style("Invalid email address.", fg="red"))
         return
-
-    if language not in languages:
-        language = "en-US"
-        # language = "zh-Hant"
 
     # Validates name encoding for non-Latin characters.
     name = name.strip().encode("utf-8").decode("utf-8") if name else None

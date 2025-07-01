@@ -39,6 +39,10 @@ class AgentNode(ToolNode):
     _node_data_cls = AgentNodeData  # type: ignore
     _node_type = NodeType.AGENT
 
+    @classmethod
+    def version(cls) -> str:
+        return "1"
+
     def _run(self) -> Generator:
         """
         Run the agent node
@@ -80,28 +84,12 @@ class AgentNode(ToolNode):
         conversation_id = self.graph_runtime_state.variable_pool.get(["sys", SystemVariableKey.CONVERSATION_ID])
 
         try:
-            # 將 generator 產生的簡體中文訊息轉換為繁體中文
-            from opencc_pyo3 import OpenCC
-
-            from core.agent.entities import AgentInvokeMessage
-            from core.tools.entities.tool_entities import ToolInvokeMessage
-            cc = OpenCC('s2t')
-            def convert_stream_to_traditional(stream: Generator[AgentInvokeMessage, None, None]):
-                for item in stream:
-                    if isinstance(item.message, ToolInvokeMessage.JsonMessage):
-                        item.message.json_object = json.loads(
-                            cc.convert(json.dumps(item.message.json_object, ensure_ascii=False))
-                        )
-                    elif isinstance(item.message, ToolInvokeMessage.TextMessage):
-                        item.message.text = cc.convert(item.message.text)
-                    yield item
-
-            message_stream = convert_stream_to_traditional(strategy.invoke(
+            message_stream = strategy.invoke(
                 params=parameters,
                 user_id=self.user_id,
                 app_id=self.app_id,
                 conversation_id=conversation_id.text if conversation_id else None,
-            ))
+            )
         except Exception as e:
             yield RunCompletedEvent(
                 run_result=NodeRunResult(

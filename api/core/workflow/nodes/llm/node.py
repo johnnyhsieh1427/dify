@@ -11,7 +11,6 @@ from collections.abc import Generator, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import json_repair
-from opencc_pyo3 import OpenCC
 
 from core.app.entities.app_invoke_entities import ModelConfigWithCredentialsEntity
 from core.file import FileType, file_manager
@@ -145,6 +144,10 @@ class LLMNode(BaseNode[LLMNodeData]):
             )
         self._llm_file_saver = llm_file_saver
 
+    @classmethod
+    def version(cls) -> str:
+        return "1"
+
     def _run(self) -> Generator[NodeEvent | InNodeEvent, None, None]:
         def process_structured_output(text: str) -> Optional[dict[str, Any]]:
             """Process structured output if enabled"""
@@ -247,21 +250,11 @@ class LLMNode(BaseNode[LLMNodeData]):
                 stop=stop,
             )
             
-            # convert simplified chinese to tranditional chinese
-            cc = OpenCC('s2t')
-
             for event in generator:
                 if isinstance(event, RunStreamChunkEvent):
-                    # 將 chunk_content 轉換為繁體中文
-                    if hasattr(event, "chunk_content") and isinstance(event.chunk_content, str):
-                        event = RunStreamChunkEvent(
-                            chunk_content=cc.convert(event.chunk_content),
-                            from_variable_selector=event.from_variable_selector
-                        )
                     yield event
                 elif isinstance(event, ModelInvokeCompletedEvent):
-                    # 將最終結果轉換為繁體中文
-                    result_text = cc.convert(event.text)
+                    result_text = event.text
                     usage = event.usage
                     finish_reason = event.finish_reason
                     # deduct quota
@@ -272,7 +265,7 @@ class LLMNode(BaseNode[LLMNodeData]):
             if structured_output:
                 outputs["structured_output"] = structured_output
             if self._file_outputs is not None:
-                outputs["files"] = self._file_outputs
+                outputs["files"] = ArrayFileSegment(value=self._file_outputs)
 
             yield RunCompletedEvent(
                 run_result=NodeRunResult(

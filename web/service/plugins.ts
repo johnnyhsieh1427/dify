@@ -24,7 +24,7 @@ export const uploadFile = async (file: File, isBundle: boolean) => {
   return upload({
     xhr: new XMLHttpRequest(),
     data: formData,
-  }, false, `/workspaces/current/plugin/upload/${isBundle ? 'bundle' : 'pkg'}`)
+  }, false, false, `/workspaces/current/plugin/upload/${isBundle ? 'bundle' : 'pkg'}`)
 }
 
 export const updateFromMarketPlace = async (body: Record<string, string>) => {

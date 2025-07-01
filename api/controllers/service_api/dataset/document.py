@@ -20,7 +20,11 @@ from controllers.service_api.dataset.error import (
     DocumentIndexingError,
     InvalidMetadataError,
 )
-from controllers.service_api.wraps import DatasetApiResource, cloud_edition_billing_resource_check
+from controllers.service_api.wraps import (
+    DatasetApiResource,
+    cloud_edition_billing_rate_limit_check,
+    cloud_edition_billing_resource_check,
+)
 from core.errors.error import ProviderTokenNotInitError
 from extensions.ext_database import db
 from fields.document_fields import document_fields, document_status_fields
@@ -36,6 +40,7 @@ class DocumentAddByTextApi(DatasetApiResource):
 
     @cloud_edition_billing_resource_check("vector_space", "dataset")
     @cloud_edition_billing_resource_check("documents", "dataset")
+    @cloud_edition_billing_rate_limit_check("knowledge", "dataset")
     def post(self, tenant_id, dataset_id):
         """Create document by text."""
         parser = reqparse.RequestParser()
@@ -122,6 +127,7 @@ class DocumentUpdateByTextApi(DatasetApiResource):
     """Resource for update documents."""
 
     @cloud_edition_billing_resource_check("vector_space", "dataset")
+    @cloud_edition_billing_rate_limit_check("knowledge", "dataset")
     def post(self, tenant_id, dataset_id, document_id):
         """Update document by text."""
         parser = reqparse.RequestParser()
@@ -183,6 +189,7 @@ class DocumentAddByFileApi(DatasetApiResource):
 
     @cloud_edition_billing_resource_check("vector_space", "dataset")
     @cloud_edition_billing_resource_check("documents", "dataset")
+    @cloud_edition_billing_rate_limit_check("knowledge", "dataset")
     def post(self, tenant_id, dataset_id):
         """Create document by upload file."""
         args = {}
@@ -257,6 +264,7 @@ class DocumentUpdateByFileApi(DatasetApiResource):
     """Resource for update documents."""
 
     @cloud_edition_billing_resource_check("vector_space", "dataset")
+    @cloud_edition_billing_rate_limit_check("knowledge", "dataset")
     def post(self, tenant_id, dataset_id, document_id):
         """Update document by upload file."""
         args = {}
@@ -350,6 +358,7 @@ class DocumentUpdateByFileApi(DatasetApiResource):
 
 
 class DocumentDeleteApi(DatasetApiResource):
+    @cloud_edition_billing_rate_limit_check("knowledge", "dataset")
     def delete(self, tenant_id, dataset_id, document_id):
         """Delete document."""
         document_id = str(document_id)

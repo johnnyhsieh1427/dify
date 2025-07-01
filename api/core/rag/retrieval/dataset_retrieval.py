@@ -1,3 +1,6 @@
+# 修改日期2025-06-30
+# 增加file_location到回應裡面
+
 import json
 import math
 import re
@@ -56,6 +59,7 @@ from core.rag.retrieval.template_prompts import (
 from core.tools.utils.dataset_retriever.dataset_retriever_base_tool import DatasetRetrieverBaseTool
 from extensions.ext_database import db
 from libs.json_in_md_parser import parse_and_check_json_markdown
+from models.model import UploadFile
 from models.dataset import ChildChunk, Dataset, DatasetMetadata, DatasetQuery, DocumentSegment
 from models.dataset import Document as DatasetDocument
 from services.external_knowledge_service import ExternalDatasetService
@@ -249,6 +253,23 @@ class DatasetRetrieval:
                             .first()
                         )
                         if dataset and document:
+                            file_location = None
+                            try:
+                                import json
+                                source_info = json.loads(document.data_source_info)
+                                isDict = isinstance(source_info, dict)
+                                hasUploadFileId = source_info.get("upload_file_id", False)
+                                isUploadFile = document.data_source_type == "upload_file"
+
+                                if (isDict and hasUploadFileId and isUploadFile):
+                                    upload_file = db.session.query(UploadFile).where(
+                                        UploadFile.id == source_info["upload_file_id"]
+                                    ).first()
+                                    if (upload_file and upload_file.storage_type in ["local", "opendal"]):
+                                        file_location = upload_file.key
+                            except:
+                                pass
+                            
                             source = RetrievalSourceMetadata(
                                 dataset_id=dataset.id,
                                 dataset_name=dataset.name,
@@ -259,6 +280,7 @@ class DatasetRetrieval:
                                 retriever_from=invoke_from.to_source(),
                                 score=record.score or 0.0,
                                 doc_metadata=document.doc_metadata,
+                                file_location=file_location
                             )
 
                             if invoke_from.to_source() == "dev":
@@ -496,6 +518,8 @@ class DatasetRetrieval:
                     all_documents = self.calculate_keyword_score(query, all_documents, top_k)
                 elif index_type == "high_quality":
                     all_documents = self.calculate_vector_score(all_documents, top_k, score_threshold)
+                else:
+                    all_documents = all_documents[:top_k] if top_k else all_documents
 
         self._on_query(query, dataset_ids, app_id, user_from, user_id)
 

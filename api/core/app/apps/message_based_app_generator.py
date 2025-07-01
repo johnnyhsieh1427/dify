@@ -1,13 +1,8 @@
-# 修改日期2025-01-23
-# 修正BUG轉型有問題，直接給值不轉型
-# app_config: EasyUIBasedAppConfig = cast(EasyUIBasedAppConfig, application_generate_entity.app_config)
-
 import json
 import logging
 from collections.abc import Generator
 from datetime import UTC, datetime
 
-# from typing import Optional, Union, cast
 from typing import Optional, Union
 
 from sqlalchemy import cast as sql_cast
@@ -38,6 +33,7 @@ from models.enums import CreatorUserRole
 from models.model import App, AppMode, AppModelConfig, Conversation, EndUser, Message, MessageFile
 from services.errors.app_model_config import AppModelConfigBrokenError
 from services.errors.conversation import ConversationNotExistsError
+from services.errors.message import MessageNotExistsError
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +121,6 @@ class MessageBasedAppGenerator(BaseAppGenerator):
         :conversation conversation
         :return:
         """
-        # app_config: EasyUIBasedAppConfig = cast(EasyUIBasedAppConfig, application_generate_entity.app_config)
         app_config: EasyUIBasedAppConfig = application_generate_entity.app_config
 
         # get from source
@@ -270,7 +265,7 @@ class MessageBasedAppGenerator(BaseAppGenerator):
 
         return introduction or ""
 
-    def _get_conversation(self, conversation_id: str):
+    def _get_conversation(self, conversation_id: str) -> Conversation:
         """
         Get conversation by conversation id
         :param conversation_id: conversation id
@@ -279,16 +274,19 @@ class MessageBasedAppGenerator(BaseAppGenerator):
         conversation = db.session.query(Conversation).filter(Conversation.id == conversation_id).first()
 
         if not conversation:
-            raise ConversationNotExistsError()
+            raise ConversationNotExistsError("Conversation not exists")
 
         return conversation
 
-    def _get_message(self, message_id: str) -> Optional[Message]:
+    def _get_message(self, message_id: str) -> Message:
         """
         Get message by message id
         :param message_id: message id
         :return: message
         """
         message = db.session.query(Message).filter(Message.id == message_id).first()
+
+        if message is None:
+            raise MessageNotExistsError("Message not exists")
 
         return message
