@@ -1,3 +1,6 @@
+# 修改日期2025-07-23
+# 新增upload_file_fields的欄位
+
 from flask_restful import fields
 
 from fields.dataset_fields import dataset_fields
@@ -84,3 +87,22 @@ document_status_fields = {
 }
 
 document_status_fields_list = {"data": fields.List(fields.Nested(document_status_fields))}
+
+upload_file_fields = {
+    "id": fields.String,
+    "tenant_id": fields.String,
+    "storage_type": fields.String,
+    "key": fields.String,
+    "name": fields.String,
+    "size": fields.Integer,
+    "extension": fields.String,
+    "mime_type": fields.String,
+    "created_by": fields.String,
+    "created_at": TimestampField,
+    "used": fields.Boolean,
+    "used_by": fields.String,
+    "used_at": TimestampField,
+    "hash": fields.String,
+    "created_by_role": fields.String,
+    "source_url": fields.String,
+}

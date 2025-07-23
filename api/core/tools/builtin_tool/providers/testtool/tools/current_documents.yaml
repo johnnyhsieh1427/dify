@@ -1,0 +1,27 @@
+identity:
+  name: current_documents
+  author: Dify
+  label:
+    en_US: Current Documents
+    zh_Hans: 获取当前文档
+    pt_BR: Documentos Atuais
+description:
+  human:
+    en_US: A tool for getting the current documents.
+    zh_Hans: 一个用于获取当前文档的工具。
+    pt_BR: A tool for getting the current documents.
+  llm: A tool for getting the current documents.
+parameters:
+  - name: dataset_id
+    type: dataset-selector
+    required: true
+    label:
+      en_US: Dataset
+      zh_Hans: 数据集
+      pt_BR: Dataset
+    human_description:
+      en_US: The dataset to which the current time will be added.
+      zh_Hans: 当前时间将被添加到的数据集。
+      pt_BR: O dataset ao qual o horário atual será adicionado.
+    form: form
+    default: null

@@ -1,3 +1,6 @@
+// 修改日期2025-07-23
+// 更新符合最新的ChatWithHistoryContextValue定義
+
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Message3Fill } from '@/app/components/base/icons/src/public/other'
@@ -21,8 +24,13 @@ const InputsFormNode = ({
     isMobile,
     currentConversationId,
     handleStartChat,
+    allInputsHidden,
     themeBuilder,
+    inputsForms,
   } = useChatWithHistoryContext()
+
+  if (allInputsHidden || inputsForms.length === 0)
+    return null
 
   return (
     <div className={cn('flex flex-col items-center px-4 pt-6', isMobile && 'pt-4')}>

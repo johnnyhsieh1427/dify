@@ -1,0 +1,14 @@
+identity:
+  author: Dify
+  name: testtool
+  label:
+    en_US: Test Tool
+    zh_Hans: 测试工具
+    pt_BR: Test Tool
+  description:
+    en_US: Dev tool for testing.
+    zh_Hans: 一个用于测试的工具。
+    pt_BR: Uma ferramenta para testes.
+  icon: icon.svg
+  tags:
+    - utilities

@@ -4,6 +4,9 @@
 // 修改日期2025-03-13
 // 修改ChatItem為ChatItemInTree, appPrevChatList為appPrevChatTree
 
+// 修改日期2025-07-23
+// 更新符合最新的ChatWithHistoryContextValue定義
+
 'use client'
 
 import type { RefObject } from 'react'
@@ -29,6 +32,7 @@ export type ChatWithHistoryContextValue = {
   appMeta?: AppMeta
   appData?: AppData
   appDataList?: AppData[]
+  userCanAccess?: boolean
   appParams?: ChatConfig
   appChatListDataLoading?: boolean
   currentConversationId: string
@@ -64,11 +68,13 @@ export type ChatWithHistoryContextValue = {
   setIsResponding: (state: boolean) => void,
   currentConversationInputs: Record<string, any> | null,
   setCurrentConversationInputs: (v: Record<string, any>) => void,
+  allInputsHidden: boolean,
   activeIndex?: number
   setActiveIndex: (index: number) => void
 }
 
 export const ChatWithHistoryContext = createContext<ChatWithHistoryContextValue>({
+  userCanAccess: false,
   currentConversationId: '',
   appPrevChatTree: [],
   pinnedConversationList: [],
@@ -99,6 +105,7 @@ export const ChatWithHistoryContext = createContext<ChatWithHistoryContextValue>
   setIsResponding: noop,
   currentConversationInputs: {},
   setCurrentConversationInputs: noop,
+  allInputsHidden: false,
   activeIndex: 0,
   setActiveIndex: noop,
 })

@@ -1,3 +1,6 @@
+# 修改日期2025-07-23
+# 新增ToolParameterType.DATASET_SELECTOR
+
 import base64
 import enum
 from collections.abc import Mapping
@@ -240,7 +243,9 @@ class ToolParameter(PluginParameter):
         FILES = PluginParameterType.FILES.value
         APP_SELECTOR = PluginParameterType.APP_SELECTOR.value
         MODEL_SELECTOR = PluginParameterType.MODEL_SELECTOR.value
-
+        # new added type
+        DATASET_SELECTOR = "dataset-selector"  # select dataset
+        
         # deprecated, should not use.
         SYSTEM_FILES = PluginParameterType.SYSTEM_FILES.value
 

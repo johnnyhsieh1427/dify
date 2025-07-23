@@ -1,6 +1,7 @@
 #!/bin/bash
 
-
+# 修改日期2025-07-23
+# 增加NEXT_PUBLIC_WEB_CHAT_API_PREFIX的變數web-chat/api
 
 # if you are using windows, you may need to convert the file to unix format
 # you can use the Ubuntu terminal to convert this file to unix format
@@ -15,6 +16,7 @@ set -e
 export NEXT_PUBLIC_DEPLOY_ENV=${DEPLOY_ENV}
 export NEXT_PUBLIC_EDITION=${EDITION}
 export NEXT_PUBLIC_API_PREFIX=${CONSOLE_API_URL}/console/api
+export NEXT_PUBLIC_WEB_CHAT_API_PREFIX=${WEB_CHAT_API_URL}/web-chat/api
 export NEXT_PUBLIC_PUBLIC_API_PREFIX=${APP_API_URL}/api
 export NEXT_PUBLIC_MARKETPLACE_API_PREFIX=${MARKETPLACE_API_URL}/api/v1
 export NEXT_PUBLIC_MARKETPLACE_URL_PREFIX=${MARKETPLACE_URL}

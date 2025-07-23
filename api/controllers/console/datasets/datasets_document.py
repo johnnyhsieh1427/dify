@@ -4,6 +4,8 @@
 # 2. add_document_to_index_task()
 # 修改日期2025-01-23
 # 移除API DocumentStatusApi PATCH的接收document_id參數
+# 修改日期2025-07-23
+# 新增DatasetAllDocumentsListApi的get方法"/datasets/<uuid:dataset_id>/all_documents"
 
 import logging
 from argparse import ArgumentTypeError
@@ -13,7 +15,9 @@ from typing import cast
 from flask import request
 from flask_login import current_user
 from flask_restful import Resource, marshal, marshal_with, reqparse
-from sqlalchemy import asc, desc, select
+from sqlalchemy import String, asc, desc, select
+from sqlalchemy import cast as _cast
+from sqlalchemy.dialects.postgresql import JSONB
 from werkzeug.exceptions import Forbidden, NotFound
 
 import services
@@ -55,6 +59,7 @@ from fields.document_fields import (
     document_fields,
     document_status_fields,
     document_with_segments_fields,
+    upload_file_fields,
 )
 from libs.login import login_required
 from models import Dataset, DatasetProcessRule, Document, DocumentSegment, UploadFile
@@ -141,6 +146,42 @@ class GetProcessRuleApi(Resource):
                 rules = dataset_process_rule.rules_dict
 
         return {"mode": mode, "rules": rules, "limits": limits}
+
+
+class DatasetAllDocumentsListApi(Resource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def get(self, dataset_id):
+        dataset_id = str(dataset_id)
+        dataset = DatasetService.get_dataset(dataset_id)
+        if not dataset:
+            raise NotFound("Dataset not found.")
+        try:
+            DatasetService.check_dataset_permission(dataset, current_user)
+        except services.errors.account.NoPermissionError as e:
+            raise Forbidden(str(e))
+
+        query = (
+            select(UploadFile)
+            .join(
+                Document,
+                _cast(Document.data_source_info, JSONB)['upload_file_id'].astext == _cast(UploadFile.id, String),
+            )
+            .filter(
+                Document.dataset_id == str(dataset_id),
+                Document.tenant_id == current_user.current_tenant_id,
+                Document.enabled == True,
+                Document.data_source_type == "upload_file",
+            )
+            .order_by(desc(Document.created_at), desc(Document.position))
+        )
+
+        # 執行查詢並取得所有 key（scalar 結果）
+        keys = db.session.scalars(query).all()
+        if not keys:
+            raise NotFound("No documents found in this dataset.")
+        return marshal(keys, upload_file_fields)
 
 
 class DatasetDocumentListApi(Resource):
@@ -1036,6 +1077,7 @@ class WebsiteDocumentSyncApi(DocumentResource):
 
 
 api.add_resource(GetProcessRuleApi, "/datasets/process-rule")
+api.add_resource(DatasetAllDocumentsListApi, "/datasets/<uuid:dataset_id>/all_documents")
 api.add_resource(DatasetDocumentListApi, "/datasets/<uuid:dataset_id>/documents")
 api.add_resource(DatasetInitApi, "/datasets/init")
 api.add_resource(

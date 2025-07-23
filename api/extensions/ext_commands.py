@@ -1,5 +1,7 @@
 # 修改日期2025-02-28
 # 新增create_workspace功能
+# 修改日期2025-07-23
+# 新增create_account功能
 
 from dify_app import DifyApp
 
@@ -10,6 +12,7 @@ def init_app(app: DifyApp):
         clear_free_plan_tenant_expired_logs,
         clear_orphaned_file_records,
         convert_to_agent_apps,
+        create_account,
         create_tenant,
         create_workspace,
         delete_account,
@@ -54,6 +57,7 @@ def init_app(app: DifyApp):
         clear_free_plan_tenant_expired_logs,
         clear_orphaned_file_records,
         remove_orphaned_files_on_storage,
+        create_account,
     ]
     for cmd in cmds_to_register:
         app.cli.add_command(cmd)

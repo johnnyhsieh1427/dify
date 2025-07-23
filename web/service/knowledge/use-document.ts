@@ -1,13 +1,17 @@
+// 修改日期2025-07-23
+// 新增fetchAllDocuments的方法，獲取指定資料集的所有文件
 import {
   useMutation,
   useQuery,
 } from '@tanstack/react-query'
+import type { Fetcher } from 'swr'
 import { del, get, patch } from '../base'
 import { useInvalid } from '../use-base'
 import type { MetadataType, SortType } from '../datasets'
 import type { DocumentDetailResponse, DocumentListResponse, UpdateDocumentBatchParams } from '@/models/datasets'
 import { DocumentActionType } from '@/models/datasets'
 import type { CommonResponse } from '@/models/common'
+import type { UploadFiles } from '@/models/uploadfile'
 
 const NAME_SPACE = 'knowledge/document'
 
@@ -129,4 +133,8 @@ export const useDocumentMetadata = (payload: {
 
 export const useInvalidDocumentDetailKey = () => {
   return useInvalid(useDocumentDetailKey)
+}
+
+export const fetchAllDocuments: Fetcher<UploadFiles[], string> = (datasetId: string) => {
+  return get<UploadFiles[]>(`/datasets/${datasetId}/all_documents`)
 }

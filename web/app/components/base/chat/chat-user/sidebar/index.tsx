@@ -1,6 +1,9 @@
 // 修改日期2025-02-28
 // 新增給web-chat介面使用
 
+// 修改日期2025-07-23
+// 更新符合最新的ChatWithHistoryContextValue定義
+
 import {
   useCallback,
   useState,
@@ -23,6 +26,7 @@ import RenameModal from '@/app/components/base/chat/chat-with-history/sidebar/re
 import DifyLogo from '@/app/components/base/logo/dify-logo'
 import type { ConversationItem } from '@/models/share'
 import cn from '@/utils/classnames'
+// import { useGlobalPublicStore } from '@/context/global-public-context'
 import { CONVERSATION_ID_INFO } from '../../constants'
 import { logout } from '@/service/common'
 import Modal from '../../../modal'
@@ -56,6 +60,7 @@ const Sidebar = ({ isPanel }: Props) => {
     setActiveIndex,
   } = useChatWithHistoryContext()
   const isSidebarCollapsed = sidebarCollapseState
+  // const systemFeatures = useGlobalPublicStore(s => s.systemFeatures)
 
   const [showConfirm, setShowConfirm] = useState<ConversationItem | null>(null)
   const [showRename, setShowRename] = useState<ConversationItem | null>(null)
@@ -212,14 +217,14 @@ const Sidebar = ({ isPanel }: Props) => {
         <div className='shrink-0'>
           {!appDataList?.[activeIndex || 0].custom_config?.remove_webapp_brand && (
             <div className={cn(
-              'flex shrink-0 items-center gap-1.5 px-2',
+              'flex shrink-0 items-center gap-1.5 px-1',
             )}>
               <div className='system-2xs-medium-uppercase text-text-tertiary'>{t('share.chat.poweredBy')}</div>
               {appDataList?.[activeIndex || 0].custom_config?.replace_webapp_logo && (
                 <img src={appDataList?.[activeIndex || 0].custom_config?.replace_webapp_logo} alt='logo' className='block h-5 w-auto' />
               )}
               {!appDataList?.[activeIndex || 0].custom_config?.replace_webapp_logo && (
-                <DifyLogo className='!h-5' />
+                <DifyLogo size='small' />
               )}
             </div>
           )}

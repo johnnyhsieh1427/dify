@@ -26,14 +26,14 @@ const UserChat = ({
   return (
     <Link href={'/chat-app'} className={classNames(
       'group text-sm font-medium',
-      activated && 'font-semibold bg-components-main-nav-nav-button-bg-active hover:bg-components-main-nav-nav-button-bg-active-hover shadow-md',
+      activated && 'hover:bg-components-main-nav-nav-button-bg-active-hover bg-components-main-nav-nav-button-bg-active font-semibold shadow-md',
       activated ? 'text-components-main-nav-nav-button-text-active' : 'text-components-main-nav-nav-button-text hover:bg-components-main-nav-nav-button-bg-hover',
       className,
     )}>
       {
         activated
-          ? <RiMessage2Fill className='mr-2 w-4 h-4' />
-          : <RiMessage2Line className='mr-2 w-4 h-4' />
+          ? <RiMessage2Fill className='mr-2 h-4 w-4' />
+          : <RiMessage2Line className='mr-2 h-4 w-4' />
       }
       {t('common.menus.webChat')}
     </Link>

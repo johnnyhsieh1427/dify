@@ -1,6 +1,9 @@
 // 修改日期2025-02-28
 // 新增給web-chat介面使用
 
+// 修改日期2025-07-23
+// 修改WorkspaceOwner/WorkspaceManager才可以修改知識庫
+
 'use client'
 import { useCallback } from 'react'
 import Link from 'next/link'
@@ -11,6 +14,7 @@ import EnvNav from './env-nav'
 import PluginsNav from './plugins-nav'
 import ExploreNav from './explore-nav'
 import ToolsNav from './tools-nav'
+import UserChat from './user-chat'
 import { WorkspaceProvider } from '@/context/workspace-context'
 import { useAppContext } from '@/context/app-context'
 import DifyLogo from '@/app/components/base/logo/dify-logo'
@@ -30,7 +34,7 @@ const navClassName = `
 `
 
 const Header = () => {
-  const { isCurrentWorkspaceEditor, isCurrentWorkspaceDatasetOperator } = useAppContext()
+  const { isCurrentWorkspaceEditor, isCurrentWorkspaceDatasetOperator, isCurrentWorkspaceOwner, isCurrentWorkspaceManager } = useAppContext()
   const media = useBreakpoints()
   const isMobile = media === MediaType.mobile
   const { enableBilling, plan } = useProviderContext()
@@ -74,8 +78,10 @@ const Header = () => {
         <div className='my-1 flex items-center justify-center space-x-1'>
           {!isCurrentWorkspaceDatasetOperator && <ExploreNav className={navClassName} />}
           {!isCurrentWorkspaceDatasetOperator && <AppNav />}
-          {(isCurrentWorkspaceEditor || isCurrentWorkspaceDatasetOperator) && <DatasetNav />}
+          {/* {(isCurrentWorkspaceEditor || isCurrentWorkspaceDatasetOperator) && <DatasetNav />} */}
+          {(isCurrentWorkspaceOwner || isCurrentWorkspaceManager) && <DatasetNav />}
           {!isCurrentWorkspaceDatasetOperator && <ToolsNav className={navClassName} />}
+          {<UserChat className={navClassName}></UserChat>}
         </div>
       </div>
     )
@@ -102,8 +108,10 @@ const Header = () => {
       <div className='flex items-center space-x-2'>
         {!isCurrentWorkspaceDatasetOperator && <ExploreNav className={navClassName} />}
         {!isCurrentWorkspaceDatasetOperator && <AppNav />}
-        {(isCurrentWorkspaceEditor || isCurrentWorkspaceDatasetOperator) && <DatasetNav />}
+        {/* {(isCurrentWorkspaceEditor || isCurrentWorkspaceDatasetOperator) && <DatasetNav />} */}
+        {(isCurrentWorkspaceOwner || isCurrentWorkspaceManager) && <DatasetNav />}
         {!isCurrentWorkspaceDatasetOperator && <ToolsNav className={navClassName} />}
+        {<UserChat className={navClassName}></UserChat>}
       </div>
       <div className='flex min-w-0 flex-[1] items-center justify-end pl-2 pr-3 min-[1280px]:pl-3'>
         <EnvNav />

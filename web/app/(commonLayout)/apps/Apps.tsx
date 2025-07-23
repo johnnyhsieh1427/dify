@@ -63,7 +63,7 @@ const getKey = (
 const Apps = () => {
   const { t } = useTranslation()
   const router = useRouter()
-  const { isCurrentWorkspaceEditor, isCurrentWorkspaceDatasetOperator } = useAppContext()
+  const { isCurrentWorkspaceEditor, isCurrentWorkspaceDatasetOperator, isCurrentWorkspaceOwner } = useAppContext()
   const showTagManagementModal = useTagStore(s => s.showTagManagementModal)
   const [activeTab, setActiveTab] = useTabSearchParams({
     defaultTab: 'all',
@@ -203,12 +203,14 @@ const Apps = () => {
         </div>
         {(data && data[0].total > 0)
           ? <div className='relative grid grow grid-cols-1 content-start gap-4 px-12 pt-2 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6'>
-            {isCurrentWorkspaceEditor
+            {/* {isCurrentWorkspaceEditor
+              && <NewAppCard ref={newAppCardRef} onSuccess={mutate} />} */}
+            {isCurrentWorkspaceOwner
               && <NewAppCard ref={newAppCardRef} onSuccess={mutate} />}
             {/* {data.map(({ data: apps }) => apps.map(app => (
               <AppCard key={app.id} app={app} onRefresh={mutate} />
             )))} */}
-            {isCurrentWorkspaceEditor
+            {isCurrentWorkspaceOwner
               ? data.map(({ data: apps }) => apps.map(app => (
                 <AppCard key={app.id} app={app} onRefresh={mutate} />
               )))
