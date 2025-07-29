@@ -62,7 +62,6 @@ from models.model import (
     Message,
     MessageFile,
     TraceAppConfig,
-    TraceDatasetConfig,
 )
 from models.workflow import WorkflowAppLog, WorkflowRun
 from tasks.ops_trace_task import process_trace_tasks
