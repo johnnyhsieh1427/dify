@@ -115,7 +115,7 @@ function unicodeToChar(text: string) {
 
 function requiredWebSSOLogin(message?: string, code?: number) {
   const params = new URLSearchParams()
-  params.append('redirect_url', globalThis.location.pathname)
+  params.append('redirect_url', encodeURIComponent(`${globalThis.location.pathname}${globalThis.location.search}`))
   if (message)
     params.append('message', message)
   if (code)
@@ -423,20 +423,19 @@ export const ssePost = async (
             ssePost(url, fetchOptions, otherOptions)
           }).catch(() => {
             res.json().then((data: any) => {
-              if (!isPublicAPI) return
-
-              switch (data.code) {
-                case 'web_app_access_denied':
+              if (isPublicAPI) {
+                if (data.code === 'web_app_access_denied')
                   requiredWebSSOLogin(data.message, 403)
-                  break
-                case 'web_sso_auth_required':
+
+                if (data.code === 'web_sso_auth_required') {
                   removeAccessToken()
                   requiredWebSSOLogin()
-                  break
-                case 'unauthorized':
+                }
+
+                if (data.code === 'unauthorized') {
                   removeAccessToken()
-                  globalThis.location.reload()
-                  break
+                  requiredWebSSOLogin()
+                }
               }
             })
           })
@@ -529,7 +528,7 @@ export const request = async<T>(url: string, options = {}, otherOptions?: IOther
       } = otherOptionsForBaseFetch
       if (isPublicAPI && code === 'unauthorized') {
         removeAccessToken()
-        globalThis.location.reload()
+        requiredWebSSOLogin()
         return Promise.reject(err)
       }
       if (code === 'init_validate_failed' && IS_CE_EDITION && !silent) {

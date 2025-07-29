@@ -1,7 +1,6 @@
 import json
 import logging
-from datetime import UTC, datetime
-from typing import Optional, cast
+from typing import Optional, TypedDict, cast
 
 from flask_login import current_user
 from flask_sqlalchemy.pagination import Pagination
@@ -18,6 +17,7 @@ from core.tools.tool_manager import ToolManager
 from core.tools.utils.configuration import ToolParameterConfigurationManager
 from events.app_event import app_was_created
 from extensions.ext_database import db
+from libs.datetime_utils import naive_utc_now
 from models.account import Account
 from models.model import App, AppMode, AppModelConfig, Site
 from models.tools import ApiToolProvider
@@ -48,8 +48,6 @@ class AppService:
             filters.append(App.mode == AppMode.ADVANCED_CHAT.value)
         elif args["mode"] == "agent-chat":
             filters.append(App.mode == AppMode.AGENT_CHAT.value)
-        elif args["mode"] == "channel":
-            filters.append(App.mode == AppMode.CHANNEL.value)
 
         if args.get("is_created_by_me", False):
             filters.append(App.created_by == user_id)
@@ -223,21 +221,31 @@ class AppService:
 
         return app
 
-    def update_app(self, app: App, args: dict) -> App:
+    class ArgsDict(TypedDict):
+        name: str
+        description: str
+        icon_type: str
+        icon: str
+        icon_background: str
+        use_icon_as_answer_icon: bool
+        max_active_requests: int
+
+    def update_app(self, app: App, args: ArgsDict) -> App:
         """
         Update app
         :param app: App instance
         :param args: request args
         :return: App instance
         """
-        app.name = args.get("name")
-        app.description = args.get("description", "")
-        app.icon_type = args.get("icon_type", "emoji")
-        app.icon = args.get("icon")
-        app.icon_background = args.get("icon_background")
+        app.name = args["name"]
+        app.description = args["description"]
+        app.icon_type = args["icon_type"]
+        app.icon = args["icon"]
+        app.icon_background = args["icon_background"]
         app.use_icon_as_answer_icon = args.get("use_icon_as_answer_icon", False)
+        app.max_active_requests = args.get("max_active_requests")
         app.updated_by = current_user.id
-        app.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        app.updated_at = naive_utc_now()
         db.session.commit()
 
         return app
@@ -251,7 +259,7 @@ class AppService:
         """
         app.name = name
         app.updated_by = current_user.id
-        app.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        app.updated_at = naive_utc_now()
         db.session.commit()
 
         return app
@@ -267,7 +275,7 @@ class AppService:
         app.icon = icon
         app.icon_background = icon_background
         app.updated_by = current_user.id
-        app.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        app.updated_at = naive_utc_now()
         db.session.commit()
 
         return app
@@ -284,7 +292,7 @@ class AppService:
 
         app.enable_site = enable_site
         app.updated_by = current_user.id
-        app.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        app.updated_at = naive_utc_now()
         db.session.commit()
 
         return app
@@ -301,7 +309,7 @@ class AppService:
 
         app.enable_api = enable_api
         app.updated_by = current_user.id
-        app.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        app.updated_at = naive_utc_now()
         db.session.commit()
 
         return app
@@ -375,7 +383,7 @@ class AppService:
                 elif provider_type == "api":
                     try:
                         provider: Optional[ApiToolProvider] = (
-                            db.session.query(ApiToolProvider).filter(ApiToolProvider.id == provider_id).first()
+                            db.session.query(ApiToolProvider).where(ApiToolProvider.id == provider_id).first()
                         )
                         if provider is None:
                             raise ValueError(f"provider not found for tool {tool_name}")
@@ -392,7 +400,7 @@ class AppService:
         :param app_id: app id
         :return: app code
         """
-        site = db.session.query(Site).filter(Site.app_id == app_id).first()
+        site = db.session.query(Site).where(Site.app_id == app_id).first()
         if not site:
             raise ValueError(f"App with id {app_id} not found")
         return str(site.code)
@@ -404,7 +412,7 @@ class AppService:
         :param app_code: app code
         :return: app id
         """
-        site = db.session.query(Site).filter(Site.code == app_code).first()
+        site = db.session.query(Site).where(Site.code == app_code).first()
         if not site:
             raise ValueError(f"App with code {app_code} not found")
         return str(site.app_id)

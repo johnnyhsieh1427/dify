@@ -1,3 +1,7 @@
+// 修改日期2025/07/29
+// 增加FormTypeEnum, datasetSelector
+import type { SchemaRoot } from '@/app/components/workflow/nodes/llm/types'
+
 export type FormValue = Record<string, any>
 
 export type TypeWithI18N<T = string> = {
@@ -19,12 +23,18 @@ export enum FormTypeEnum {
   toolSelector = 'tool-selector',
   multiToolSelector = 'array[tools]',
   appSelector = 'app-selector',
+  datasetSelector = 'dataset-selector',
+  any = 'any',
+  object = 'object',
+  array = 'array',
+  dynamicSelect = 'dynamic-select',
 }
 
 export type FormOption = {
   label: TypeWithI18N
   value: string
   show_on: FormShowOnObject[]
+  icon?: string
 }
 
 export enum ModelTypeEnum {
@@ -107,6 +117,7 @@ export type FormShowOnObject = {
 }
 
 export type CredentialFormSchemaBase = {
+  name: string
   variable: string
   label: TypeWithI18N
   type: FormTypeEnum
@@ -116,6 +127,7 @@ export type CredentialFormSchemaBase = {
   show_on: FormShowOnObject[]
   url?: string
   scope?: string
+  input_schema?: SchemaRoot
 }
 
 export type CredentialFormSchemaTextInput = CredentialFormSchemaBase & {

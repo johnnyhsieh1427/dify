@@ -19,14 +19,11 @@ import type {
   Feedback,
 } from '../types'
 import { CONVERSATION_ID_INFO } from '../constants'
-import { buildChatItemTree, getProcessedSystemVariablesFromUrlParams, getRawInputsFromUrlParams } from '../utils'
+import { buildChatItemTree, getProcessedSystemVariablesFromUrlParams, getRawInputsFromUrlParams, getRawUserVariablesFromUrlParams } from '../utils'
 import { addFileInfos, sortAgentSorts } from '../../../tools/utils'
 import { getProcessedFilesFromResponse } from '@/app/components/base/file-uploader/utils'
 import {
   delConversation,
-  fetchAppInfo,
-  fetchAppMeta,
-  fetchAppParams,
   fetchChatList,
   fetchConversations,
   generationConversationName,
@@ -46,8 +43,7 @@ import { useAppFavicon } from '@/hooks/use-app-favicon'
 import { InputVarType } from '@/app/components/workflow/types'
 import { TransferMethod } from '@/types/app'
 import { noop } from 'lodash-es'
-import { useGetUserCanAccessApp } from '@/service/access-control'
-import { useGlobalPublicStore } from '@/context/global-public-context'
+import { useWebAppStore } from '@/context/web-app-context'
 
 function getFormattedChatList(messages: any[]) {
   const newChatList: ChatItem[] = []
@@ -77,13 +73,9 @@ function getFormattedChatList(messages: any[]) {
 
 export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
   const isInstalledApp = useMemo(() => !!installedAppInfo, [installedAppInfo])
-  const systemFeatures = useGlobalPublicStore(s => s.systemFeatures)
-  const { data: appInfo, isLoading: appInfoLoading, error: appInfoError } = useSWR(installedAppInfo ? null : 'appInfo', fetchAppInfo)
-  const { isPending: isCheckingPermission, data: userCanAccessResult } = useGetUserCanAccessApp({
-    appId: installedAppInfo?.app.id || appInfo?.app_id,
-    isInstalledApp,
-    enabled: systemFeatures.webapp_auth.enabled,
-  })
+  const appInfo = useWebAppStore(s => s.appInfo)
+  const appParams = useWebAppStore(s => s.appParams)
+  const appMeta = useWebAppStore(s => s.appMeta)
 
   useAppFavicon({
     enable: !installedAppInfo,
@@ -110,6 +102,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
           use_icon_as_answer_icon: app.use_icon_as_answer_icon,
         },
         plan: 'basic',
+        custom_config: null,
       } as AppData
     }
 
@@ -169,8 +162,6 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     return currentConversationId
   }, [currentConversationId, newConversationId])
 
-  const { data: appParams } = useSWR(['appParams', isInstalledApp, appId], () => fetchAppParams(isInstalledApp, appId))
-  const { data: appMeta } = useSWR(['appMeta', isInstalledApp, appId], () => fetchAppMeta(isInstalledApp, appId))
   const { data: appPinnedConversationData, mutate: mutateAppPinnedConversationData } = useSWR(['appConversationData', isInstalledApp, appId, true], () => fetchConversations(isInstalledApp, appId, undefined, true, 100))
   const { data: appConversationData, isLoading: appConversationDataLoading, mutate: mutateAppConversationData } = useSWR(['appConversationData', isInstalledApp, appId, false], () => fetchConversations(isInstalledApp, appId, undefined, false, 100))
   const { data: appChatListData, isLoading: appChatListDataLoading } = useSWR(chatShouldReloadKey ? ['appChatList', chatShouldReloadKey, isInstalledApp, appId] : null, () => fetchChatList(chatShouldReloadKey, isInstalledApp, appId))
@@ -193,6 +184,7 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
   const newConversationInputsRef = useRef<Record<string, any>>({})
   const [newConversationInputs, setNewConversationInputs] = useState<Record<string, any>>({})
   const [initInputs, setInitInputs] = useState<Record<string, any>>({})
+  const [initUserVariables, setInitUserVariables] = useState<Record<string, any>>({})
   const handleNewConversationInputsChange = useCallback((newInputs: Record<string, any>) => {
     newConversationInputsRef.current = newInputs
     setNewConversationInputs(newInputs)
@@ -261,7 +253,9 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     // init inputs from url params
     (async () => {
       const inputs = await getRawInputsFromUrlParams()
+      const userVariables = await getRawUserVariablesFromUrlParams()
       setInitInputs(inputs)
+      setInitUserVariables(userVariables)
     })()
   }, [])
 
@@ -488,9 +482,6 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
   }, [isInstalledApp, appId, t, notify])
 
   return {
-    appInfoError,
-    appInfoLoading: appInfoLoading || (systemFeatures.webapp_auth.enabled && isCheckingPermission),
-    userCanAccess: systemFeatures.webapp_auth.enabled ? userCanAccessResult?.result : true,
     isInstalledApp,
     appId,
     currentConversationId,
@@ -535,5 +526,6 @@ export const useChatWithHistory = (installedAppInfo?: InstalledApp) => {
     currentConversationInputs,
     setCurrentConversationInputs,
     allInputsHidden,
+    initUserVariables,
   }
 }

@@ -9,7 +9,6 @@
 
 import logging
 from argparse import ArgumentTypeError
-from datetime import UTC, datetime
 from typing import cast
 
 from flask import request
@@ -61,6 +60,7 @@ from fields.document_fields import (
     document_with_segments_fields,
     upload_file_fields,
 )
+from libs.datetime_utils import naive_utc_now
 from libs.login import login_required
 from models import Dataset, DatasetProcessRule, Document, DocumentSegment, UploadFile
 from services.dataset_service import DatasetService, DocumentService
@@ -136,7 +136,7 @@ class GetProcessRuleApi(Resource):
             # get the latest process rule
             dataset_process_rule = (
                 db.session.query(DatasetProcessRule)
-                .filter(DatasetProcessRule.dataset_id == document.dataset_id)
+                .where(DatasetProcessRule.dataset_id == document.dataset_id)
                 .order_by(DatasetProcessRule.created_at.desc())
                 .limit(1)
                 .one_or_none()
@@ -224,7 +224,7 @@ class DatasetDocumentListApi(Resource):
 
         if search:
             search = f"%{search}%"
-            query = query.filter(Document.name.like(search))
+            query = query.where(Document.name.like(search))
 
         if sort.startswith("-"):
             sort_logic = desc
@@ -260,7 +260,7 @@ class DatasetDocumentListApi(Resource):
             for document in documents:
                 completed_segments = (
                     db.session.query(DocumentSegment)
-                    .filter(
+                    .where(
                         DocumentSegment.completed_at.isnot(None),
                         DocumentSegment.document_id == str(document.id),
                         DocumentSegment.status != "re_segment",
@@ -269,7 +269,7 @@ class DatasetDocumentListApi(Resource):
                 )
                 total_segments = (
                     db.session.query(DocumentSegment)
-                    .filter(DocumentSegment.document_id == str(document.id), DocumentSegment.status != "re_segment")
+                    .where(DocumentSegment.document_id == str(document.id), DocumentSegment.status != "re_segment")
                     .count()
                 )
                 document.completed_segments = completed_segments
@@ -465,7 +465,7 @@ class DocumentIndexingEstimateApi(DocumentResource):
 
                 file = (
                     db.session.query(UploadFile)
-                    .filter(UploadFile.tenant_id == document.tenant_id, UploadFile.id == file_id)
+                    .where(UploadFile.tenant_id == document.tenant_id, UploadFile.id == file_id)
                     .first()
                 )
 
@@ -540,7 +540,7 @@ class DocumentBatchIndexingEstimateApi(DocumentResource):
                 file_id = data_source_info["upload_file_id"]
                 file_detail = (
                     db.session.query(UploadFile)
-                    .filter(UploadFile.tenant_id == current_user.current_tenant_id, UploadFile.id == file_id)
+                    .where(UploadFile.tenant_id == current_user.current_tenant_id, UploadFile.id == file_id)
                     .first()
                 )
 
@@ -616,7 +616,7 @@ class DocumentBatchIndexingStatusApi(DocumentResource):
         for document in documents:
             completed_segments = (
                 db.session.query(DocumentSegment)
-                .filter(
+                .where(
                     DocumentSegment.completed_at.isnot(None),
                     DocumentSegment.document_id == str(document.id),
                     DocumentSegment.status != "re_segment",
@@ -625,7 +625,7 @@ class DocumentBatchIndexingStatusApi(DocumentResource):
             )
             total_segments = (
                 db.session.query(DocumentSegment)
-                .filter(DocumentSegment.document_id == str(document.id), DocumentSegment.status != "re_segment")
+                .where(DocumentSegment.document_id == str(document.id), DocumentSegment.status != "re_segment")
                 .count()
             )
             # Create a dictionary with document attributes and additional fields
@@ -659,7 +659,7 @@ class DocumentIndexingStatusApi(DocumentResource):
 
         completed_segments = (
             db.session.query(DocumentSegment)
-            .filter(
+            .where(
                 DocumentSegment.completed_at.isnot(None),
                 DocumentSegment.document_id == str(document_id),
                 DocumentSegment.status != "re_segment",
@@ -668,7 +668,7 @@ class DocumentIndexingStatusApi(DocumentResource):
         )
         total_segments = (
             db.session.query(DocumentSegment)
-            .filter(DocumentSegment.document_id == str(document_id), DocumentSegment.status != "re_segment")
+            .where(DocumentSegment.document_id == str(document_id), DocumentSegment.status != "re_segment")
             .count()
         )
 
@@ -798,7 +798,7 @@ class DocumentProcessingApi(DocumentResource):
                 raise InvalidActionError("Document not in indexing state.")
 
             document.paused_by = current_user.id
-            document.paused_at = datetime.now(UTC).replace(tzinfo=None)
+            document.paused_at = naive_utc_now()
             document.is_paused = True
             db.session.commit()
 
@@ -878,7 +878,7 @@ class DocumentMetadataApi(DocumentResource):
                     document.doc_metadata[key] = value
 
         document.doc_type = doc_type
-        document.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        document.updated_at = naive_utc_now()
         db.session.commit()
 
         return {"result": "success", "message": "Document metadata updated."}, 200

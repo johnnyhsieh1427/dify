@@ -81,7 +81,7 @@ class DatasetDocumentSegmentListApi(Resource):
 
         query = (
             select(DocumentSegment)
-            .filter(
+            .where(
                 DocumentSegment.document_id == str(document_id),
                 DocumentSegment.tenant_id == current_user.current_tenant_id,
             )
@@ -89,19 +89,19 @@ class DatasetDocumentSegmentListApi(Resource):
         )
 
         if status_list:
-            query = query.filter(DocumentSegment.status.in_(status_list))
+            query = query.where(DocumentSegment.status.in_(status_list))
 
         if hit_count_gte is not None:
-            query = query.filter(DocumentSegment.hit_count >= hit_count_gte)
+            query = query.where(DocumentSegment.hit_count >= hit_count_gte)
 
         if keyword:
             query = query.where(DocumentSegment.content.ilike(f"%{keyword}%"))
 
         if args["enabled"].lower() != "all":
             if args["enabled"].lower() == "true":
-                query = query.filter(DocumentSegment.enabled == True)
+                query = query.where(DocumentSegment.enabled == True)
             elif args["enabled"].lower() == "false":
-                query = query.filter(DocumentSegment.enabled == False)
+                query = query.where(DocumentSegment.enabled == False)
 
         segments = db.paginate(select=query, page=page, per_page=limit, max_per_page=100, error_out=False)
 
@@ -288,7 +288,7 @@ class DatasetDocumentSegmentUpdateApi(Resource):
         segment_id = str(segment_id)
         segment = (
             db.session.query(DocumentSegment)
-            .filter(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
+            .where(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
             .first()
         )
         if not segment:
@@ -334,7 +334,7 @@ class DatasetDocumentSegmentUpdateApi(Resource):
         segment_id = str(segment_id)
         segment = (
             db.session.query(DocumentSegment)
-            .filter(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
+            .where(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
             .first()
         )
         if not segment:
@@ -439,7 +439,7 @@ class ChildChunkAddApi(Resource):
         segment_id = str(segment_id)
         segment = (
             db.session.query(DocumentSegment)
-            .filter(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
+            .where(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
             .first()
         )
         if not segment:
@@ -496,7 +496,7 @@ class ChildChunkAddApi(Resource):
         segment_id = str(segment_id)
         segment = (
             db.session.query(DocumentSegment)
-            .filter(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
+            .where(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
             .first()
         )
         if not segment:
@@ -543,7 +543,7 @@ class ChildChunkAddApi(Resource):
         segment_id = str(segment_id)
         segment = (
             db.session.query(DocumentSegment)
-            .filter(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
+            .where(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
             .first()
         )
         if not segment:
@@ -589,7 +589,7 @@ class ChildChunkUpdateApi(Resource):
         segment_id = str(segment_id)
         segment = (
             db.session.query(DocumentSegment)
-            .filter(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
+            .where(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
             .first()
         )
         if not segment:
@@ -598,7 +598,7 @@ class ChildChunkUpdateApi(Resource):
         child_chunk_id = str(child_chunk_id)
         child_chunk = (
             db.session.query(ChildChunk)
-            .filter(ChildChunk.id == str(child_chunk_id), ChildChunk.tenant_id == current_user.current_tenant_id)
+            .where(ChildChunk.id == str(child_chunk_id), ChildChunk.tenant_id == current_user.current_tenant_id)
             .first()
         )
         if not child_chunk:
@@ -638,7 +638,7 @@ class ChildChunkUpdateApi(Resource):
         segment_id = str(segment_id)
         segment = (
             db.session.query(DocumentSegment)
-            .filter(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
+            .where(DocumentSegment.id == str(segment_id), DocumentSegment.tenant_id == current_user.current_tenant_id)
             .first()
         )
         if not segment:
@@ -647,7 +647,7 @@ class ChildChunkUpdateApi(Resource):
         child_chunk_id = str(child_chunk_id)
         child_chunk = (
             db.session.query(ChildChunk)
-            .filter(ChildChunk.id == str(child_chunk_id), ChildChunk.tenant_id == current_user.current_tenant_id)
+            .where(ChildChunk.id == str(child_chunk_id), ChildChunk.tenant_id == current_user.current_tenant_id)
             .first()
         )
         if not child_chunk:

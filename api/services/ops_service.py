@@ -24,7 +24,7 @@ class OpsService:
         """
         trace_config_data: Optional[TraceAppConfig] = (
             db.session.query(TraceAppConfig)
-            .filter(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
+            .where(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
             .first()
         )
 
@@ -32,7 +32,7 @@ class OpsService:
             return None
 
         # decrypt_token and obfuscated_token
-        app = db.session.query(App).filter(App.id == app_id).first()
+        app = db.session.query(App).where(App.id == app_id).first()
         if not app:
             return None
         tenant_id = app.tenant_id
@@ -40,6 +40,24 @@ class OpsService:
             tenant_id, tracing_provider, trace_config_data.tracing_config
         )
         new_decrypt_tracing_config = OpsTraceManager.obfuscated_decrypt_token(tracing_provider, decrypt_tracing_config)
+
+        if tracing_provider == "arize" and (
+            "project_url" not in decrypt_tracing_config or not decrypt_tracing_config.get("project_url")
+        ):
+            try:
+                project_url = OpsTraceManager.get_trace_config_project_url(decrypt_tracing_config, tracing_provider)
+                new_decrypt_tracing_config.update({"project_url": project_url})
+            except Exception:
+                new_decrypt_tracing_config.update({"project_url": "https://app.arize.com/"})
+
+        if tracing_provider == "phoenix" and (
+            "project_url" not in decrypt_tracing_config or not decrypt_tracing_config.get("project_url")
+        ):
+            try:
+                project_url = OpsTraceManager.get_trace_config_project_url(decrypt_tracing_config, tracing_provider)
+                new_decrypt_tracing_config.update({"project_url": project_url})
+            except Exception:
+                new_decrypt_tracing_config.update({"project_url": "https://app.phoenix.arize.com/projects/"})
 
         if tracing_provider == "langfuse" and (
             "project_key" not in decrypt_tracing_config or not decrypt_tracing_config.get("project_key")
@@ -138,6 +156,16 @@ class OpsService:
                 new_decrypt_tracing_config.update({"project_url": project_url})
             except Exception:
                 new_decrypt_tracing_config.update({"project_url": "https://wandb.ai/"})
+
+        if tracing_provider == "aliyun" and (
+            "project_url" not in decrypt_tracing_config or not decrypt_tracing_config.get("project_url")
+        ):
+            try:
+                project_url = OpsTraceManager.get_trace_config_project_url(decrypt_tracing_config, tracing_provider)
+                new_decrypt_tracing_config.update({"project_url": project_url})
+            except Exception:
+                new_decrypt_tracing_config.update({"project_url": "https://arms.console.aliyun.com/"})
+
         trace_config_data.tracing_config = new_decrypt_tracing_config
         return trace_config_data.to_dict()
     
@@ -169,7 +197,9 @@ class OpsService:
             return {"error": "Invalid Credentials"}
 
         # get project url
-        if tracing_provider == "langfuse":
+        if tracing_provider in ("arize", "phoenix"):
+            project_url = OpsTraceManager.get_trace_config_project_url(tracing_config, tracing_provider)
+        elif tracing_provider == "langfuse":
             project_key = OpsTraceManager.get_trace_config_project_key(tracing_config, tracing_provider)
             project_url = "{host}/project/{key}".format(host=tracing_config.get("host"), key=project_key)
         elif tracing_provider in ("langsmith", "opik"):
@@ -180,7 +210,7 @@ class OpsService:
         # check if trace config already exists
         trace_config_data: Optional[TraceAppConfig] = (
             db.session.query(TraceAppConfig)
-            .filter(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
+            .where(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
             .first()
         )
 
@@ -188,7 +218,7 @@ class OpsService:
             return None
 
         # get tenant id
-        app = db.session.query(App).filter(App.id == app_id).first()
+        app = db.session.query(App).where(App.id == app_id).first()
         if not app:
             return None
         tenant_id = app.tenant_id
@@ -284,7 +314,7 @@ class OpsService:
         # check if trace config already exists
         current_trace_config = (
             db.session.query(TraceAppConfig)
-            .filter(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
+            .where(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
             .first()
         )
 
@@ -292,7 +322,7 @@ class OpsService:
             return None
 
         # get tenant id
-        app = db.session.query(App).filter(App.id == app_id).first()
+        app = db.session.query(App).where(App.id == app_id).first()
         if not app:
             return None
         tenant_id = app.tenant_id
@@ -362,7 +392,7 @@ class OpsService:
         """
         trace_config = (
             db.session.query(TraceAppConfig)
-            .filter(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
+            .where(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
             .first()
         )
 

@@ -26,7 +26,7 @@ class AppAnnotationService:
         # get app info
         app = (
             db.session.query(App)
-            .filter(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
+            .where(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
             .first()
         )
 
@@ -35,7 +35,7 @@ class AppAnnotationService:
         if args.get("message_id"):
             message_id = str(args["message_id"])
             # get message info
-            message = db.session.query(Message).filter(Message.id == message_id, Message.app_id == app.id).first()
+            message = db.session.query(Message).where(Message.id == message_id, Message.app_id == app.id).first()
 
             if not message:
                 raise NotFound("Message Not Exists.")
@@ -61,9 +61,7 @@ class AppAnnotationService:
         db.session.add(annotation)
         db.session.commit()
         # if annotation reply is enabled , add annotation to index
-        annotation_setting = (
-            db.session.query(AppAnnotationSetting).filter(AppAnnotationSetting.app_id == app_id).first()
-        )
+        annotation_setting = db.session.query(AppAnnotationSetting).where(AppAnnotationSetting.app_id == app_id).first()
         if annotation_setting:
             add_annotation_to_index_task.delay(
                 annotation.id,
@@ -117,7 +115,7 @@ class AppAnnotationService:
         # get app info
         app = (
             db.session.query(App)
-            .filter(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
+            .where(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
             .first()
         )
 
@@ -126,8 +124,8 @@ class AppAnnotationService:
         if keyword:
             stmt = (
                 select(MessageAnnotation)
-                .filter(MessageAnnotation.app_id == app_id)
-                .filter(
+                .where(MessageAnnotation.app_id == app_id)
+                .where(
                     or_(
                         MessageAnnotation.question.ilike("%{}%".format(keyword)),
                         MessageAnnotation.content.ilike("%{}%".format(keyword)),
@@ -139,7 +137,7 @@ class AppAnnotationService:
         else:
             stmt = (
                 select(MessageAnnotation)
-                .filter(MessageAnnotation.app_id == app_id)
+                .where(MessageAnnotation.app_id == app_id)
                 .order_by(MessageAnnotation.created_at.desc(), MessageAnnotation.id.desc())
             )
         annotations = db.paginate(select=stmt, page=page, per_page=limit, max_per_page=100, error_out=False)
@@ -150,7 +148,7 @@ class AppAnnotationService:
         # get app info
         app = (
             db.session.query(App)
-            .filter(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
+            .where(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
             .first()
         )
 
@@ -158,7 +156,7 @@ class AppAnnotationService:
             raise NotFound("App not found")
         annotations = (
             db.session.query(MessageAnnotation)
-            .filter(MessageAnnotation.app_id == app_id)
+            .where(MessageAnnotation.app_id == app_id)
             .order_by(MessageAnnotation.created_at.desc())
             .all()
         )
@@ -169,7 +167,7 @@ class AppAnnotationService:
         # get app info
         app = (
             db.session.query(App)
-            .filter(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
+            .where(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
             .first()
         )
 
@@ -182,9 +180,7 @@ class AppAnnotationService:
         db.session.add(annotation)
         db.session.commit()
         # if annotation reply is enabled , add annotation to index
-        annotation_setting = (
-            db.session.query(AppAnnotationSetting).filter(AppAnnotationSetting.app_id == app_id).first()
-        )
+        annotation_setting = db.session.query(AppAnnotationSetting).where(AppAnnotationSetting.app_id == app_id).first()
         if annotation_setting:
             add_annotation_to_index_task.delay(
                 annotation.id,
@@ -200,14 +196,14 @@ class AppAnnotationService:
         # get app info
         app = (
             db.session.query(App)
-            .filter(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
+            .where(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
             .first()
         )
 
         if not app:
             raise NotFound("App not found")
 
-        annotation = db.session.query(MessageAnnotation).filter(MessageAnnotation.id == annotation_id).first()
+        annotation = db.session.query(MessageAnnotation).where(MessageAnnotation.id == annotation_id).first()
 
         if not annotation:
             raise NotFound("Annotation not found")
@@ -218,7 +214,7 @@ class AppAnnotationService:
         db.session.commit()
         # if annotation reply is enabled , add annotation to index
         app_annotation_setting = (
-            db.session.query(AppAnnotationSetting).filter(AppAnnotationSetting.app_id == app_id).first()
+            db.session.query(AppAnnotationSetting).where(AppAnnotationSetting.app_id == app_id).first()
         )
 
         if app_annotation_setting:
@@ -237,14 +233,14 @@ class AppAnnotationService:
         # get app info
         app = (
             db.session.query(App)
-            .filter(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
+            .where(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
             .first()
         )
 
         if not app:
             raise NotFound("App not found")
 
-        annotation = db.session.query(MessageAnnotation).filter(MessageAnnotation.id == annotation_id).first()
+        annotation = db.session.query(MessageAnnotation).where(MessageAnnotation.id == annotation_id).first()
 
         if not annotation:
             raise NotFound("Annotation not found")
@@ -253,7 +249,7 @@ class AppAnnotationService:
 
         annotation_hit_histories = (
             db.session.query(AppAnnotationHitHistory)
-            .filter(AppAnnotationHitHistory.annotation_id == annotation_id)
+            .where(AppAnnotationHitHistory.annotation_id == annotation_id)
             .all()
         )
         if annotation_hit_histories:
@@ -263,7 +259,7 @@ class AppAnnotationService:
         db.session.commit()
         # if annotation reply is enabled , delete annotation index
         app_annotation_setting = (
-            db.session.query(AppAnnotationSetting).filter(AppAnnotationSetting.app_id == app_id).first()
+            db.session.query(AppAnnotationSetting).where(AppAnnotationSetting.app_id == app_id).first()
         )
 
         if app_annotation_setting:
@@ -276,7 +272,7 @@ class AppAnnotationService:
         # get app info
         app = (
             db.session.query(App)
-            .filter(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
+            .where(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
             .first()
         )
 
@@ -315,21 +311,21 @@ class AppAnnotationService:
         # get app info
         app = (
             db.session.query(App)
-            .filter(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
+            .where(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
             .first()
         )
 
         if not app:
             raise NotFound("App not found")
 
-        annotation = db.session.query(MessageAnnotation).filter(MessageAnnotation.id == annotation_id).first()
+        annotation = db.session.query(MessageAnnotation).where(MessageAnnotation.id == annotation_id).first()
 
         if not annotation:
             raise NotFound("Annotation not found")
 
         stmt = (
             select(AppAnnotationHitHistory)
-            .filter(
+            .where(
                 AppAnnotationHitHistory.app_id == app_id,
                 AppAnnotationHitHistory.annotation_id == annotation_id,
             )
@@ -343,7 +339,7 @@ class AppAnnotationService:
 
     @classmethod
     def get_annotation_by_id(cls, annotation_id: str) -> MessageAnnotation | None:
-        annotation = db.session.query(MessageAnnotation).filter(MessageAnnotation.id == annotation_id).first()
+        annotation = db.session.query(MessageAnnotation).where(MessageAnnotation.id == annotation_id).first()
 
         if not annotation:
             return None
@@ -363,7 +359,7 @@ class AppAnnotationService:
         score: float,
     ):
         # add hit count to annotation
-        db.session.query(MessageAnnotation).filter(MessageAnnotation.id == annotation_id).update(
+        db.session.query(MessageAnnotation).where(MessageAnnotation.id == annotation_id).update(
             {MessageAnnotation.hit_count: MessageAnnotation.hit_count + 1}, synchronize_session=False
         )
 
@@ -386,16 +382,14 @@ class AppAnnotationService:
         # get app info
         app = (
             db.session.query(App)
-            .filter(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
+            .where(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
             .first()
         )
 
         if not app:
             raise NotFound("App not found")
 
-        annotation_setting = (
-            db.session.query(AppAnnotationSetting).filter(AppAnnotationSetting.app_id == app_id).first()
-        )
+        annotation_setting = db.session.query(AppAnnotationSetting).where(AppAnnotationSetting.app_id == app_id).first()
         if annotation_setting:
             collection_binding_detail = annotation_setting.collection_binding_detail
             return {
@@ -414,7 +408,7 @@ class AppAnnotationService:
         # get app info
         app = (
             db.session.query(App)
-            .filter(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
+            .where(App.id == app_id, App.tenant_id == current_user.current_tenant_id, App.status == "normal")
             .first()
         )
 
@@ -423,7 +417,7 @@ class AppAnnotationService:
 
         annotation_setting = (
             db.session.query(AppAnnotationSetting)
-            .filter(
+            .where(
                 AppAnnotationSetting.app_id == app_id,
                 AppAnnotationSetting.id == annotation_setting_id,
             )

@@ -15,6 +15,9 @@
 
 # 修改class TraceQueueManager()內容
 # 1. 新增mode變數
+# 
+# 修改日期2025/07/29
+# 正式移除mode變數
 import json
 import logging
 import os
@@ -111,6 +114,36 @@ class OpsTraceProviderConfigMap(dict[str, dict[str, Any]]):
                     "other_keys": ["project", "entity", "endpoint", "host"],
                     "trace_instance": WeaveDataTrace,
                 }
+            case TracingProviderEnum.ARIZE:
+                from core.ops.arize_phoenix_trace.arize_phoenix_trace import ArizePhoenixDataTrace
+                from core.ops.entities.config_entity import ArizeConfig
+
+                return {
+                    "config_class": ArizeConfig,
+                    "secret_keys": ["api_key", "space_id"],
+                    "other_keys": ["project", "endpoint"],
+                    "trace_instance": ArizePhoenixDataTrace,
+                }
+            case TracingProviderEnum.PHOENIX:
+                from core.ops.arize_phoenix_trace.arize_phoenix_trace import ArizePhoenixDataTrace
+                from core.ops.entities.config_entity import PhoenixConfig
+
+                return {
+                    "config_class": PhoenixConfig,
+                    "secret_keys": ["api_key"],
+                    "other_keys": ["project", "endpoint"],
+                    "trace_instance": ArizePhoenixDataTrace,
+                }
+            case TracingProviderEnum.ALIYUN:
+                from core.ops.aliyun_trace.aliyun_trace import AliyunDataTrace
+                from core.ops.entities.config_entity import AliyunConfig
+
+                return {
+                    "config_class": AliyunConfig,
+                    "secret_keys": ["license_key"],
+                    "other_keys": ["endpoint", "app_name"],
+                    "trace_instance": AliyunDataTrace,
+                }
 
             case _:
                 raise KeyError(f"Unsupported tracing provider: {provider}")
@@ -206,44 +239,24 @@ class OpsTraceManager:
         return config_class(**new_config).model_dump()
 
     @classmethod
-    def get_decrypted_tracing_config(cls, app_id: str, tracing_provider: str, mode: Optional[str] = None):
+    def get_decrypted_tracing_config(cls, app_id: str, tracing_provider: str):
         """
         Get decrypted tracing config
         :param app_id: app id
         :param tracing_provider: tracing provider
         :return:
         """
-        if mode == "dataset":
-            trace_config_data: TraceDatasetConfig = (
-                db.session.query(TraceDatasetConfig)
-                .filter(
-                    TraceDatasetConfig.dataset_id == app_id, 
-                    TraceDatasetConfig.tracing_provider == tracing_provider
-                ).first()
-            )
+        trace_config_data: Optional[TraceAppConfig] = (
+            db.session.query(TraceAppConfig)
+            .where(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
+            .first()
+        )
 
-            if not trace_config_data:
-                return None
+        if not trace_config_data:
+            return None
 
-            # decrypt_token
-            tenant_id = db.session.query(Dataset).filter(Dataset.id == app_id).first().tenant_id
-            decrypt_tracing_config = cls.decrypt_tracing_config(
-                tenant_id, tracing_provider, trace_config_data.tracing_config
-            )
-
-            return decrypt_tracing_config
-        else:
-            trace_config_data: Optional[TraceAppConfig] = (
-                db.session.query(TraceAppConfig)
-                .filter(TraceAppConfig.app_id == app_id, TraceAppConfig.tracing_provider == tracing_provider)
-                .first()
-            )
-
-            if not trace_config_data:
-                return None
-
-            # decrypt_token
-            app = db.session.query(App).filter(App.id == app_id).first()
+        # decrypt_token
+        app = db.session.query(App).where(App.id == app_id).first()
         if not app:
             raise ValueError("App not found")
 
@@ -258,83 +271,41 @@ class OpsTraceManager:
     def get_ops_trace_instance(
         cls,
         app_id: Optional[Union[UUID, str]] = None,
-        mode: Optional[str] = None,
     ):
         """
         Get ops trace through model config
         :param app_id: app_id
-        :param mode: ensure the tracing task is on right mode
         :return:
         """
-        if mode == "dataset":
-            if isinstance(app_id, UUID):
-                app_id = str(app_id)
+        if isinstance(app_id, UUID):
+            app_id = str(app_id)
 
-            if app_id is None:
-                return None
-
-            dataset: Optional[Dataset] = db.session.query(Dataset).filter(Dataset.id == app_id).first()
-
-            if dataset is None:
-                return None
-
-            dataset_ops_trace_config = json.loads(dataset.tracing) if dataset.tracing else None
-
-            if dataset_ops_trace_config is None:
-                return None
-
-            tracing_provider = dataset_ops_trace_config.get("tracing_provider")
-
-            if tracing_provider is None or tracing_provider not in provider_config_map:
-                return None
-
-            # decrypt_token
-            decrypt_trace_config = cls.get_decrypted_tracing_config(app_id, tracing_provider, "dataset")
-            if dataset_ops_trace_config.get("enabled"):
-                trace_instance, config_class = (
-                    provider_config_map[tracing_provider]["trace_instance"],
-                    provider_config_map[tracing_provider]["config_class"],
-                )
-                tracing_instance = trace_instance(config_class(**decrypt_trace_config))
-                return tracing_instance
-
+        if app_id is None:
             return None
-        else:
-            """
-            Get ops trace through model config
-            :param app_id: app_id
-            :return:
-            """
-            if isinstance(app_id, UUID):
-                app_id = str(app_id)
 
-            if app_id is None:
-                return None
+        app: Optional[App] = db.session.query(App).where(App.id == app_id).first()
 
-            app: Optional[App] = db.session.query(App).filter(App.id == app_id).first()
+        if app is None:
+            return None
 
-            if app is None:
-                return None
+        app_ops_trace_config = json.loads(app.tracing) if app.tracing else None
+        if app_ops_trace_config is None:
+            return None
+        if not app_ops_trace_config.get("enabled"):
+            return None
 
-            app_ops_trace_config = json.loads(app.tracing) if app.tracing else None
-            if app_ops_trace_config is None:
-                return None
-            if not app_ops_trace_config.get("enabled"):
-                return None
+        tracing_provider = app_ops_trace_config.get("tracing_provider")
+        if tracing_provider is None:
+            return None
+        try:
+            provider_config_map[tracing_provider]
+        except KeyError:
+            return None
 
-            tracing_provider = app_ops_trace_config.get("tracing_provider")
-            tracing_enabled = app_ops_trace_config.get("enabled", False)
-            if tracing_provider is None or not tracing_enabled:
-                return None
-            try:
-                provider_config_map[tracing_provider]
-            except KeyError:
-                return None
-            
-            # decrypt_token
-            decrypt_trace_config = cls.get_decrypted_tracing_config(app_id, tracing_provider)
-            if not decrypt_trace_config:
-                return None
+        # decrypt_token
+        decrypt_trace_config = cls.get_decrypted_tracing_config(app_id, tracing_provider)
+        if not decrypt_trace_config:
+            return None
 
         trace_instance, config_class = (
             provider_config_map[tracing_provider]["trace_instance"],
@@ -352,18 +323,18 @@ class OpsTraceManager:
     @classmethod
     def get_app_config_through_message_id(cls, message_id: str):
         app_model_config = None
-        message_data = db.session.query(Message).filter(Message.id == message_id).first()
+        message_data = db.session.query(Message).where(Message.id == message_id).first()
         if not message_data:
             return None
         conversation_id = message_data.conversation_id
-        conversation_data = db.session.query(Conversation).filter(Conversation.id == conversation_id).first()
+        conversation_data = db.session.query(Conversation).where(Conversation.id == conversation_id).first()
         if not conversation_data:
             return None
 
         if conversation_data.app_model_config_id:
             app_model_config = (
                 db.session.query(AppModelConfig)
-                .filter(AppModelConfig.id == conversation_data.app_model_config_id)
+                .where(AppModelConfig.id == conversation_data.app_model_config_id)
                 .first()
             )
         elif conversation_data.app_model_config_id is None and conversation_data.override_model_configs:
@@ -390,7 +361,7 @@ class OpsTraceManager:
             if tracing_provider is not None:
                 raise ValueError(f"Invalid tracing provider: {tracing_provider}")
 
-        app_config: Optional[App] = db.session.query(App).filter(App.id == app_id).first()
+        app_config: Optional[App] = db.session.query(App).where(App.id == app_id).first()
         if not app_config:
             raise ValueError("App not found")
         app_config.tracing = json.dumps(
@@ -430,7 +401,7 @@ class OpsTraceManager:
         :param app_id: app id
         :return:
         """
-        app: Optional[App] = db.session.query(App).filter(App.id == app_id).first()
+        app: Optional[App] = db.session.query(App).where(App.id == app_id).first()
         if not app:
             raise ValueError("App not found")
         if not app.tracing:
@@ -618,6 +589,10 @@ class TraceTask:
                 "user_id": user_id,
                 "app_id": workflow_run.app_id,
             }
+
+            external_trace_id = self.kwargs.get("external_trace_id")
+            if external_trace_id:
+                metadata["external_trace_id"] = external_trace_id
 
             workflow_trace_info = WorkflowTraceInfo(
                 workflow_data=workflow_run.to_dict(),
@@ -936,13 +911,12 @@ trace_manager_batch_size = int(os.getenv("TRACE_QUEUE_MANAGER_BATCH_SIZE", 100))
 
 
 class TraceQueueManager:
-    def __init__(self, app_id=None, user_id=None, mode=None):
+    def __init__(self, app_id=None, user_id=None):
         global trace_manager_timer
 
         self.app_id = app_id
         self.user_id = user_id
-        self.mode = mode
-        self.trace_instance = OpsTraceManager.get_ops_trace_instance(app_id, mode)
+        self.trace_instance = OpsTraceManager.get_ops_trace_instance(app_id)
         self.flask_app = current_app._get_current_object()  # type: ignore
         if trace_manager_timer is None:
             self.start_timer()
@@ -951,8 +925,6 @@ class TraceQueueManager:
         global trace_manager_timer, trace_manager_queue
         try:
             if self.trace_instance:
-                if isinstance(self.mode, str):
-                    trace_task.mode = self.mode
                 trace_task.app_id = self.app_id
                 trace_manager_queue.put(trace_task)
         except Exception as e:
@@ -1002,6 +974,5 @@ class TraceQueueManager:
                 file_info = {
                     "file_id": file_id,
                     "app_id": task.app_id,
-                    "mode": task.mode,
                 }
                 process_trace_tasks.delay(file_info)

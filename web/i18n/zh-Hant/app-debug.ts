@@ -198,6 +198,99 @@ const translation = {
         },
       },
     },
+    fileUpload: {
+      title: '文件上傳',
+      description: '聊天輸入框支持上傳文件。類型包括圖片、文檔以及其它類型',
+      supportedTypes: '支持的文件類型',
+      numberLimit: '最大上傳數',
+      modalTitle: '文件上傳設置',
+    },
+    imageUpload: {
+      title: '圖片上傳',
+      description: '支持上傳圖片',
+      supportedTypes: '支持的文件類型',
+      numberLimit: '最大上傳數',
+      modalTitle: '圖片上傳設置',
+    },
+    bar: {
+      empty: '開啟功能增強 web app 用戶體驗',
+      enableText: '功能已開啟',
+      manage: '管理',
+    },
+    documentUpload: {
+      title: '文檔',
+      description: '啟用文檔後，模型可以接收文檔並回答關於它們的問題。',
+    },
+  },
+  codegen: {
+    title: '代碼生成器',
+    description: '代碼生成器使用配置的模型根據您的指令生成高質量的代碼。請提供清晰詳細的說明。',
+    instruction: '指令',
+    instructionPlaceholder: '請輸入您想要生成的代碼的詳細描述。',
+    noDataLine1: '在左側描述您的用例，',
+    noDataLine2: '代碼預覽將在此處顯示。',
+    generate: '生成',
+    generatedCodeTitle: '生成的代碼',
+    loading: '正在生成代碼...',
+    apply: '應用',
+    applyChanges: '應用更改',
+    resTitle: '生成的代碼',
+    overwriteConfirmTitle: '是否覆蓋現有代碼？',
+    overwriteConfirmMessage: '此操作將覆蓋現有代碼。您確定要繼續嗎？',
+  },
+  generate: {
+    title: '提示詞生成器',
+    description: '提示詞生成器使用配置的模型來優化提示詞，以獲得更高的質量和更好的結構。請寫出清晰詳細的說明。',
+    tryIt: '試一試',
+    instruction: '指令',
+    instructionPlaceHolder: '寫下清晰、具體的說明。',
+    generate: '生成',
+    resTitle: '生成的提示詞',
+    noDataLine1: '在左側描述您的用例，',
+    noDataLine2: '編排預覽將在此處顯示。',
+    apply: '應用',
+    noData: '在左側描述您的用例，編排預覽將在此處顯示。',
+    loading: '為您編排應用程序中…',
+    overwriteTitle: '覆蓋現有配置？',
+    overwriteMessage: '應用此提示將覆蓋現有配置。',
+    template: {
+      pythonDebugger: {
+        name: 'Python 代碼助手',
+        instruction: '一個幫你寫和糾錯程序的機器人',
+      },
+      translation: {
+        name: '翻譯機器人',
+        instruction: '一個可以翻譯多種語言的翻譯器',
+      },
+      professionalAnalyst: {
+        name: '職業分析師',
+        instruction: ' 從長篇報告中提取洞察、識別風險並提煉關鍵信息',
+      },
+      excelFormulaExpert: {
+        name: 'Excel 公式專家',
+        instruction: '一個可以讓小白用戶理解、使用和創建 Excel 公式的對話機器人',
+      },
+      travelPlanning: {
+        name: '旅行規劃助手',
+        instruction: '旅行規劃助手是一個智能工具，旨在幫助用戶輕松規劃他們的旅行',
+      },
+      SQLSorcerer: {
+        name: 'SQL 生成',
+        instruction: '把自然語言轉換成 SQL 查詢語句',
+      },
+      GitGud: {
+        name: 'Git 大師',
+        instruction: '從用戶提出的版本管理需求生成合適的 Git 命令',
+      },
+      meetingTakeaways: {
+        name: '總結會議紀要',
+        instruction: '將會議內容提煉總結，包括討論主題、關鍵要點和待辦事項',
+      },
+      writingsPolisher: {
+        name: '潤色文章',
+        instruction: '用地道的編輯技巧改進我的文章',
+      },
+    },
   },
   resetConfig: {
     title: '確認重置？',
@@ -211,6 +304,7 @@ const translation = {
     waitForBatchResponse: '請等待批次任務完成',
     notSelectModel: '請選擇模型',
     waitForImgUpload: '請等待圖片上傳完成',
+    waitForFileUpload: '請等待文件上傳完成',
   },
   chatSubTitle: '提示詞',
   completionSubTitle: '字首提示詞',
@@ -265,6 +359,32 @@ const translation = {
     'labelName': '顯示名稱',
     'required': '必填',
     'hide': '隱藏',
+    'file': {
+      supportFileTypes: '支持的文件類型',
+      image: {
+        name: '圖片',
+      },
+      audio: {
+        name: '音頻',
+      },
+      document: {
+        name: '文檔',
+      },
+      video: {
+        name: '視頻',
+      },
+      custom: {
+        name: '其他文件類型',
+        description: '指定其他文件類型',
+        createPlaceholder: '+ 文件擴展名，例如 .doc',
+      },
+    },
+    'uploadFileTypes': '上傳文件類型',
+    'localUpload': '本地上傳',
+    'both': '兩者',
+    'maxNumberOfUploads': '最大上傳數',
+    'maxNumberTip': '文檔 < {{docLimit}}, 圖片 < {{imgLimit}}, 音頻 < {{audioLimit}}, 視頻 < {{videoLimit}}',
+    'content': '內容',
     'errorMsg': {
       varNameRequired: '變數名稱必填',
       labelNameRequired: '顯示名稱必填',
@@ -313,6 +433,7 @@ const translation = {
     writeOpener: '編寫開場白',
     placeholder: '在這裡寫下你的開場白，你可以使用變數，嘗試輸入 {{variable}}。',
     openingQuestion: '開場問題',
+    openingQuestionPlaceholder: '可以使用變量，嘗試輸入 {{variable}}。',
     noDataPlaceHolder:
       '在對話型應用中，讓 AI 主動說第一段話可以拉近與使用者間的距離。',
     varTip: '你可以使用變數，試試輸入 {{variable}}',
@@ -341,6 +462,7 @@ const translation = {
     run: '執行',
   },
   result: '結果',
+  noResult: '輸出結果展示在這',
   datasetConfig: {
     settingTitle: '召回設定',
     knowledgeTip: '點選“+”按鈕新增知識庫',
