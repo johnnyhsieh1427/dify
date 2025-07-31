@@ -1,5 +1,3 @@
-# 修改日期2025-01-13
-# 修改function load()方法的實現，新增**kwargs參數
 """Abstract interface for document loader implementations."""
 
 from abc import ABC, abstractmethod

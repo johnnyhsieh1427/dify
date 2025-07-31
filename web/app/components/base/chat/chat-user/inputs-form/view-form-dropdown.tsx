@@ -6,7 +6,7 @@ import {
 import { PortalToFollowElem, PortalToFollowElemContent, PortalToFollowElemTrigger } from '@/app/components/base/portal-to-follow-elem'
 import ActionButton, { ActionButtonState } from '@/app/components/base/action-button'
 import { Message3Fill } from '@/app/components/base/icons/src/public/other'
-import InputsFormContent from '@/app/components/base/chat/chat-with-history/inputs-form/content'
+import InputsFormContent from '@/app/components/base/chat/chat-user/inputs-form/content'
 
 const ViewFormDropdown = () => {
   const { t } = useTranslation()

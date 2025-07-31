@@ -44,7 +44,7 @@ class WorkflowToolManageService:
         # check if the name is unique
         existing_workflow_tool_provider = (
             db.session.query(WorkflowToolProvider)
-            .filter(
+            .where(
                 WorkflowToolProvider.tenant_id == tenant_id,
                 # name or app_id
                 or_(WorkflowToolProvider.name == name, WorkflowToolProvider.app_id == workflow_app_id),
@@ -55,7 +55,7 @@ class WorkflowToolManageService:
         if existing_workflow_tool_provider is not None:
             raise ValueError(f"Tool with name {name} or app_id {workflow_app_id} already exists")
 
-        app: App | None = db.session.query(App).filter(App.id == workflow_app_id, App.tenant_id == tenant_id).first()
+        app: App | None = db.session.query(App).where(App.id == workflow_app_id, App.tenant_id == tenant_id).first()
 
         if app is None:
             raise ValueError(f"App {workflow_app_id} not found")
@@ -124,7 +124,7 @@ class WorkflowToolManageService:
         # check if the name is unique
         existing_workflow_tool_provider = (
             db.session.query(WorkflowToolProvider)
-            .filter(
+            .where(
                 WorkflowToolProvider.tenant_id == tenant_id,
                 WorkflowToolProvider.name == name,
                 WorkflowToolProvider.id != workflow_tool_id,
@@ -137,7 +137,7 @@ class WorkflowToolManageService:
 
         workflow_tool_provider: WorkflowToolProvider | None = (
             db.session.query(WorkflowToolProvider)
-            .filter(WorkflowToolProvider.tenant_id == tenant_id, WorkflowToolProvider.id == workflow_tool_id)
+            .where(WorkflowToolProvider.tenant_id == tenant_id, WorkflowToolProvider.id == workflow_tool_id)
             .first()
         )
 
@@ -145,7 +145,7 @@ class WorkflowToolManageService:
             raise ValueError(f"Tool {workflow_tool_id} not found")
 
         app: App | None = (
-            db.session.query(App).filter(App.id == workflow_tool_provider.app_id, App.tenant_id == tenant_id).first()
+            db.session.query(App).where(App.id == workflow_tool_provider.app_id, App.tenant_id == tenant_id).first()
         )
 
         if app is None:
@@ -187,22 +187,7 @@ class WorkflowToolManageService:
         :param tenant_id: the tenant id
         :return: the list of tools
         """
-        
-        """
-        加入使用者是否在其他的工作區
-        權限為admin
-        """
-        
-        joined_tenants = db.session.query(TenantAccountJoin).filter(
-            TenantAccountJoin.account_id == user_id, TenantAccountJoin.role == "admin"
-        ).all()
-        
-        if len(joined_tenants) > 0:
-            db_tools = db.session.query(WorkflowToolProvider).filter(
-                WorkflowToolProvider.tenant_id.in_([tenant_id] + [join.tenant_id for join in joined_tenants])
-            ).all()
-        else:
-            db_tools = db.session.query(WorkflowToolProvider).filter(WorkflowToolProvider.tenant_id == tenant_id).all()
+        db_tools = db.session.query(WorkflowToolProvider).where(WorkflowToolProvider.tenant_id == tenant_id).all()
 
         tools: list[WorkflowToolProviderController] = []
         for provider in db_tools:
@@ -240,7 +225,7 @@ class WorkflowToolManageService:
         :param tenant_id: the tenant id
         :param workflow_tool_id: the workflow tool id
         """
-        db.session.query(WorkflowToolProvider).filter(
+        db.session.query(WorkflowToolProvider).where(
             WorkflowToolProvider.tenant_id == tenant_id, WorkflowToolProvider.id == workflow_tool_id
         ).delete()
 
@@ -259,7 +244,7 @@ class WorkflowToolManageService:
         """
         db_tool: WorkflowToolProvider | None = (
             db.session.query(WorkflowToolProvider)
-            .filter(WorkflowToolProvider.tenant_id == tenant_id, WorkflowToolProvider.id == workflow_tool_id)
+            .where(WorkflowToolProvider.tenant_id == tenant_id, WorkflowToolProvider.id == workflow_tool_id)
             .first()
         )
         return cls._get_workflow_tool(tenant_id, db_tool)
@@ -275,7 +260,7 @@ class WorkflowToolManageService:
         """
         db_tool: WorkflowToolProvider | None = (
             db.session.query(WorkflowToolProvider)
-            .filter(WorkflowToolProvider.tenant_id == tenant_id, WorkflowToolProvider.app_id == workflow_app_id)
+            .where(WorkflowToolProvider.tenant_id == tenant_id, WorkflowToolProvider.app_id == workflow_app_id)
             .first()
         )
         return cls._get_workflow_tool(tenant_id, db_tool)
@@ -291,7 +276,7 @@ class WorkflowToolManageService:
             raise ValueError("Tool not found")
 
         workflow_app: App | None = (
-            db.session.query(App).filter(App.id == db_tool.app_id, App.tenant_id == db_tool.tenant_id).first()
+            db.session.query(App).where(App.id == db_tool.app_id, App.tenant_id == db_tool.tenant_id).first()
         )
 
         if workflow_app is None:
@@ -334,7 +319,7 @@ class WorkflowToolManageService:
         """
         db_tool: WorkflowToolProvider | None = (
             db.session.query(WorkflowToolProvider)
-            .filter(WorkflowToolProvider.tenant_id == tenant_id, WorkflowToolProvider.id == workflow_tool_id)
+            .where(WorkflowToolProvider.tenant_id == tenant_id, WorkflowToolProvider.id == workflow_tool_id)
             .first()
         )
 

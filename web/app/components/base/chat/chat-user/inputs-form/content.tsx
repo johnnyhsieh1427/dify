@@ -1,6 +1,3 @@
-// 修改日期2025-07-23
-// 更新符合最新的ChatWithHistoryContextValue定義
-
 import React, { memo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useChatWithHistoryContext } from '../context'
@@ -76,7 +73,7 @@ const InputsFormContent = ({ showTip }: Props) => {
           {form.type === InputVarType.select && (
             <PortalSelect
               popupClassName='w-[200px]'
-              value={inputsFormValue?.[form.variable]}
+              value={inputsFormValue?.[form.variable] ?? form.default ?? ''}
               items={form.options.map((option: string) => ({ value: option, name: option }))}
               onSelect={item => handleFormChange(form.variable, item.value as string)}
               placeholder={form.label}

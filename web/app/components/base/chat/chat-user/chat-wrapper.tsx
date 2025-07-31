@@ -19,7 +19,8 @@ import { getLastAnswer, isValidGeneratedAnswer } from '../utils'
 import { useChatWithHistoryContext } from './context'
 import { InputVarType } from '@/app/components/workflow/types'
 import { TransferMethod } from '@/types/app'
-import InputsForm from '@/app/components/base/chat/chat-with-history/inputs-form'
+import { useWebAppStore } from '@/context/web-app-context'
+import InputsForm from '@/app/components/base/chat/chat-user/inputs-form'
 import {
   fetchSuggestedQuestions,
   getUrl,
@@ -50,7 +51,6 @@ const ChatWrapper = () => {
     handleFeedback,
     currentChatInstanceRef,
     appData,
-    appDataList,
     themeBuilder,
     sidebarCollapseState,
     clearChatList,
@@ -59,6 +59,7 @@ const ChatWrapper = () => {
     activeIndex,
     allInputsHidden,
   } = useChatWithHistoryContext()
+  const appDataList = useWebAppStore(s => s.appInfoList)
   const appConfig = useMemo(() => {
     const config = appParams || {}
 
@@ -127,7 +128,6 @@ const ChatWrapper = () => {
   useEffect(() => {
     if (currentChatInstanceRef.current)
       currentChatInstanceRef.current.handleStop = handleStop
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

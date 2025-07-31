@@ -1,6 +1,3 @@
-# 修改日期2025-01-13
-# 修改function embed_documents()的參數
-# 新增metadata、dataset和**kwargs參數
 import base64
 import logging
 from typing import Any, Optional, cast
@@ -17,7 +14,7 @@ from core.rag.embedding.embedding_base import Embeddings
 from extensions.ext_database import db
 from extensions.ext_redis import redis_client
 from libs import helper
-from models.dataset import Dataset, Embedding
+from models.dataset import Embedding
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +24,7 @@ class CacheEmbedding(Embeddings):
         self._model_instance = model_instance
         self._user = user
 
-    def embed_documents(
-        self, 
-        texts: list[str], 
-        dataset: Optional[Dataset] = None, 
-        metadata: Optional[dict[str, Any]] = None
-    ) -> list[list[float]]:
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
         """Embed search docs in batches of 10."""
         # use doc embedding cache or store if not exists
         text_embeddings: list[Any] = [None for _ in range(len(texts))]
@@ -65,21 +57,9 @@ class CacheEmbedding(Embeddings):
                 )
                 for i in range(0, len(embedding_queue_texts), max_chunks):
                     batch_texts = embedding_queue_texts[i : i + max_chunks]
-                    if isinstance(metadata, dict):
-                        metadata.setdefault(
-                            "total_tokens", 
-                            self._model_instance.get_text_embedding_num_tokens(batch_texts)
-                        )
-                        metadata.setdefault(
-                            "model_name", 
-                            self._model_instance.model
-                        )
+
                     embedding_result = self._model_instance.invoke_text_embedding(
-                        texts=batch_texts, 
-                        user=self._user, 
-                        input_type=EmbeddingInputType.DOCUMENT, 
-                        dataset=dataset, 
-                        metadata=metadata
+                        texts=batch_texts, user=self._user, input_type=EmbeddingInputType.DOCUMENT
                     )
 
                     for vector in embedding_result.embeddings:
@@ -89,7 +69,7 @@ class CacheEmbedding(Embeddings):
                             # stackoverflow best way: https://stackoverflow.com/questions/20319813/how-to-check-list-containing-nan
                             if np.isnan(normalized_embedding).any():
                                 # for issue #11827  float values are not json compliant
-                                logger.warning(f"Normalized embedding is nan: {normalized_embedding}")
+                                logger.warning("Normalized embedding is nan: %s", normalized_embedding)
                                 continue
                             embedding_queue_embeddings.append(normalized_embedding)
                         except IntegrityError:
@@ -142,7 +122,7 @@ class CacheEmbedding(Embeddings):
                 raise ValueError("Normalized embedding is nan please try again")
         except Exception as ex:
             if dify_config.DEBUG:
-                logging.exception(f"Failed to embed query text '{text[:10]}...({len(text)} chars)'")
+                logging.exception("Failed to embed query text '%s...(%s chars)'", text[:10], len(text))
             raise ex
 
         try:
@@ -156,7 +136,9 @@ class CacheEmbedding(Embeddings):
             redis_client.setex(embedding_cache_key, 600, encoded_str)
         except Exception as ex:
             if dify_config.DEBUG:
-                logging.exception(f"Failed to add embedding to redis for the text '{text[:10]}...({len(text)} chars)'")
+                logging.exception(
+                    "Failed to add embedding to redis for the text '%s...(%s chars)'", text[:10], len(text)
+                )
             raise ex
 
         return embedding_results  # type: ignore

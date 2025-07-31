@@ -26,7 +26,7 @@ import RenameModal from '@/app/components/base/chat/chat-with-history/sidebar/re
 import DifyLogo from '@/app/components/base/logo/dify-logo'
 import type { ConversationItem } from '@/models/share'
 import cn from '@/utils/classnames'
-// import { useGlobalPublicStore } from '@/context/global-public-context'
+import { useWebAppStore } from '@/context/web-app-context'
 import { CONVERSATION_ID_INFO } from '../../constants'
 import { logout } from '@/service/common'
 import Modal from '../../../modal'
@@ -41,7 +41,6 @@ const Sidebar = ({ isPanel }: Props) => {
   const { t } = useTranslation()
   const router = useRouter()
   const {
-    appDataList,
     handleNewConversation,
     pinnedConversationList,
     conversationList,
@@ -57,11 +56,10 @@ const Sidebar = ({ isPanel }: Props) => {
     isMobile,
     isResponding,
     activeIndex,
-    setActiveIndex,
   } = useChatWithHistoryContext()
   const isSidebarCollapsed = sidebarCollapseState
-  // const systemFeatures = useGlobalPublicStore(s => s.systemFeatures)
-
+  const appDataList = useWebAppStore(s => s.appInfoList)
+  const setCurrentActiveIndex = useWebAppStore(s => s.setActiveIndex)
   const [showConfirm, setShowConfirm] = useState<ConversationItem | null>(null)
   const [showRename, setShowRename] = useState<ConversationItem | null>(null)
   const [showApps, setShowApps] = useState<boolean>(false)
@@ -94,9 +92,9 @@ const Sidebar = ({ isPanel }: Props) => {
       handleRenameConversation(showRename.id, newName, { onSuccess: handleCancelRename })
   }, [showRename, handleRenameConversation, handleCancelRename])
   const handleChooseApp = useCallback((index: number) => {
-    setActiveIndex(index)
+    setCurrentActiveIndex(index)
     setShowApps(false)
-  }, [setActiveIndex])
+  }, [setCurrentActiveIndex])
   const handleLogout = async () => {
     await logout({ url: '/logout', params: {} })
     localStorage.removeItem('setup_status')

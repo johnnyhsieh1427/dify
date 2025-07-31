@@ -198,6 +198,33 @@ const translation = {
         },
       },
     },
+    fileUpload: {
+      title: '파일 업로드',
+      description: '채팅 입력 상자에서 이미지, 문서 및 기타 파일 업로드를 지원합니다.',
+      supportedTypes: '지원 파일 유형',
+      numberLimit: '최대 업로드 수',
+      modalTitle: '파일 업로드 설정',
+    },
+    imageUpload: {
+      title: '이미지 업로드',
+      description: '이미지 업로드를 지원합니다.',
+      supportedTypes: '지원 파일 유형',
+      numberLimit: '최대 업로드 수',
+      modalTitle: '이미지 업로드 설정',
+    },
+    bar: {
+      empty: '웹 앱 사용자 경험을 향상시키는 기능 활성화',
+      enableText: '기능 활성화됨',
+      manage: '관리',
+    },
+    documentUpload: {
+      title: '문서',
+      description: '문서를 활성화하면 모델이 문서를 받아들이고 문서에 대한 질문에 답할 수 있습니다.',
+    },
+    audioUpload: {
+      title: '오디오',
+      description: '오디오를 활성화하면 모델이 전사 및 분석을 위해 오디오 파일을 처리할 수 있습니다.',
+    },
   },
   automatic: {
     title: '자동 어플리케이션 오케스트레이션',
@@ -281,12 +308,14 @@ const translation = {
     'required': '필수',
     'hide': '숨기기',
     'errorMsg': {
-      varNameRequired: '변수명은 필수입니다',
       labelNameRequired: '레이블명은 필수입니다',
       varNameCanBeRepeat: '변수명은 중복될 수 없습니다',
       atLeastOneOption: '적어도 하나의 옵션이 필요합니다',
       optionRepeat: '옵션이 중복되어 있습니다',
     },
+    'defaultValue': '기본값',
+    'noDefaultValue': '기본값 없음',
+    'selectDefaultValue': '기본값 선택',
   },
   vision: {
     name: '비전',
@@ -328,6 +357,7 @@ const translation = {
     writeOpener: '오프너 작성',
     placeholder: '여기에 오프너 메시지를 작성하세요. 변수를 사용할 수 있습니다. {{variable}}를 입력해보세요.',
     openingQuestion: '시작 질문',
+    openingQuestionPlaceholder: '변수를 사용할 수 있습니다. {{variable}}을(를) 입력해 보세요.',
     noDataPlaceHolder: '사용자와의 대화를 시작하면 대화 애플리케이션에서 그들과 더 밀접한 관계를 구축하는 데 도움이 됩니다.',
     varTip: '변수를 사용할 수 있습니다. {{variable}}를 입력해보세요.',
     tooShort: '대화 시작에는 최소 20 단어의 초기 프롬프트가 필요합니다.',

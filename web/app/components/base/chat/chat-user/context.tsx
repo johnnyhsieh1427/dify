@@ -27,12 +27,8 @@ import type {
 import { noop } from 'lodash-es'
 
 export type ChatWithHistoryContextValue = {
-  appInfoError?: any
-  appInfoLoading?: boolean
-  appMeta?: AppMeta
-  appData?: AppData
-  appDataList?: AppData[]
-  userCanAccess?: boolean
+  appMeta?: AppMeta | null
+  appData?: AppData | null
   appParams?: ChatConfig
   appChatListDataLoading?: boolean
   currentConversationId: string
@@ -70,11 +66,14 @@ export type ChatWithHistoryContextValue = {
   setCurrentConversationInputs: (v: Record<string, any>) => void,
   allInputsHidden: boolean,
   activeIndex?: number
-  setActiveIndex: (index: number) => void
+  // setActiveIndex: (index: number) => void
+  initUserVariables?: {
+    name?: string
+    avatar_url?: string
+  }
 }
 
 export const ChatWithHistoryContext = createContext<ChatWithHistoryContextValue>({
-  userCanAccess: false,
   currentConversationId: '',
   appPrevChatTree: [],
   pinnedConversationList: [],
@@ -107,6 +106,7 @@ export const ChatWithHistoryContext = createContext<ChatWithHistoryContextValue>
   setCurrentConversationInputs: noop,
   allInputsHidden: false,
   activeIndex: 0,
-  setActiveIndex: noop,
+  // setActiveIndex: noop,
+  initUserVariables: {},
 })
 export const useChatWithHistoryContext = () => useContext(ChatWithHistoryContext)

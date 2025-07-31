@@ -6,7 +6,6 @@
 # 修改日期2025-02-28
 # rename()中的auto_generate，修改成取前10個字元
 from collections.abc import Callable, Sequence
-from datetime import UTC, datetime
 from typing import Optional, Union
 
 from sqlalchemy import asc, desc, func, or_, select
@@ -15,6 +14,7 @@ from sqlalchemy.orm import Session
 from core.app.entities.app_invoke_entities import InvokeFrom
 from core.llm_generator.llm_generator import LLMGenerator
 from extensions.ext_database import db
+from libs.datetime_utils import naive_utc_now
 from libs.infinite_scroll_pagination import InfiniteScrollPagination
 from models import ConversationVariable
 from models.account import Account
@@ -127,13 +127,12 @@ class ConversationService:
 
         if auto_generate:
             return cls.auto_name_conversation(app_model, conversation)
-            # return cls.auto_generate_name(app_model, conversation)
         else:
             if name in {None, ""}:
                 conversation.name = "New conversation"
             else:
                 conversation.name = name
-            conversation.updated_at = datetime.now(UTC).replace(tzinfo=None)
+            conversation.updated_at = naive_utc_now()
             db.session.commit()
 
         return conversation
@@ -172,7 +171,7 @@ class ConversationService:
         # get conversation first message
         message = (
             db.session.query(Message)
-            .filter(Message.app_id == app_model.id, Message.conversation_id == conversation.id)
+            .where(Message.app_id == app_model.id, Message.conversation_id == conversation.id)
             .order_by(Message.created_at.asc())
             .first()
         )
@@ -200,7 +199,7 @@ class ConversationService:
         account_id = (
             user.session_id 
             if isinstance(user, EndUser) and 
-            db.session.query(Account).filter(Account.id == user.session_id).first()
+            db.session.query(Account).where(Account.id == user.session_id).first()
             else user_id
         )
 
@@ -215,7 +214,7 @@ class ConversationService:
             Conversation.is_deleted == False,
         ]
 
-        conversation = db.session.query(Conversation).filter(*conversation_filters).first()
+        conversation = db.session.query(Conversation).where(*conversation_filters).first()
 
         if not conversation:
             raise ConversationNotExistsError()
@@ -227,7 +226,7 @@ class ConversationService:
         conversation = cls.get_conversation(app_model, conversation_id, user)
 
         conversation.is_deleted = True
-        conversation.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        conversation.updated_at = naive_utc_now()
         db.session.commit()
 
     @classmethod

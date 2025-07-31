@@ -7,36 +7,36 @@
 
 'use client'
 import React, { useState } from 'react'
+import ChatWithHistoryWrap from '@/app/components/base/chat/chat-user'
+import AuthenticatedAppsLayout from '../components/authenticated-apps-layout'
 import { useAsyncEffect } from 'ahooks'
 import { useRouter } from 'next/navigation'
 import { checkUserAppLogin } from '@/app/components/share/utils'
-import ChatWithHistoryWrap from '@/app/components/base/chat/chat-user'
 
 const Chat = () => {
   const router = useRouter()
-  const [initialized, setInitialized] = useState(false)
   const [isLogin, setLogin] = useState<boolean>(true)
+  const [initialized, setInitialized] = useState(false)
 
   useAsyncEffect(async () => {
     if (!initialized) {
       try {
         await checkUserAppLogin()
+        setInitialized(true)
       }
-      catch (e: any) {
+      catch {
         setLogin(false)
       }
     }
-    setInitialized(true)
-  }, [])
-
-  if (!initialized)
-    return null
+  }, [initialized])
 
   if (!isLogin)
     router.push('/signin')
 
   return (
-    <ChatWithHistoryWrap />
+    <AuthenticatedAppsLayout>
+      <ChatWithHistoryWrap />
+    </AuthenticatedAppsLayout>
   )
 }
 

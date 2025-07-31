@@ -1,6 +1,3 @@
-# 修改日期2025-01-14
-# 修改function invoke_text_embedding()的參數
-# 新增dataset和metadata參數
 import logging
 from collections.abc import Callable, Generator, Iterable, Sequence
 from typing import IO, Any, Literal, Optional, Union, cast, overload
@@ -25,7 +22,6 @@ from core.model_runtime.model_providers.__base.text_embedding_model import TextE
 from core.model_runtime.model_providers.__base.tts_model import TTSModel
 from core.provider_manager import ProviderManager
 from extensions.ext_redis import redis_client
-from models.dataset import Dataset
 from models.provider import ProviderType
 
 logger = logging.getLogger(__name__)
@@ -206,11 +202,7 @@ class ModelInstance:
         )
 
     def invoke_text_embedding(
-        self, texts: list[str], 
-        user: Optional[str] = None, 
-        input_type: EmbeddingInputType = EmbeddingInputType.DOCUMENT, 
-        dataset: Optional[Dataset] = None,
-        metadata: Optional[dict] = None
+        self, texts: list[str], user: Optional[str] = None, input_type: EmbeddingInputType = EmbeddingInputType.DOCUMENT
     ) -> TextEmbeddingResult:
         """
         Invoke large language model
@@ -233,8 +225,6 @@ class ModelInstance:
                 texts=texts,
                 user=user,
                 input_type=input_type,
-                dataset=dataset,
-                metadata=metadata,
             ),
         )
 
@@ -545,9 +535,19 @@ class LBModelManager:
 
             if dify_config.DEBUG:
                 logger.info(
-                    f"Model LB\nid: {config.id}\nname:{config.name}\n"
-                    f"tenant_id: {self._tenant_id}\nprovider: {self._provider}\n"
-                    f"model_type: {self._model_type.value}\nmodel: {self._model}"
+                    """Model LB
+id: %s
+name:%s
+tenant_id: %s
+provider: %s
+model_type: %s
+model: %s""",
+                    config.id,
+                    config.name,
+                    self._tenant_id,
+                    self._provider,
+                    self._model_type.value,
+                    self._model,
                 )
 
             return config

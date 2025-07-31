@@ -1,9 +1,6 @@
-// 修改日期2025-01-13
-// 新增Panel套件，導入tracing的功能
 import React from 'react'
-import { getLocaleOnServer, useTranslation as translate } from '@/i18n/server'
+import { getLocaleOnServer, useTranslation as translate } from '@/i18n-config/server'
 import Form from '@/app/components/datasets/settings/form'
-// import Panel from '@/app/components/datasets/settings/tracing'
 
 const Settings = async () => {
   const locale = await getLocaleOnServer()
@@ -15,7 +12,6 @@ const Settings = async () => {
         <div className='system-xl-semibold mb-1 text-text-primary'>{t('title')}</div>
         <div className='system-sm-regular text-text-tertiary'>{t('desc')}</div>
       </div>
-      {/* <Panel /> */}
       <Form />
     </div>
   )

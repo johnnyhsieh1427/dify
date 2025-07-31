@@ -308,13 +308,6 @@ export const fetchAccessToken = async ({ appCode, userId, webAppAccessToken }: {
   return get(url, { headers }) as Promise<{ access_token: string }>
 }
 
-export const getAppAccessMode = (appId: string, isInstalledApp: boolean) => {
-  if (isInstalledApp)
-    return consoleGet<{ accessMode: AccessMode }>(`/enterprise/webapp/app/access-mode?appId=${appId}`)
-
-  return get<{ accessMode: AccessMode }>(`/webapp/access-mode?appId=${appId}`)
-}
-
 export const getUserCanAccess = (appId: string, isInstalledApp: boolean) => {
   if (isInstalledApp)
     return consoleGet<{ result: boolean }>(`/enterprise/webapp/permission?appId=${appId}`)
@@ -338,7 +331,8 @@ export const fetchAppTenantPermission = async () => {
 // Location: web.controller.web_user.*
 
 export const fetchUserAppInfo = async () => {
-  return getWebChat('site') as Promise<{ items: AppData[] }>
+  // return getWebChat('site') as Promise<{ items: AppData[] }>
+  return getWebChat('site') as Promise<AppData[]>
 }
 
 export const fetchUserAppMeta = async () => {

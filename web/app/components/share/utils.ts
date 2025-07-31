@@ -59,7 +59,7 @@ export const checkIsLogin = async () => {
   localStorage.setItem('token', JSON.stringify(accessTokenJson))
 }
 
-export const checkOrSetAccessToken = async (appCode?: string) => {
+export const checkOrSetAccessToken = async (appCode?: string | null) => {
   const sharedToken = appCode || globalThis.location.pathname.split('/').slice(-1)[0]
   const userId = (await getProcessedSystemVariablesFromUrlParams()).user_id
   const accessToken = localStorage.getItem('token') || JSON.stringify(getInitialTokenV2())

@@ -1,8 +1,10 @@
 # 修改日期2025-02-28
 # 專屬給chat-web的controllers
+# 修改日期: 2025-07-31
+# UserAppSiteApi改list輸出
 
-
-from flask_restful import fields, marshal_with  # type: ignore
+import json
+from flask_restful import fields, marshal  # type: ignore
 
 from configs import dify_config
 from controllers.web_user import api
@@ -63,8 +65,6 @@ class UserAppSiteApi(WebUserApiResource):
         "items": fields.List(fields.Nested(app_fields))
     }
 
-    @marshal_with(app_list)
-    # @marshal_with(app_fields)
     def get(self, app_models: list[App], end_user: EndUser):
         _list = []
         for app_model in app_models:
@@ -81,10 +81,16 @@ class UserAppSiteApi(WebUserApiResource):
             # if app_model.tenant.status == TenantStatus.ARCHIVE:
             #     _list.append(None)
             #     continue
-            _list.append(AppSiteInfo(app_model.tenant, app_model, site, end_user.id, False))
+            _list.append(
+                marshal(
+                    AppSiteInfo(app_model.tenant, app_model, site, end_user.id, False),
+                    UserAppSiteApi.app_fields
+                )
+            )
+
         if not _list:
             raise AppUnavailableError("No site available for this app.")
-        return {'items': _list}
+        return _list
 
 
 api.add_resource(UserAppSiteApi, "/site")

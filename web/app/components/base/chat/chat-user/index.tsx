@@ -44,10 +44,7 @@ const ChatWithHistory: FC<ChatWithHistoryProps> = ({
   className,
 }) => {
   const {
-    userCanAccess,
-    appInfoError,
     appData,
-    appInfoLoading,
     appChatListDataLoading,
     chatShouldReloadKey,
     isMobile,
@@ -81,24 +78,6 @@ const ChatWithHistory: FC<ChatWithHistoryProps> = ({
     const url = getSigninUrl()
     router.replace(url)
   }, [getSigninUrl, router])
-
-  if (appInfoLoading) {
-    return (
-      <Loading type='app' />
-    )
-  }
-  // if (!userCanAccess) {
-  //   return <div className='flex h-full flex-col items-center justify-center gap-y-2'>
-  //     <AppUnavailable className='h-auto w-auto' code={403} unknownReason='no permission.' />
-  //     {!isInstalledApp && <span className='system-sm-regular cursor-pointer text-text-tertiary' onClick={backToHome}>{t('common.userProfile.logout')}</span>}
-  //   </div>
-  // }
-
-  if (appInfoError) {
-    return (
-      <AppUnavailable />
-    )
-  }
 
   return (
     <div className={cn(
@@ -157,11 +136,7 @@ const ChatWithHistoryWrap: FC<ChatWithHistoryWrapProps> = ({
   const themeBuilder = useThemeContext()
 
   const {
-    appInfoError,
-    appInfoLoading,
-    userCanAccess,
     appData,
-    appDataList,
     appParams,
     appMeta,
     appChatListDataLoading,
@@ -198,16 +173,12 @@ const ChatWithHistoryWrap: FC<ChatWithHistoryWrapProps> = ({
     setCurrentConversationInputs,
     allInputsHidden,
     activeIndex,
-    setActiveIndex,
+    initUserVariables,
   } = useChatWithHistory(installedAppInfo)
 
   return (
     <ChatWithHistoryContext.Provider value={{
-      appInfoError,
-      appInfoLoading,
       appData,
-      userCanAccess,
-      appDataList,
       appParams,
       appMeta,
       appChatListDataLoading,
@@ -246,7 +217,7 @@ const ChatWithHistoryWrap: FC<ChatWithHistoryWrapProps> = ({
       setCurrentConversationInputs,
       allInputsHidden,
       activeIndex,
-      setActiveIndex,
+      initUserVariables,
     }}>
       <ChatWithHistory className={className} />
     </ChatWithHistoryContext.Provider>
@@ -268,7 +239,7 @@ const ChatWithHistoryWrapWithCheckToken: FC<ChatWithHistoryWrapProps> = ({
           localStorage.removeItem(CONVERSATION_ID_INFO)
           mutate(() => true, undefined, { revalidate: false })
           // ✅ 或者只清除特定 key
-          mutate('appInfos', undefined, { revalidate: false })
+          mutate('appInfoList', undefined, { revalidate: false })
           mutate('appParamsList', undefined, { revalidate: false })
           mutate('appMetaList', undefined, { revalidate: false })
           await checkUserAppLogin()

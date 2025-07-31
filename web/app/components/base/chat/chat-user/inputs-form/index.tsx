@@ -1,12 +1,9 @@
-// 修改日期2025-07-23
-// 更新符合最新的ChatWithHistoryContextValue定義
-
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Message3Fill } from '@/app/components/base/icons/src/public/other'
 import Button from '@/app/components/base/button'
 import Divider from '@/app/components/base/divider'
-import InputsFormContent from '@/app/components/base/chat/chat-with-history/inputs-form/content'
+import InputsFormContent from '@/app/components/base/chat/chat-user/inputs-form/content'
 import { useChatWithHistoryContext } from '../context'
 import cn from '@/utils/classnames'
 

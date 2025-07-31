@@ -26,6 +26,7 @@ def init_app(app: DifyApp):
         reset_email,
         reset_encrypt_key_pair,
         reset_password,
+        setup_system_tool_oauth_client,
         upgrade_db,
         vdb_migrate,
     )
@@ -57,6 +58,7 @@ def init_app(app: DifyApp):
         clear_free_plan_tenant_expired_logs,
         clear_orphaned_file_records,
         remove_orphaned_files_on_storage,
+        setup_system_tool_oauth_client,
         create_account,
     ]
     for cmd in cmds_to_register:

@@ -1,5 +1,3 @@
-# 修改日期2025-01-13
-# 新增mode功能，判斷是否為dataset，若為dataset則mode為dataset，否則為app_id 
 import json
 import logging
 
@@ -25,12 +23,11 @@ def process_trace_tasks(file_info):
 
     app_id = file_info.get("app_id")
     file_id = file_info.get("file_id")
-    mode = file_info.get("mode")
     file_path = f"{OPS_FILE_PATH}{app_id}/{file_id}.json"
     file_data = json.loads(storage.load(file_path))
     trace_info = file_data.get("trace_info")
     trace_info_type = file_data.get("trace_info_type")
-    trace_instance = OpsTraceManager.get_ops_trace_instance(app_id, mode)
+    trace_instance = OpsTraceManager.get_ops_trace_instance(app_id)
 
     if trace_info.get("message_data"):
         trace_info["message_data"] = Message.from_dict(data=trace_info["message_data"])
@@ -46,19 +43,11 @@ def process_trace_tasks(file_info):
                 if trace_type:
                     trace_info = trace_type(**trace_info)
                 trace_instance.trace(trace_info)
-        if mode == "dataset":
-            logging.info(f"Processing trace tasks success, {mode}: {app_id}")
-        else:
-            logging.info(f"Processing trace tasks success, app_id: {app_id}")
+        logging.info("Processing trace tasks success, app_id: %s", app_id)
     except Exception as e:
-        logging.info(
-            f"error:\n\n\n{e}\n\n\n\n",
-        )
+        logging.info("error:\n\n\n%s\n\n\n\n", e)
         failed_key = f"{OPS_TRACE_FAILED_KEY}_{app_id}"
         redis_client.incr(failed_key)
-        if mode == "dataset":
-            logging.info(f"Processing trace tasks failed, {mode}: {app_id}")
-        else:
-            logging.info(f"Processing trace tasks failed, app_id: {app_id}")
+        logging.info("Processing trace tasks failed, app_id: %s", app_id)
     finally:
         storage.delete(file_path)

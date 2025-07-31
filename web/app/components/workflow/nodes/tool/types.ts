@@ -1,3 +1,5 @@
+// 修改日期2025-07-31
+// 新增資料型態array
 import type { CollectionType } from '@/app/components/tools/types'
 import type { CommonNodeType, ValueSelector } from '@/app/components/workflow/types'
 
@@ -5,6 +7,7 @@ export enum VarType {
   variable = 'variable',
   constant = 'constant',
   mixed = 'mixed',
+  array = 'array',
 }
 
 export type ToolVarInputs = Record<string, {
@@ -22,4 +25,6 @@ export type ToolNodeType = CommonNodeType & {
   tool_configurations: Record<string, any>
   output_schema: Record<string, any>
   paramSchemas?: Record<string, any>[]
+  version?: string
+  tool_node_version?: string
 }
