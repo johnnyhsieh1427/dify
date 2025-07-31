@@ -13,7 +13,6 @@ from core.tools.utils.workflow_configuration_sync import WorkflowToolConfigurati
 from core.tools.workflow_as_tool.provider import WorkflowToolProviderController
 from core.tools.workflow_as_tool.tool import WorkflowTool
 from extensions.ext_database import db
-from models.account import TenantAccountJoin
 from models.model import App
 from models.tools import WorkflowToolProvider
 from models.workflow import Workflow

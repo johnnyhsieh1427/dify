@@ -3,7 +3,6 @@
 # 修改日期: 2025-07-31
 # UserAppSiteApi改list輸出
 
-import json
 from flask_restful import fields, marshal  # type: ignore
 
 from configs import dify_config

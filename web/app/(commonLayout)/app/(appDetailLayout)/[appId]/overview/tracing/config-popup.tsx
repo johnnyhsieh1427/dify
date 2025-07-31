@@ -1,5 +1,3 @@
-// 修改日期2025-01-13
-// 新增mode功能，用於判斷是否為dataset
 'use client'
 import type { FC, JSX } from 'react'
 import React, { useCallback, useState } from 'react'
@@ -22,7 +20,6 @@ export type PopupProps = {
   appId: string
   readOnly: boolean
   enabled: boolean
-  mode?: string
   onStatusChange: (enabled: boolean) => void
   chosenProvider: TracingProvider | null
   onChooseProvider: (provider: TracingProvider) => void
@@ -41,7 +38,6 @@ const ConfigPopup: FC<PopupProps> = ({
   appId,
   readOnly,
   enabled,
-  mode,
   onStatusChange,
   chosenProvider,
   onChooseProvider,
@@ -321,7 +317,6 @@ const ConfigPopup: FC<PopupProps> = ({
       {isShowConfigModal && (
         <ProviderConfigModal
           appId={appId}
-          mode={mode}
           type={currentProvider!}
           payload={configuredProviderConfig()}
           onCancel={hideConfigModal}
