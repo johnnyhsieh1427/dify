@@ -1,3 +1,5 @@
+// 修改日期: 2025-08-01
+// SWR載入資料前會先checkUserAppLogin檢查使用者登入狀態
 'use client'
 
 import AppUnavailable from '@/app/components/base/app-unavailable'
@@ -42,9 +44,12 @@ const AuthenticatedAppsLayout = ({ children }: { children: React.ReactNode }) =>
     })()
   }, [backToHome])
 
-  const { data: appInfoList, isLoading: isLoadingAppInfos, error: appInfoError } = useSWR(isAuthenticated ? 'appInfoList' : null, fetchUserAppInfo)
-  const { data: appParamsList, isLoading: isLoadingAppParams, error: appParamsError } = useSWR(isAuthenticated ? 'appParamsList' : null, fetchUserAppParams)
-  const { data: appMetaList, isLoading: isLoadingAppMeta, error: appMetaError } = useSWR(isAuthenticated ? 'appMetaList' : null, fetchUserAppMeta)
+  const { data: appInfoList, isLoading: isLoadingAppInfos, error: appInfoError } = useSWR(
+    isAuthenticated ? 'appInfoList' : null, fetchUserAppInfo, { revalidateOnFocus: false })
+  const { data: appParamsList, isLoading: isLoadingAppParams, error: appParamsError } = useSWR(
+    isAuthenticated ? 'appParamsList' : null, fetchUserAppParams, { revalidateOnFocus: false })
+  const { data: appMetaList, isLoading: isLoadingAppMeta, error: appMetaError } = useSWR(
+    isAuthenticated ? 'appMetaList' : null, fetchUserAppMeta, { revalidateOnFocus: false })
 
   useEffect(() => {
     if (appInfoList) updateAppInfoList(appInfoList)
