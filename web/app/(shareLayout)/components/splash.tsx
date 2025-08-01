@@ -1,3 +1,5 @@
+// 修改日期: 2025-08-01
+// 增加檢查方式, 若是/chat-app, 直接跳轉到 /chat-app
 'use client'
 import type { FC, PropsWithChildren } from 'react'
 import { useEffect } from 'react'
@@ -5,7 +7,7 @@ import { useCallback } from 'react'
 import { useWebAppStore } from '@/context/web-app-context'
 import { useRouter, useSearchParams } from 'next/navigation'
 import AppUnavailable from '@/app/components/base/app-unavailable'
-import { checkOrSetAccessToken, removeAccessToken, setAccessToken } from '@/app/components/share/utils'
+import { checkOrSetAccessToken, checkUserAppLogin, removeAccessToken, setAccessToken } from '@/app/components/share/utils'
 import { useTranslation } from 'react-i18next'
 import { fetchAccessToken } from '@/service/share'
 import Loading from '@/app/components/base/loading'
@@ -38,6 +40,11 @@ const Splash: FC<PropsWithChildren> = ({ children }) => {
     (async () => {
       if (message)
         return
+      if (shareCode === 'chat-app') {
+        await checkUserAppLogin()
+        router.replace('/chat-app')
+        return
+      }
       if (shareCode && tokenFromUrl && redirectUrl) {
         localStorage.setItem('webapp_access_token', tokenFromUrl)
         const tokenResp = await fetchAccessToken({ appCode: shareCode, webAppAccessToken: tokenFromUrl })

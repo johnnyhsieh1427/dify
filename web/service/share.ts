@@ -331,7 +331,6 @@ export const fetchAppTenantPermission = async () => {
 // Location: web.controller.web_user.*
 
 export const fetchUserAppInfo = async () => {
-  // return getWebChat('site') as Promise<{ items: AppData[] }>
   return getWebChat('site') as Promise<AppData[]>
 }
 
