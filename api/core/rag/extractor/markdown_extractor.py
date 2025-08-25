@@ -106,8 +106,12 @@ class MarkdownExtractor(BaseExtractor):
 
     def _extract_images_from_markdown(self, md_text: str):
         """Extract images from a markdown document."""
-        pattern = re.compile(r"!\[(?P<alt>[^\]]*)\]\(\s*data:(?P<mime>image)/(?P<subtype>[a-z0-9.+-]+);base64,(?P<data>[A-Za-z0-9+/=\r\n]+)\)",
-            re.IGNORECASE | re.VERBOSE | re.DOTALL
+        pattern = re.compile(
+            r"!\[(?P<alt>[^\]]*)\]\("
+            r"\s*data:(?P<mime>image)/"
+            r"(?P<subtype>[a-z0-9.+-]+);base64,"
+            r"(?P<data>[A-Za-z0-9+/=\r\n]+)\)",
+            re.IGNORECASE | re.VERBOSE | re.DOTALL,
         )
         def _replace_one(m: re.Match) -> str:
 
