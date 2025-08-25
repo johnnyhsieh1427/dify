@@ -30,6 +30,7 @@ const translation = {
       sync: '同步',
       resume: '恢復',
       pause: '暫停',
+      swap: '替換',
     },
     index: {
       enable: '啟用中',

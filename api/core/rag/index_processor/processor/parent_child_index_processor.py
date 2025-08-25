@@ -1,3 +1,5 @@
+# 修改日期2025-08-25
+# 將transform和_split_child_nodes都新增副檔名參數
 """Paragraph index processor."""
 
 import uuid
@@ -31,6 +33,7 @@ class ParentChildIndexProcessor(BaseIndexProcessor):
 
     def transform(self, documents: list[Document], **kwargs) -> list[Document]:
         process_rule = kwargs.get("process_rule")
+        file_ext = kwargs.get("file_ext")
         if not process_rule:
             raise ValueError("No process rule found.")
         if not process_rule.get("rules"):
@@ -47,6 +50,7 @@ class ParentChildIndexProcessor(BaseIndexProcessor):
                 chunk_overlap=rules.segmentation.chunk_overlap,
                 separator=rules.segmentation.separator,
                 embedding_model_instance=kwargs.get("embedding_model_instance"),
+                file_ext=file_ext,
             )
             for document in documents:
                 if kwargs.get("preview") and len(all_documents) >= 10:
@@ -73,7 +77,11 @@ class ParentChildIndexProcessor(BaseIndexProcessor):
                             document_node.page_content = page_content
                             # parse document to child nodes
                             child_nodes = self._split_child_nodes(
-                                document_node, rules, process_rule.get("mode"), kwargs.get("embedding_model_instance")
+                                document_node, 
+                                rules=rules, 
+                                process_rule_mode=process_rule.get("mode"), 
+                                embedding_model_instance=kwargs.get("embedding_model_instance"),
+                                file_ext=file_ext
                             )
                             document_node.children = child_nodes
                             split_documents.append(document_node)
@@ -167,13 +175,11 @@ class ParentChildIndexProcessor(BaseIndexProcessor):
                 docs.append(doc)
         return docs
 
-    def _split_child_nodes(
-        self,
-        document_node: Document,
-        rules: Rule,
-        process_rule_mode: str,
-        embedding_model_instance: Optional[ModelInstance],
-    ) -> list[ChildDocument]:
+    def _split_child_nodes(self, document_node: Document, **kwargs) -> list[ChildDocument]:
+        rules: Rule = kwargs.get("rules")
+        process_rule_mode: str = kwargs.get("process_rule_mode")
+        embedding_model_instance: Optional[ModelInstance] = kwargs.get("embedding_model_instance")
+        file_ext = kwargs.get("file_ext")
         if not rules.subchunk_segmentation:
             raise ValueError("No subchunk segmentation found in rules.")
         child_splitter = self._get_splitter(
@@ -182,6 +188,7 @@ class ParentChildIndexProcessor(BaseIndexProcessor):
             chunk_overlap=rules.subchunk_segmentation.chunk_overlap,
             separator=rules.subchunk_segmentation.separator,
             embedding_model_instance=embedding_model_instance,
+            file_ext=file_ext,
         )
         # parse document to child nodes
         child_nodes = []

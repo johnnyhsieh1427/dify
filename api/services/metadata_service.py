@@ -1,3 +1,5 @@
+# 修改日期2025-08-25
+# 修正function的disable_built_in_field內部metadata停用的try except
 import copy
 import datetime
 import logging
@@ -172,13 +174,16 @@ class MetadataService:
             document_ids = []
             if documents:
                 for document in documents:
-                    doc_metadata = copy.deepcopy(document.doc_metadata)
-                    doc_metadata.pop(BuiltInField.document_name.value, None)
-                    doc_metadata.pop(BuiltInField.uploader.value, None)
-                    doc_metadata.pop(BuiltInField.upload_date.value, None)
-                    doc_metadata.pop(BuiltInField.last_update_date.value, None)
-                    doc_metadata.pop(BuiltInField.source.value, None)
-                    document.doc_metadata = doc_metadata
+                    try:
+                        doc_metadata = copy.deepcopy(document.doc_metadata)
+                        doc_metadata.pop(BuiltInField.document_name.value, None)
+                        doc_metadata.pop(BuiltInField.uploader.value, None)
+                        doc_metadata.pop(BuiltInField.upload_date.value, None)
+                        doc_metadata.pop(BuiltInField.last_update_date.value, None)
+                        doc_metadata.pop(BuiltInField.source.value, None)
+                        document.doc_metadata = doc_metadata
+                    except:
+                        document.doc_metadata = {}
                     db.session.add(document)
                     document_ids.append(document.id)
             db.session.commit()

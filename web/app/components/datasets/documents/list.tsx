@@ -1,3 +1,5 @@
+// 修改日期2025-08-25
+// 新增文件替換功能handleReplace
 'use client'
 import type { FC } from 'react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
@@ -6,6 +8,7 @@ import { ArrowDownIcon } from '@heroicons/react/24/outline'
 import { pick, uniq } from 'lodash-es'
 import {
   RiArchive2Line,
+  RiArrowLeftRightLine,
   RiDeleteBinLine,
   RiEditLine,
   RiEqualizer2Line,
@@ -22,6 +25,7 @@ import { Globe01 } from '../../base/icons/src/vender/line/mapsAndTravel'
 import ChunkingModeLabel from '../common/chunking-mode-label'
 import FileTypeIcon from '../../base/file-uploader/file-type-icon'
 import s from './style.module.css'
+import ReplaceDocumentModal from '@/app/components/datasets/documents/replace-document-modal'
 import RenameModal from './rename-modal'
 import BatchAction from './detail/completed/common/batch-action'
 import cn from '@/utils/classnames'
@@ -49,6 +53,7 @@ import { extensionToFileType } from '@/app/components/datasets/hit-testing/utils
 import useBatchEditDocumentMetadata from '../metadata/hooks/use-batch-edit-document-metadata'
 import EditMetadataBatchModal from '@/app/components/datasets/metadata/edit-metadata-batch/modal'
 import { noop } from 'lodash-es'
+import { upload } from '@/service/base'
 
 export const useIndexStatus = () => {
   const { t } = useTranslation()
@@ -190,6 +195,7 @@ export const OperationAction: FC<{
 }> = ({ embeddingAvailable, datasetId, detail, onUpdate, scene = 'list', className = '' }) => {
   const { id, enabled = false, archived = false, data_source_type, display_status } = detail || {}
   const [showModal, setShowModal] = useState(false)
+  const [showReplaceModal, setShowReplaceModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const { notify } = useContext(ToastContext)
   const { t } = useTranslation()
@@ -245,6 +251,30 @@ export const OperationAction: FC<{
     else { notify({ type: 'error', message: t('common.actionMsg.modifiedUnsuccessfully') }) }
     if (operationName === 'delete')
       setDeleting(false)
+  }
+
+  const handleReplace = async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('document_id', detail.id)
+    formData.append('dataset_id', datasetId)
+
+    return upload({
+      xhr: new XMLHttpRequest(),
+      data: formData,
+      // onprogress: onProgress,
+    }, false, false, undefined, `?source=datasets&document_id=${detail.id}&dataset_id=${datasetId}`)
+      .then((res: File) => {
+        notify({ type: 'success', message: res.name + t('datasetCreation.stepOne.uploader.success') })
+      })
+      .catch((e) => {
+        notify({ type: 'error', message: e?.response?.code === 'forbidden' ? e?.response?.message : t('datasetCreation.stepOne.uploader.failed') })
+      })
+      .finally(
+        () => {
+          setShowReplaceModal(false)
+        },
+      )
   }
 
   const { run: handleSwitch } = useDebounceFn((operationName: OperationName) => {
@@ -354,6 +384,10 @@ export const OperationAction: FC<{
                   <span className={s.actionName}>{t('datasetDocuments.list.action.unarchive')}</span>
                 </div>
               )}
+              <div className={s.actionItem} onClick={() => setShowReplaceModal(true)}>
+                <RiArrowLeftRightLine className='h-4 w-4 text-text-tertiary' />
+                <span className={s.actionName}>{t('datasetDocuments.list.action.swap')}</span>
+              </div>
               <div className={cn(s.actionItem, s.deleteActionItem, 'group')} onClick={() => setShowModal(true)}>
                 <RiDeleteBinLine className={'h-4 w-4 text-text-tertiary group-hover:text-text-destructive'} />
                 <span className={cn(s.actionName, 'group-hover:text-text-destructive')}>{t('datasetDocuments.list.action.delete')}</span>
@@ -383,6 +417,14 @@ export const OperationAction: FC<{
         confirmText={t('common.operation.sure')}
         onConfirm={() => onOperate('delete')}
         onCancel={() => setShowModal(false)}
+      />
+    }
+
+    {showReplaceModal
+      && <ReplaceDocumentModal
+        isShow={showReplaceModal}
+        onClose={() => setShowReplaceModal(false)}
+        onReplace={handleReplace}
       />
     }
 

@@ -32,6 +32,7 @@ const translation = {
       sync: '同步',
       pause: '暂停',
       resume: '恢复',
+      swap: '替换',
     },
     index: {
       enable: '启用中',

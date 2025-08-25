@@ -5,6 +5,8 @@
 // 修改日期2025-02-28
 // 修改內容：
 // 新增function給web-chat使用
+// 修改日期2025-08-25
+// 新增function的fetchUserLatestMessageIndex
 import type {
   IOnCompleted,
   IOnData,
@@ -340,6 +342,10 @@ export const fetchUserAppMeta = async () => {
 
 export const fetchUserAppParams = async () => {
   return getWebChat('parameters') as Promise<ChatConfig[]>
+}
+
+export const fetchUserLatestMessageIndex = async () => {
+  return getWebChat('latest_message_index') as Promise<{ latest_message_index: number }>
 }
 
 export const fetchUserConversations = async (appId: string, last_id?: string, pinned?: boolean, limit?: number) => {

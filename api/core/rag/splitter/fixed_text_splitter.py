@@ -1,14 +1,21 @@
+# 修改日期2025-08-25
+# 新增langchain的FixedMarkdownTextSplitter
 """Functionality for splitting text."""
 
 from __future__ import annotations
 
+import copy
 from typing import Any, Optional
+
+from langchain_text_splitters import MarkdownTextSplitter
 
 from core.model_manager import ModelInstance
 from core.model_runtime.model_providers.__base.tokenizers.gpt2_tokenzier import GPT2Tokenizer
+from core.rag.models.document import Document
 from core.rag.splitter.text_splitter import (
     TS,
     Collection,
+    Iterable,
     Literal,
     RecursiveCharacterTextSplitter,
     Set,
@@ -154,3 +161,38 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
                 final_chunks.append(current_part)
 
         return final_chunks
+
+
+class FixedMarkdownTextSplitter(MarkdownTextSplitter):
+    """Custom Markdown text splitter."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def split_text(self, text: str) -> list[str]:
+        """Split text into chunks."""
+        # Implement custom splitting logic for Markdown
+        return super().split_text(text)
+
+    def create_documents(self, texts: list[str], metadatas: Optional[list[dict]] = None) -> list[Document]:
+        """Create documents from a list of texts."""
+        _metadatas = metadatas or [{}] * len(texts)
+        documents = []
+        for i, text in enumerate(texts):
+            index = -1
+            for chunk in self.split_text(text):
+                metadata = copy.deepcopy(_metadatas[i])
+                if self._add_start_index:
+                    index = text.find(chunk, index + 1)
+                    metadata["start_index"] = index
+                new_doc = Document(page_content=chunk, metadata=metadata)
+                documents.append(new_doc)
+        return documents
+    
+    def split_documents(self, documents: Iterable[Document]) -> list[Document]:
+        """Split documents."""
+        texts, metadatas = [], []
+        for doc in documents:
+            texts.append(doc.page_content)
+            metadatas.append(doc.metadata or {})
+        return self.create_documents(texts, metadatas=metadatas)

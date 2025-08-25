@@ -1,6 +1,7 @@
 # 修改日期2025-02-28
 # 新增create_workspace(), create-account()和delete-account()函數
-
+# 修改日期2025-08-25
+# create_account()愈設帳號的密碼sp@1234@
 import base64
 import json
 import logging
@@ -620,13 +621,13 @@ def create_account(email: list, language: Optional[str] = None):
         if language not in languages:
             language = "en-US"
 
-        account_name = email.split("@")[0]
+        account_name = _email.split("@")[0]
 
-        new_password = account_name
+        new_password = "sp@1234@"
 
         # register account
         account = RegisterService.register(
-            email=email, name=account_name, password=new_password, language=language, create_workspace_required=False
+            email=_email, name=account_name, password=new_password, language=language, create_workspace_required=False
         )
 
         click.echo(

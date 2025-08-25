@@ -4,6 +4,9 @@
 // 修改日期2025-07-23
 // 更新符合最新的ChatWithHistoryContextValue定義
 
+// 修改日期2025-08-25
+// 在登出時，清除localStorage內的CONVERSATION_ID_INFO
+// appInfoList, appParamsList, appMetaList, latestMessageIndex暫存清除
 import {
   useCallback,
   useState,
@@ -32,6 +35,7 @@ import { logout } from '@/service/common'
 import Modal from '../../../modal'
 import AnswerIcon from '../../../answer-icon'
 import { DotsGrid, LogOut01 } from '../../../icons/src/vender/line/general'
+import { mutate } from 'swr'
 
 type Props = {
   isPanel?: boolean
@@ -63,6 +67,10 @@ const Sidebar = ({ isPanel }: Props) => {
   const [showConfirm, setShowConfirm] = useState<ConversationItem | null>(null)
   const [showRename, setShowRename] = useState<ConversationItem | null>(null)
   const [showApps, setShowApps] = useState<boolean>(false)
+  const updateAppInfoList = useWebAppStore(s => s.updateAppInfoList)
+  const updateAppParamsList = useWebAppStore(s => s.updateAppParamsList)
+  const updateAppMetaList = useWebAppStore(s => s.updateAppMetaList)
+  const updateActiveIndex = useWebAppStore(s => s.setActiveIndex)
 
   const handleOperate = useCallback((type: string, item: ConversationItem) => {
     if (type === 'pin')
@@ -97,6 +105,14 @@ const Sidebar = ({ isPanel }: Props) => {
   }, [setCurrentActiveIndex])
   const handleLogout = async () => {
     await logout({ url: '/logout', params: {} })
+    mutate('appInfoList', undefined, { revalidate: true })
+    mutate('appParamsList', undefined, { revalidate: true })
+    mutate('appMetaList', undefined, { revalidate: true })
+    mutate('latestMessageIndex', undefined, { revalidate: true })
+    updateAppInfoList(null)
+    updateAppParamsList(null)
+    updateAppMetaList(null)
+    updateActiveIndex(0)
     localStorage.removeItem('setup_status')
     localStorage.removeItem('token')
     localStorage.removeItem('console_token')

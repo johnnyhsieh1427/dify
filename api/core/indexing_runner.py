@@ -1,3 +1,5 @@
+# 修改日期2025-08-14
+# self._transform(dataset_document.doc_language改成直接放dataset_document
 import concurrent.futures
 import datetime
 import json
@@ -71,7 +73,7 @@ class IndexingRunner:
 
                 # transform
                 documents = self._transform(
-                    index_processor, dataset, text_docs, dataset_document.doc_language, processing_rule.to_dict()
+                    index_processor, dataset, text_docs, dataset_document, processing_rule.to_dict()
                 )
                 # save segment
                 self._load_segments(dataset, dataset_document, documents)
@@ -137,7 +139,7 @@ class IndexingRunner:
 
             # transform
             documents = self._transform(
-                index_processor, dataset, text_docs, dataset_document.doc_language, processing_rule.to_dict()
+                index_processor, dataset, text_docs, dataset_document, processing_rule.to_dict()
             )
             # save segment
             self._load_segments(dataset, dataset_document, documents)
@@ -298,6 +300,7 @@ class IndexingRunner:
                 tenant_id=current_user.current_tenant_id,
                 doc_language=doc_language,
                 preview=True,
+                file_ext=str(extract_setting.upload_file.key).split(".")[-1].lower()
             )
             total_segments += len(documents)
             for document in documents:
@@ -698,7 +701,7 @@ class IndexingRunner:
         index_processor: BaseIndexProcessor,
         dataset: Dataset,
         text_docs: list[Document],
-        doc_language: str,
+        dataset_document: DatasetDocument,
         process_rule: dict,
     ) -> list[Document]:
         # get embedding model instance
@@ -722,7 +725,8 @@ class IndexingRunner:
             embedding_model_instance=embedding_model_instance,
             process_rule=process_rule,
             tenant_id=dataset.tenant_id,
-            doc_language=doc_language,
+            doc_language=dataset_document.doc_language,
+            file_ext=str(dataset_document.name).split(".")[-1].lower()
         )
 
         return documents

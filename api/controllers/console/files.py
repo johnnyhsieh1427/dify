@@ -1,3 +1,5 @@
+# 修改日期2025-08-25
+# FileApi的post增加document_id和dataset_id參數，用於文件替換
 from typing import Literal
 
 from flask import request
@@ -51,6 +53,9 @@ class FileApi(Resource):
     def post(self):
         file = request.files["file"]
         source_str = request.form.get("source")
+        document_id = request.form.get("document_id")
+        dataset_id = request.form.get("dataset_id")
+
         source: Literal["datasets"] | None = "datasets" if source_str == "datasets" else None
 
         if "file" not in request.files:
@@ -69,13 +74,24 @@ class FileApi(Resource):
             source = None
 
         try:
-            upload_file = FileService.upload_file(
-                filename=file.filename,
-                content=file.read(),
-                mimetype=file.mimetype,
-                user=current_user,
-                source=source,
-            )
+            if document_id and dataset_id:
+                upload_file = FileService.swap_file(
+                    filename=file.filename,
+                    content=file.read(),
+                    mimetype=file.mimetype,
+                    user=current_user,
+                    source=source,
+                    original_document_id=document_id,
+                    original_dataset_id=dataset_id,
+                )
+            else:
+                upload_file = FileService.upload_file(
+                    filename=file.filename,
+                    content=file.read(),
+                    mimetype=file.mimetype,
+                    user=current_user,
+                    source=source,
+                )
         except services.errors.file.FileTooLargeError as file_too_large_error:
             raise FileTooLargeError(file_too_large_error.description)
         except services.errors.file.UnsupportedFileTypeError:

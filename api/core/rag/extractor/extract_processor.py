@@ -1,3 +1,6 @@
+# 修改日期2025-08-25
+# MarkdownExtractor新增tenant_id和user_id
+# 用於上傳內嵌圖片到伺服器
 import re
 import tempfile
 from pathlib import Path
@@ -150,7 +153,12 @@ class ExtractProcessor:
                     elif file_extension == ".pdf":
                         extractor = PdfExtractor(file_path)
                     elif file_extension in {".md", ".markdown", ".mdx"}:
-                        extractor = MarkdownExtractor(file_path, autodetect_encoding=True)
+                        extractor = MarkdownExtractor(
+                            file_path, 
+                            autodetect_encoding=True, 
+                            tenant_id=upload_file.tenant_id, 
+                            user_id=upload_file.created_by
+                        )
                     elif file_extension in {".htm", ".html"}:
                         extractor = HtmlExtractor(file_path)
                     elif file_extension == ".docx":

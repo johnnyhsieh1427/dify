@@ -1,3 +1,5 @@
+# 修改日期2025-08-25
+# 將transform新增副檔名參數
 """Paragraph index processor."""
 
 import uuid
@@ -30,6 +32,7 @@ class ParagraphIndexProcessor(BaseIndexProcessor):
 
     def transform(self, documents: list[Document], **kwargs) -> list[Document]:
         process_rule = kwargs.get("process_rule")
+        file_ext = kwargs.get("file_ext")
         if not process_rule:
             raise ValueError("No process rule found.")
         if process_rule.get("mode") == "automatic":
@@ -48,6 +51,7 @@ class ParagraphIndexProcessor(BaseIndexProcessor):
             chunk_overlap=rules.segmentation.chunk_overlap,
             separator=rules.segmentation.separator,
             embedding_model_instance=kwargs.get("embedding_model_instance"),
+            file_ext=file_ext,
         )
         all_documents = []
         for document in documents:

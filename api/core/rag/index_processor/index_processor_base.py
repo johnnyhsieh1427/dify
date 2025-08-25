@@ -1,3 +1,5 @@
+# 修改日期2025-08-25
+# 在Markdown格式中使用langchain的FixedMarkdownTextSplitter來進行切割文字塊
 """Abstract interface for document loader implementations."""
 
 from abc import ABC, abstractmethod
@@ -9,6 +11,7 @@ from core.rag.extractor.entity.extract_setting import ExtractSetting
 from core.rag.models.document import Document
 from core.rag.splitter.fixed_text_splitter import (
     EnhanceRecursiveCharacterTextSplitter,
+    FixedMarkdownTextSplitter,
     FixedRecursiveCharacterTextSplitter,
 )
 from core.rag.splitter.text_splitter import TextSplitter
@@ -52,6 +55,7 @@ class BaseIndexProcessor(ABC):
         chunk_overlap: int,
         separator: str,
         embedding_model_instance: Optional[ModelInstance],
+        file_ext: Optional[str] = None,
     ) -> TextSplitter:
         """
         Get the NodeParser object according to the processing rule.
@@ -65,20 +69,32 @@ class BaseIndexProcessor(ABC):
             if separator:
                 separator = separator.replace("\\n", "\n")
 
-            character_splitter = FixedRecursiveCharacterTextSplitter.from_encoder(
-                chunk_size=max_tokens,
-                chunk_overlap=chunk_overlap,
-                fixed_separator=separator,
-                separators=["\n\n", "。", ". ", " ", ""],
-                embedding_model_instance=embedding_model_instance,
-            )
+            if file_ext in ["md", "markdown", "mdx"]:
+                character_splitter = FixedMarkdownTextSplitter(
+                    chunk_size=max_tokens,
+                    chunk_overlap=chunk_overlap,
+                )
+            else:
+                character_splitter = FixedRecursiveCharacterTextSplitter.from_encoder(
+                    chunk_size=max_tokens,
+                    chunk_overlap=chunk_overlap,
+                    fixed_separator=separator,
+                    separators=["\n\n", "。", ". ", " ", ""],
+                    embedding_model_instance=embedding_model_instance,
+                )
         else:
-            # Automatic segmentation
-            character_splitter = EnhanceRecursiveCharacterTextSplitter.from_encoder(
-                chunk_size=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["max_tokens"],
-                chunk_overlap=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["chunk_overlap"],
-                separators=["\n\n", "。", ". ", " ", ""],
-                embedding_model_instance=embedding_model_instance,
-            )
+            if file_ext in ["md", "markdown", "mdx"]:
+                character_splitter = FixedMarkdownTextSplitter(
+                    chunk_size=max_tokens,
+                    chunk_overlap=chunk_overlap,
+                )
+            else:
+                # Automatic segmentation
+                character_splitter = EnhanceRecursiveCharacterTextSplitter.from_encoder(
+                    chunk_size=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["max_tokens"],
+                    chunk_overlap=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["chunk_overlap"],
+                    separators=["\n\n", "。", ". ", " ", ""],
+                    embedding_model_instance=embedding_model_instance,
+                )
 
         return character_splitter  # type: ignore

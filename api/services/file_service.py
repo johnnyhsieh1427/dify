@@ -1,3 +1,5 @@
+# 修改日期2025-08-25
+# 後台FileService新增swap_file功能，用於文件替換
 import datetime
 import hashlib
 import os
@@ -20,6 +22,7 @@ from extensions.ext_database import db
 from extensions.ext_storage import storage
 from libs.helper import extract_tenant_id
 from models.account import Account
+from models.dataset import Document
 from models.enums import CreatorUserRole
 from models.model import EndUser, UploadFile
 
@@ -29,6 +32,72 @@ PREVIEW_WORDS_LIMIT = 3000
 
 
 class FileService:
+    @staticmethod
+    def swap_file(
+        *,
+        filename: str,
+        content: bytes,
+        mimetype: str,
+        user: Union[Account, EndUser, Any],
+        source: Literal["datasets"] | None = None,
+        source_url: str = "",
+        original_document_id: str = "",
+        original_dataset_id: str = "",
+    ) -> UploadFile:
+        # get file extension
+        extension = os.path.splitext(filename)[1].lstrip(".").lower()
+
+        # check if filename contains invalid characters
+        if any(c in filename for c in ["/", "\\", ":", "*", "?", '"', "<", ">", "|"]):
+            raise ValueError("Filename contains invalid characters")
+
+        if len(filename) > 200:
+            filename = filename.split(".")[0][:200] + "." + extension
+
+        if source == "datasets" and extension not in DOCUMENT_EXTENSIONS:
+            raise UnsupportedFileTypeError()
+
+        # get file size
+        file_size = len(content)
+
+        # check if the file size is exceeded
+        if not FileService.is_file_size_within_limit(extension=extension, file_size=file_size):
+            raise FileTooLargeError
+
+        original_document = db.session.query(Document).where(
+            Document.id == original_document_id,
+            Document.dataset_id == original_dataset_id
+        ).first()
+        if not original_document:
+            raise NotFound("Document not found")
+
+        upload_file_id = original_document.data_source_info_dict.get("upload_file_id", "")
+        original_upload_file = db.session.query(UploadFile).where(
+            UploadFile.id == upload_file_id
+        ).first()
+        if not original_upload_file:
+            raise NotFound("Original upload file not found")
+        
+        try:
+            new_file_key = original_upload_file.key.rsplit(".", 1)[-1] + "." + extension
+            storage.delete(original_upload_file.key)
+            storage.save(new_file_key, content)
+
+            original_document.name = filename
+            original_upload_file.name = filename
+            original_upload_file.extension = extension
+            original_upload_file.size = file_size
+            original_upload_file.mime_type = mimetype
+            original_upload_file.key = new_file_key
+            original_upload_file.hash = hashlib.sha3_256(content).hexdigest()
+
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            raise RuntimeError(f"File swap failed: {str(e)}")
+
+        return original_upload_file
+
     @staticmethod
     def upload_file(
         *,
