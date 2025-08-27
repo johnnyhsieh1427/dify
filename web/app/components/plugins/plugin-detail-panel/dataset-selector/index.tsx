@@ -110,7 +110,6 @@ const DatasetSelector: FC<Props> = ({
     if (!displayedDatasets || !value || !Array.isArray(value))
       return undefined
     return displayedDatasets.filter(dataset => value.some(v => v.id === dataset.id))
-    // return displayedDatasets.find(dataset => dataset.id === value.dataset_id)
   }, [displayedDatasets, value])
 
   return (
