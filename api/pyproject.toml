@@ -32,6 +32,7 @@ dependencies = [
     "httpx[socks]~=0.27.0",
     "jieba==0.42.1",
     "json-repair>=0.41.1",
+    "langchain-text-splitters~=0.2.0",
     "langfuse~=2.51.3",
     "langsmith~=0.1.77",
     "mailchimp-transactional~=1.0.50",
