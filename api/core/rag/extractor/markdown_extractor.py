@@ -9,7 +9,7 @@ import mimetypes
 import re
 import uuid
 from pathlib import Path
-from typing import Optional, cast
+from typing import Optional
 
 from configs import dify_config
 from core.rag.extractor.extractor_base import BaseExtractor
@@ -92,7 +92,7 @@ class MarkdownExtractor(BaseExtractor):
         markdown_tups.append((current_header, current_text))
 
         markdown_tups = [
-            (re.sub(r"#", "", cast(str, key)).strip() if key else None, re.sub(r"<.*?>", "", value))
+            (re.sub(r"#", "", key).strip() if key else None, re.sub(r"<.*?>", "", value))
             for key, value in markdown_tups
         ]
 

@@ -2,7 +2,7 @@
 # 專屬給chat-web的controllers
 # 修改日期2025-08-25
 # 新增AppLatestMessageIndex獲取當前APP中哪個是最後發表的
-from flask_restful import marshal_with  # type: ignore
+from flask_restx import marshal_with  # type: ignore
 
 from controllers.common import fields
 from controllers.web_user import api

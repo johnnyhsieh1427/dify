@@ -2,8 +2,8 @@
 # 專屬給chat-web的controllers
 
 
-from flask_restful import marshal_with, reqparse  # type: ignore
-from flask_restful.inputs import int_range  # type: ignore
+from flask_restx import marshal_with, reqparse  # type: ignore
+from flask_restx.inputs import int_range  # type: ignore
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import NotFound
 

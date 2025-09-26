@@ -73,7 +73,7 @@ class AudioApi(WebUserApiResource):
 
 class TextApi(WebUserApiResource):
     def post(self, app_models: list[App], end_user, app_id):
-        from flask_restful import reqparse  # type: ignore
+        from flask_restx import reqparse  # type: ignore
 
         try:
             app_model = next(app_model for app_model in app_models if app_model.id == str(app_id))

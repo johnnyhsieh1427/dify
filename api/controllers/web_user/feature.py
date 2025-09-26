@@ -1,7 +1,7 @@
 # 修改日期2025-02-28
 # 專屬給chat-web的controllers
 
-from flask_restful import Resource  # type: ignore
+from flask_restx import Resource  # type: ignore
 
 from controllers.web_user import api
 from services.feature_service import FeatureService

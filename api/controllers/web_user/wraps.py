@@ -4,7 +4,7 @@
 from functools import wraps
 
 from flask import request
-from flask_restful import Resource  # type: ignore
+from flask_restx import Resource  # type: ignore
 from werkzeug.exceptions import BadRequest, NotFound, Unauthorized
 
 from extensions.ext_database import db

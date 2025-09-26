@@ -11,6 +11,7 @@ import TimePicker from '@/app/components/base/date-and-time-picker/time-picker'
 import Checkbox from '@/app/components/base/checkbox'
 import Select from '@/app/components/base/select'
 import { useChatContext } from '@/app/components/base/chat/chat/context'
+import { formatDateForOutput } from '@/app/components/base/date-and-time-picker/utils/dayjs'
 
 enum DATA_FORMAT {
   TEXT = 'text',
@@ -56,8 +57,20 @@ const MarkdownForm = ({ node }: any) => {
   const getFormValues = (children: any) => {
     const values: { [key: string]: any } = {}
     children.forEach((child: any) => {
-      if ([SUPPORTED_TAGS.INPUT, SUPPORTED_TAGS.TEXTAREA, SUPPORTED_TAGS.SELECT].includes(child.tagName))
-        values[child.properties.name] = formValues[child.properties.name]
+      if ([SUPPORTED_TAGS.INPUT, SUPPORTED_TAGS.TEXTAREA, SUPPORTED_TAGS.SELECT].includes(child.tagName)) {
+        let value = formValues[child.properties.name]
+
+        if (child.tagName === SUPPORTED_TAGS.INPUT
+            && (child.properties.type === SUPPORTED_TYPES.DATE || child.properties.type === SUPPORTED_TYPES.DATETIME)) {
+          if (value && typeof value.format === 'function') {
+            // Format date output consistently
+            const includeTime = child.properties.type === SUPPORTED_TYPES.DATETIME
+            value = formatDateForOutput(value, includeTime)
+          }
+        }
+
+        values[child.properties.name] = value
+      }
     })
     return values
   }

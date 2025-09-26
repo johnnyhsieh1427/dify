@@ -70,6 +70,7 @@ export const useFile = (fileConfig: FileUpload, isPublic?: boolean, isWebChat?: 
         }
         return true
       }
+      case SupportUploadFileTypes.custom:
       case SupportUploadFileTypes.document: {
         if (fileSize > docSizeLimit) {
           notify({
@@ -103,19 +104,6 @@ export const useFile = (fileConfig: FileUpload, isPublic?: boolean, isWebChat?: 
             message: t('common.fileUploader.uploadFromComputerLimit', {
               type: SupportUploadFileTypes.video,
               size: formatFileSize(videoSizeLimit),
-            }),
-          })
-          return false
-        }
-        return true
-      }
-      case SupportUploadFileTypes.custom: {
-        if (fileSize > docSizeLimit) {
-          notify({
-            type: 'error',
-            message: t('common.fileUploader.uploadFromComputerLimit', {
-              type: SupportUploadFileTypes.document,
-              size: formatFileSize(docSizeLimit),
             }),
           })
           return false
@@ -233,7 +221,7 @@ export const useFile = (fileConfig: FileUpload, isPublic?: boolean, isWebChat?: 
         url: res.url,
       }
       if (!isAllowedFileExtension(res.name, res.mime_type, fileConfig.allowed_file_types || [], fileConfig.allowed_file_extensions || [])) {
-        notify({ type: 'error', message: `${t('common.fileUploader.fileExtensionNotSupport')} ${file.type}` })
+        notify({ type: 'error', message: `${t('common.fileUploader.fileExtensionNotSupport')} ${newFile.type}` })
         handleRemoveFile(uploadingFile.id)
       }
       if (!checkSizeLimit(newFile.supportFileType, newFile.size))

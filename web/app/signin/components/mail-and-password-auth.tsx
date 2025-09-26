@@ -77,8 +77,9 @@ export default function MailAndPasswordAuth({ isInvite, isEmailSetup, allowRegis
         else {
           localStorage.setItem('console_token', res.data.access_token)
           localStorage.setItem('refresh_token', res.data.refresh_token)
+          // const redirectUrl = resolvePostLoginRedirect(searchParams)
+          // router.replace(redirectUrl || '/apps')
           router.replace('/chat-app')
-          // router.replace('/apps')
         }
       }
       else if (res.code === 'account_not_found') {

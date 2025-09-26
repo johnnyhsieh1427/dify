@@ -166,14 +166,14 @@ async function base<T>(url: string, options: FetchOptionType = {}, otherOptions:
       ],
       beforeRequest: [
         ...baseHooks.beforeRequest || [],
-        ...(isPublicAPI ? [beforeRequestPublicAuthorization] : []),
-        ...(!isPublicAPI && !isMarketplaceAPI ? [beforeRequestAuthorization] : []),
-      ],
+        isPublicAPI && beforeRequestPublicAuthorization,
+        !isPublicAPI && !isMarketplaceAPI && beforeRequestAuthorization,
+      ].filter((h): h is BeforeRequestHook => Boolean(h)),
       // beforeRequest: [
       //   ...baseHooks.beforeRequest || [],
-      //   isPublicAPI && beforeRequestPublicAuthorization,
-      //   !isPublicAPI && !isMarketplaceAPI && beforeRequestAuthorization,
-      // ].filter(Boolean),
+      //   ...(isPublicAPI ? [beforeRequestPublicAuthorization] : []),
+      //   ...(!isPublicAPI && !isMarketplaceAPI ? [beforeRequestAuthorization] : []),
+      // ],
       afterResponse: [
         ...baseHooks.afterResponse || [],
         afterResponseErrorCode(otherOptions),

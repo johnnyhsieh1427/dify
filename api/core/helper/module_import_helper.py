@@ -3,6 +3,8 @@ import logging
 import sys
 from types import ModuleType
 
+logger = logging.getLogger(__name__)
+
 
 def import_module_from_source(*, module_name: str, py_file_path: str, use_lazy_loader: bool = False) -> ModuleType:
     """
@@ -29,7 +31,7 @@ def import_module_from_source(*, module_name: str, py_file_path: str, use_lazy_l
         spec.loader.exec_module(module)
         return module
     except Exception as e:
-        logging.exception("Failed to load module %s from script file '%s'", module_name, repr(py_file_path))
+        logger.exception("Failed to load module %s from script file '%s'", module_name, repr(py_file_path))
         raise e
 
 

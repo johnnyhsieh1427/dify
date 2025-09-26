@@ -4,7 +4,9 @@ from collections.abc import Generator
 from typing import Optional, Union
 
 from sqlalchemy import cast as sql_cast
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import TEXT
+from sqlalchemy.orm import Session
 
 from core.app.app_config.entities import EasyUIBasedAppConfig, EasyUIBasedAppModelConfigFrom
 from core.app.apps.base_app_generator import BaseAppGenerator
@@ -86,11 +88,10 @@ class MessageBasedAppGenerator(BaseAppGenerator):
 
     def _get_app_model_config(self, app_model: App, conversation: Optional[Conversation] = None) -> AppModelConfig:
         if conversation:
-            app_model_config = (
-                db.session.query(AppModelConfig)
-                .where(AppModelConfig.id == conversation.app_model_config_id, AppModelConfig.app_id == app_model.id)
-                .first()
+            stmt = select(AppModelConfig).where(
+                AppModelConfig.id == conversation.app_model_config_id, AppModelConfig.app_id == app_model.id
             )
+            app_model_config = db.session.scalar(stmt)
 
             if not app_model_config:
                 raise AppModelConfigBrokenError()
@@ -265,7 +266,8 @@ class MessageBasedAppGenerator(BaseAppGenerator):
         :param conversation_id: conversation id
         :return: conversation
         """
-        conversation = db.session.query(Conversation).where(Conversation.id == conversation_id).first()
+        with Session(db.engine, expire_on_commit=False) as session:
+            conversation = session.scalar(select(Conversation).where(Conversation.id == conversation_id))
 
         if not conversation:
             raise ConversationNotExistsError("Conversation not exists")
@@ -278,7 +280,8 @@ class MessageBasedAppGenerator(BaseAppGenerator):
         :param message_id: message id
         :return: message
         """
-        message = db.session.query(Message).where(Message.id == message_id).first()
+        with Session(db.engine, expire_on_commit=False) as session:
+            message = session.scalar(select(Message).where(Message.id == message_id))
 
         if message is None:
             raise MessageNotExistsError("Message not exists")

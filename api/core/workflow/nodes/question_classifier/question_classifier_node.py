@@ -3,7 +3,7 @@
 
 import json
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.app.entities.app_invoke_entities import ModelConfigWithCredentialsEntity
 from core.memory.token_buffer_memory import TokenBufferMemory
@@ -112,7 +112,7 @@ class QuestionClassifierNode(BaseNode):
         return "1"
 
     def _run(self):
-        node_data = cast(QuestionClassifierNodeData, self._node_data)
+        node_data = self._node_data
         variable_pool = self.graph_runtime_state.variable_pool
 
         # extract variables

@@ -1,7 +1,7 @@
 # 修改日期2025-07-23
 # 新增upload_file_fields的欄位
 
-from flask_restful import fields
+from flask_restx import fields
 
 from fields.dataset_fields import dataset_fields
 from libs.helper import TimestampField

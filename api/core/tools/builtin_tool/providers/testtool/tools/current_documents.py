@@ -31,7 +31,7 @@ class CurrentDocumentsTool(BuiltinTool):
                     "documents": [
                         {
                             "document_name": doc.get("name", ""),
-                            "download_url": f"{dify_config.CONSOLE_API_URL.rstrip('/')}/{doc.get('key', '')}"
+                            "download_url": f"{dify_config.FILES_URL.rstrip('/')}/{doc.get('key', '')}"
                         } for doc in dataset.get("documents", [])
                     ],
                 }

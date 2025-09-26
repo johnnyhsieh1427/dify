@@ -66,7 +66,7 @@ const FormInputItem: FC<Props> = ({
   const isAppSelector = type === FormTypeEnum.appSelector
   const isModelSelector = type === FormTypeEnum.modelSelector
   const isDatasetSelector = type === FormTypeEnum.datasetSelector
-  const showTypeSwitch = isNumber || isObject || isArray
+  const showTypeSwitch = isNumber || isBoolean || isObject || isArray
   const isConstant = varInput?.type === VarKindType.constant || !varInput?.type
   const showVariableSelector = isFile || varInput?.type === VarKindType.variable
 
@@ -92,8 +92,8 @@ const FormInputItem: FC<Props> = ({
     //   return VarType.appSelector
     // else if (isModelSelector)
     //   return VarType.modelSelector
-    // else if (isBoolean)
-    //   return VarType.boolean
+    else if (isBoolean)
+      return VarType.boolean
     else if (isObject)
       return VarType.object
     else if (isArray)
@@ -197,7 +197,7 @@ const FormInputItem: FC<Props> = ({
   return (
     <div className={cn('gap-1', !(isShowJSONEditor && isConstant) && 'flex')}>
       {showTypeSwitch && (
-        <FormInputTypeSwitch value={varInput?.type || VarKindType.constant} onChange={handleTypeChange}/>
+        <FormInputTypeSwitch value={varInput?.type || VarKindType.constant} onChange={handleTypeChange} />
       )}
       {isString && (
         <MixedVariableTextInput
@@ -212,12 +212,12 @@ const FormInputItem: FC<Props> = ({
         <Input
           className='h-8 grow'
           type='number'
-          value={varInput?.value || ''}
+          value={Number.isNaN(varInput?.value) ? '' : varInput?.value}
           onChange={e => handleValueChange(e.target.value)}
           placeholder={placeholder?.[language] || placeholder?.en_US}
         />
       )}
-      {isBoolean && (
+      {isBoolean && isConstant && (
         <FormInputBoolean
           value={varInput?.value as boolean}
           onChange={handleValueChange}

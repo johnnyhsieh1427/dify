@@ -3,7 +3,7 @@
 
 import logging
 
-from flask_restful import reqparse  # type: ignore
+from flask_restx import reqparse  # type: ignore
 from werkzeug.exceptions import InternalServerError
 
 from controllers.web_user import api
