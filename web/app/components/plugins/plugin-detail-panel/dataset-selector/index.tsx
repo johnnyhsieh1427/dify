@@ -86,7 +86,7 @@ const DatasetSelector: FC<Props> = ({
     try {
       await setSize((size: number) => size + 1)
     }
- finally {
+    finally {
       // Add a small delay to ensure state updates are complete
       setTimeout(() => {
         setIsLoadingMore(false)
