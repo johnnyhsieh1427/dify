@@ -10,17 +10,17 @@ import { useRouter } from 'next/navigation'
 const Apps = () => {
   const { t } = useTranslation()
   const router = useRouter()
-  const { isCurrentWorkspaceOwner, isCurrentWorkspaceManager, isInitialized } = useAppContext()
+  const { isCurrentWorkspaceOwner, isCurrentWorkspaceManager, isCurrentWorkspaceDatasetOperator, isInitialized } = useAppContext()
 
   useDocumentTitle(t('common.menus.apps'))
   useEducationInit()
 
   useEffect(() => {
     if (isInitialized) {
-      if (!(isCurrentWorkspaceOwner || isCurrentWorkspaceManager))
+      if (!(isCurrentWorkspaceOwner || isCurrentWorkspaceManager || isCurrentWorkspaceDatasetOperator))
         router.replace('/chat-app')
     }
-  }, [isCurrentWorkspaceOwner, isCurrentWorkspaceManager, isInitialized])
+  }, [isCurrentWorkspaceOwner, isCurrentWorkspaceManager, isCurrentWorkspaceDatasetOperator, isInitialized])
   return (
     <div className='relative flex h-0 shrink-0 grow flex-col overflow-y-auto bg-background-body'>
       <List />

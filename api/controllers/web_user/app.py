@@ -86,6 +86,7 @@ class AppLatestMessageIndex(WebUserApiResource):
 
         return {"latest_message_index": latest_index}
 
+
 api.add_resource(AppParameterApi, "/parameters")
 api.add_resource(AppMeta, "/meta")
 api.add_resource(AppLatestMessageIndex, "/latest_message_index")

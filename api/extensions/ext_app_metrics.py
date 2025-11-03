@@ -97,12 +97,12 @@ def init_app(app: DifyApp):
                 mime_type = "application/octet-stream"
 
             # 從query parameter獲取檔案名稱
-            originalName = request.args.get("originalName", "")
+            originalName = request.args.get("originalName")
             # 設置回應，Content-Disposition 為 inline（直接顯示）
             response = send_file(
                 path_or_file=file_path, 
                 mimetype=mime_type, 
-                download_name=originalName if len(originalName) else file_name
+                download_name=originalName if not originalName else file_name
             )
             response.headers["Content-Disposition"] = f"inline; filename={file_name}"
             return response

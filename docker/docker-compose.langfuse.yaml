@@ -19,10 +19,10 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
-    ports:
-      - "3030:3030"
+    # ports:
+    #   - "3030:3030"
     environment: &langfuse-worker-env
-      DATABASE_URL: postgresql://${LANGFUSE_DB_USER:-postgres}:${LANGFUSE_DB_PASSWORD:-postgres}@langfusedb:${LANGFUSE_DB_PORT:-5430}/${LANGFUSE_DB_NAME:-postgres}
+      DATABASE_URL: postgresql://${LANGFUSE_DB_USER:-postgres}:${LANGFUSE_DB_PASSWORD:-postgres}@langfusedb:${LANGFUSE_DB_PORT:-5432}/${LANGFUSE_DB_NAME:-postgres}
       SALT: ${SALT:-mysalt}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-ee17abc642280af421b5574b9b84760e05e1e997af8c53296b7173a0597ee4d9} # generate via `openssl rand -hex 32`
       TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-true}
@@ -62,7 +62,7 @@ services:
       LANGFUSE_INGESTION_CLICKHOUSE_WRITE_INTERVAL_MS: ${LANGFUSE_INGESTION_CLICKHOUSE_WRITE_INTERVAL_MS:-}
       
       REDIS_HOST: ${REDIS_HOST:-redis_langfuse}
-      REDIS_PORT: ${REDIS_PORT:-6380}
+      REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_AUTH: ${REDIS_AUTH:-myredissecret} # CHANGEME
       REDIS_TLS_ENABLED: ${REDIS_TLS_ENABLED:-false}
       REDIS_TLS_CA: ${REDIS_TLS_CA:-/certs/ca.crt}
@@ -76,10 +76,10 @@ services:
     restart: always
     depends_on: *langfuse-depends-on
     ports:
-      - ${LANGFUSE_SERVER_PORT:-3001}:3000
+      - ${PORT:-3001}:${PORT:-3001}
     environment:
       <<: *langfuse-worker-env
-      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:${PORT:-3001}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-cN1epWOu6KtNJe8EGTjNEuI+EEOU2tHL3BKpu+3YH9U=}
       LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-}
       LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-}
@@ -106,9 +106,9 @@ services:
       - langfuse_clickhouse_logs:/var/log/clickhouse-server
       # - ./langfuse/clickhouse/data:/var/lib/clickhouse
       # - ./langfuse/clickhouse/logs:/var/log/clickhouse-server
-    ports:
-      - "8123:8123"
-      - "9000:9000"
+    # ports:
+    #   - "8123:8123"
+    #   - "9000:9000"
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
       interval: 5s
@@ -138,7 +138,7 @@ services:
       # start_period: 1s
   rustfs:
     image: rustfs/rustfs:latest
-    restart: unless-stopped
+    restart: always
     environment:
       PUID: 1000
       PGID: 1000
@@ -180,11 +180,11 @@ services:
       - /bin/sh
       - -c
       - |
-        redis-server --requirepass ${REDIS_AUTH:-myredissecret} --port ${REDIS_PORT:-6380}
-    ports:
-      - ${REDIS_PORT:-6380}:${REDIS_PORT:-6380}
+        redis-server --requirepass ${REDIS_AUTH:-myredissecret} --port ${REDIS_PORT:-6379}
+    # ports:
+    #   - ${REDIS_PORT:-6380}:${REDIS_PORT:-6380}
     healthcheck:
-      test: ["CMD", "redis-cli", "-p", "${REDIS_PORT:-6380}", "ping"]
+      test: ["CMD", "redis-cli", "-p", "${REDIS_PORT:-6379}", "ping"]
       interval: 3s
       timeout: 10s
       retries: 10
@@ -195,7 +195,7 @@ services:
       - ./langfuse.env
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${LANGFUSE_DB_USER:-postgres} -p ${LANGFUSE_DB_PORT:-5430}'"]
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${LANGFUSE_DB_USER:-postgres} -p ${LANGFUSE_DB_PORT:-5432}'"]
       interval: 3s
       timeout: 3s
       retries: 10
@@ -203,11 +203,26 @@ services:
       POSTGRES_USER: ${LANGFUSE_DB_USER:-postgres}
       POSTGRES_PASSWORD: ${LANGFUSE_DB_PASSWORD:-postgres}
       POSTGRES_DB: ${LANGFUSE_DB_NAME:-postgres}
-    ports:
-      - ${LANGFUSE_DB_PORT:-5430}:${LANGFUSE_DB_PORT:-5430}
-    command: postgres -p ${LANGFUSE_DB_PORT:-5430}
+    #   - ${LANGFUSE_DB_PORT:-5430}:${LANGFUSE_DB_PORT:-5430}
+    command: postgres -p ${LANGFUSE_DB_PORT:-5432}
     volumes:
       - ./langfuse/postgres/data:/var/lib/postgresql/data
+
+  # DB UI for postgres
+  pgadmin:
+    image: dpage/pgadmin4:8.13.0
+    restart: always
+    env_file:
+      - ./middleware.env
+    user: "${UID}:${GID}"
+    depends_on:
+      langfusedb:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-user@domain.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-docker}
+    ports:
+      - "5433:80"
 
 volumes:
   langfuse_clickhouse_data:

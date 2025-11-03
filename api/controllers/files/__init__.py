@@ -10,11 +10,20 @@ api = ExternalApi(
     version="1.0",
     title="Files API",
     description="API for file operations including upload and preview",
-    doc="/docs",  # Enable Swagger UI at /files/docs
 )
 
 files_ns = Namespace("files", description="File operations", path="/")
 
-from . import image_preview, tool_files, upload
+from . import datasource_files, image_preview, tool_files, upload
 
 api.add_namespace(files_ns)
+
+__all__ = [
+    "api",
+    "bp",
+    "datasource_files",
+    "files_ns",
+    "image_preview",
+    "tool_files",
+    "upload",
+]

@@ -13,14 +13,13 @@ import { login } from '@/service/common'
 import Input from '@/app/components/base/input'
 import I18NContext from '@/context/i18n'
 import { noop } from 'lodash-es'
+import type { ResponseError } from '@/service/fetch'
 
 type MailAndPasswordAuthProps = {
   isInvite: boolean
   isEmailSetup: boolean
   allowRegistration: boolean
 }
-
-const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/
 
 export default function MailAndPasswordAuth({ isInvite, isEmailSetup, allowRegistration }: MailAndPasswordAuthProps) {
   const { t } = useTranslation()
@@ -49,13 +48,7 @@ export default function MailAndPasswordAuth({ isInvite, isEmailSetup, allowRegis
       Toast.notify({ type: 'error', message: t('login.error.passwordEmpty') })
       return
     }
-    if (!passwordRegex.test(password)) {
-      Toast.notify({
-        type: 'error',
-        message: t('login.error.passwordInvalid'),
-      })
-      return
-    }
+
     try {
       setIsLoading(true)
       const loginData: Record<string, any> = {
@@ -103,7 +96,14 @@ export default function MailAndPasswordAuth({ isInvite, isEmailSetup, allowRegis
         })
       }
     }
-
+    catch (error) {
+      if ((error as ResponseError).code === 'authentication_failed') {
+        Toast.notify({
+          type: 'error',
+          message: t('login.error.invalidEmailOrPassword'),
+        })
+      }
+    }
     finally {
       setIsLoading(false)
     }

@@ -2,7 +2,7 @@ import json
 
 from flask import request
 from flask_restx import marshal, reqparse
-from sqlalchemy import desc, select
+from sqlalchemy import select
 from werkzeug.exceptions import Forbidden, NotFound
 
 import services
@@ -130,22 +130,29 @@ class DocumentAddByTextApi(DatasetApiResource):
         if text is None or name is None:
             raise ValueError("Both 'text' and 'name' must be non-null values.")
 
-        if args.get("embedding_model_provider"):
-            DatasetService.check_embedding_model_setting(
-                tenant_id, args.get("embedding_model_provider"), args.get("embedding_model")
-            )
+        embedding_model_provider = args.get("embedding_model_provider")
+        embedding_model = args.get("embedding_model")
+        if embedding_model_provider and embedding_model:
+            DatasetService.check_embedding_model_setting(tenant_id, embedding_model_provider, embedding_model)
+
+        retrieval_model = args.get("retrieval_model")
         if (
-            args.get("retrieval_model")
-            and args.get("retrieval_model").get("reranking_model")
-            and args.get("retrieval_model").get("reranking_model").get("reranking_provider_name")
+            retrieval_model
+            and retrieval_model.get("reranking_model")
+            and retrieval_model.get("reranking_model").get("reranking_provider_name")
         ):
             DatasetService.check_reranking_model_setting(
                 tenant_id,
-                args.get("retrieval_model").get("reranking_model").get("reranking_provider_name"),
-                args.get("retrieval_model").get("reranking_model").get("reranking_model_name"),
+                retrieval_model.get("reranking_model").get("reranking_provider_name"),
+                retrieval_model.get("reranking_model").get("reranking_model_name"),
             )
 
-        upload_file = FileService.upload_text(text=str(text), text_name=str(name))
+        if not current_user:
+            raise ValueError("current_user is required")
+
+        upload_file = FileService(db.engine).upload_text(
+            text=str(text), text_name=str(name), user_id=current_user.id, tenant_id=tenant_id
+        )
         data_source = {
             "type": "upload_file",
             "info_list": {"data_source_type": "upload_file", "file_info_list": {"file_ids": [upload_file.id]}},
@@ -154,6 +161,9 @@ class DocumentAddByTextApi(DatasetApiResource):
         knowledge_config = KnowledgeConfig(**args)
         # validate args
         DocumentService.document_create_args_validate(knowledge_config)
+
+        if not current_user:
+            raise ValueError("current_user is required")
 
         try:
             documents, batch = DocumentService.save_document_with_dataset_id(
@@ -201,15 +211,16 @@ class DocumentUpdateByTextApi(DatasetApiResource):
         if not dataset:
             raise ValueError("Dataset does not exist.")
 
+        retrieval_model = args.get("retrieval_model")
         if (
-            args.get("retrieval_model")
-            and args.get("retrieval_model").get("reranking_model")
-            and args.get("retrieval_model").get("reranking_model").get("reranking_provider_name")
+            retrieval_model
+            and retrieval_model.get("reranking_model")
+            and retrieval_model.get("reranking_model").get("reranking_provider_name")
         ):
             DatasetService.check_reranking_model_setting(
                 tenant_id,
-                args.get("retrieval_model").get("reranking_model").get("reranking_provider_name"),
-                args.get("retrieval_model").get("reranking_model").get("reranking_model_name"),
+                retrieval_model.get("reranking_model").get("reranking_provider_name"),
+                retrieval_model.get("reranking_model").get("reranking_model_name"),
             )
 
         # indexing_technique is already set in dataset since this is an update
@@ -220,7 +231,11 @@ class DocumentUpdateByTextApi(DatasetApiResource):
             name = args.get("name")
             if text is None or name is None:
                 raise ValueError("Both text and name must be strings.")
-            upload_file = FileService.upload_text(text=str(text), text_name=str(name))
+            if not current_user:
+                raise ValueError("current_user is required")
+            upload_file = FileService(db.engine).upload_text(
+                text=str(text), text_name=str(name), user_id=current_user.id, tenant_id=tenant_id
+            )
             data_source = {
                 "type": "upload_file",
                 "info_list": {"data_source_type": "upload_file", "file_info_list": {"file_ids": [upload_file.id]}},
@@ -320,7 +335,9 @@ class DocumentAddByFileApi(DatasetApiResource):
         if not file.filename:
             raise FilenameNotExistsError
 
-        upload_file = FileService.upload_file(
+        if not current_user:
+            raise ValueError("current_user is required")
+        upload_file = FileService(db.engine).upload_file(
             filename=file.filename,
             content=file.read(),
             mimetype=file.mimetype,
@@ -431,8 +448,11 @@ class DocumentUpdateByFileApi(DatasetApiResource):
             if not file.filename:
                 raise FilenameNotExistsError
 
+            if not current_user:
+                raise ValueError("current_user is required")
+
             try:
-                upload_file = FileService.upload_file(
+                upload_file = FileService(db.engine).upload_file(
                     filename=file.filename,
                     content=file.read(),
                     mimetype=file.mimetype,
@@ -487,6 +507,10 @@ class DocumentListApi(DatasetApiResource):
         page = request.args.get("page", default=1, type=int)
         limit = request.args.get("limit", default=20, type=int)
         search = request.args.get("keyword", default=None, type=str)
+        
+        created_from = request.args.get("created_from", default=None, type=str)
+        data_source_type = request.args.get("data_source_type", default=None, type=str)
+
         dataset = db.session.query(Dataset).where(Dataset.tenant_id == tenant_id, Dataset.id == dataset_id).first()
         if not dataset:
             raise NotFound("Dataset not found.")
@@ -497,8 +521,22 @@ class DocumentListApi(DatasetApiResource):
             search = f"%{search}%"
             query = query.where(Document.name.like(search))
 
-        query = query.order_by(desc(Document.created_at), desc(Document.position))
+        if data_source_type and created_from:
+            query = query.where(
+                Document.data_source_type == data_source_type,
+                Document.created_from == created_from,
+            ).order_by(Document.created_at.desc())
+            documents = db.session.scalars(query).all()
 
+            response = {
+                "data": marshal(documents, document_fields),
+                "has_more": False,
+                "limit": len(documents),
+                "total": len(documents),
+                "page": 1,
+            }
+            return response
+            
         paginated_documents = db.paginate(select=query, page=page, per_page=limit, max_per_page=100, error_out=False)
         documents = paginated_documents.items
 
@@ -610,7 +648,7 @@ class DocumentApi(DatasetApiResource):
             response = {"id": document.id, "doc_type": document.doc_type, "doc_metadata": document.doc_metadata_details}
         elif metadata == "without":
             dataset_process_rules = DatasetService.get_process_rules(dataset_id)
-            document_process_rules = document.dataset_process_rule.to_dict()
+            document_process_rules = document.dataset_process_rule.to_dict() if document.dataset_process_rule else {}
             data_source_info = document.data_source_detail_dict
             response = {
                 "id": document.id,
@@ -643,7 +681,7 @@ class DocumentApi(DatasetApiResource):
             }
         else:
             dataset_process_rules = DatasetService.get_process_rules(dataset_id)
-            document_process_rules = document.dataset_process_rule.to_dict()
+            document_process_rules = document.dataset_process_rule.to_dict() if document.dataset_process_rule else {}
             data_source_info = document.data_source_detail_dict
             response = {
                 "id": document.id,

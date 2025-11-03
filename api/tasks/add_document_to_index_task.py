@@ -86,7 +86,7 @@ def add_document_to_index_task(dataset_document_id: str):
 
         index_type = dataset.doc_form
         index_processor = IndexProcessorFactory(index_type).init_index_processor()
-        index_processor.load(dataset,documents)
+        index_processor.load(dataset, documents)
 
         # delete auto disable log
         db.session.query(DatasetAutoDisableLog).where(DatasetAutoDisableLog.document_id == dataset_document.id).delete()

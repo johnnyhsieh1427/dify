@@ -100,6 +100,9 @@ const translation = {
       upload_file: 'Upload File',
       notion: 'Sync form Notion',
       github: 'Sync form Github',
+      local_file: 'Local File',
+      website_crawl: 'Website Crawl',
+      online_document: 'Online Document',
     },
     type: {
       book: 'Book',
@@ -316,6 +319,7 @@ const translation = {
     },
   },
   embedding: {
+    waiting: 'Embedding waiting...',
     processing: 'Embedding processing...',
     paused: 'Embedding paused',
     completed: 'Embedding completed',

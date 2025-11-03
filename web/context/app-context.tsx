@@ -10,6 +10,8 @@ import { fetchCurrentWorkspace, fetchLangGeniusVersion, fetchUserProfile } from 
 import type { ICurrentWorkspace, LangGeniusVersionResponse, UserProfileResponse } from '@/models/common'
 import MaintenanceNotice from '@/app/components/header/maintenance-notice'
 import { noop } from 'lodash-es'
+import { setZendeskConversationFields } from '@/app/components/base/zendesk/utils'
+import { ZENDESK_FIELD_IDS } from '@/config'
 
 export type AppContextValue = {
   userProfile: UserProfileResponse
@@ -121,6 +123,44 @@ export const AppContextProvider: FC<AppContextProviderProps> = ({ children }) =>
       setIsInitialized(true)
     }
   }, [currentWorkspaceResponse])
+
+  // #region Zendesk conversation fields
+  useEffect(() => {
+    if (ZENDESK_FIELD_IDS.ENVIRONMENT && langGeniusVersionInfo?.current_env) {
+      setZendeskConversationFields([{
+        id: ZENDESK_FIELD_IDS.ENVIRONMENT,
+        value: langGeniusVersionInfo.current_env.toLowerCase(),
+      }])
+    }
+  }, [langGeniusVersionInfo?.current_env])
+
+  useEffect(() => {
+    if (ZENDESK_FIELD_IDS.VERSION && langGeniusVersionInfo?.version) {
+      setZendeskConversationFields([{
+        id: ZENDESK_FIELD_IDS.VERSION,
+        value: langGeniusVersionInfo.version,
+      }])
+    }
+  }, [langGeniusVersionInfo?.version])
+
+  useEffect(() => {
+    if (ZENDESK_FIELD_IDS.EMAIL && userProfile?.email) {
+      setZendeskConversationFields([{
+        id: ZENDESK_FIELD_IDS.EMAIL,
+        value: userProfile.email,
+      }])
+    }
+  }, [userProfile?.email])
+
+  useEffect(() => {
+    if (ZENDESK_FIELD_IDS.WORKSPACE_ID && currentWorkspace?.id) {
+      setZendeskConversationFields([{
+        id: ZENDESK_FIELD_IDS.WORKSPACE_ID,
+        value: currentWorkspace.id,
+      }])
+    }
+  }, [currentWorkspace?.id])
+  // #endregion Zendesk conversation fields
 
   return (
     <AppContext.Provider value={{

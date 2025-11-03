@@ -4,6 +4,7 @@ from typing import Literal
 
 import click
 from celery import shared_task
+from sqlalchemy import select
 
 from core.rag.index_processor.constant.index_type import IndexType
 from core.rag.index_processor.index_processor_factory import IndexProcessorFactory
@@ -35,16 +36,14 @@ def deal_dataset_vector_index_task(dataset_id: str, action: Literal["remove", "a
         if action == "remove":
             index_processor.clean(dataset, None, with_keywords=False)
         elif action == "add":
-            dataset_documents = (
-                db.session.query(DatasetDocument)
-                .where(
+            dataset_documents = db.session.scalars(
+                select(DatasetDocument).where(
                     DatasetDocument.dataset_id == dataset_id,
                     DatasetDocument.indexing_status == "completed",
                     DatasetDocument.enabled == True,
                     DatasetDocument.archived == False,
                 )
-                .all()
-            )
+            ).all()
 
             if dataset_documents:
                 dataset_documents_ids = [doc.id for doc in dataset_documents]
@@ -88,20 +87,19 @@ def deal_dataset_vector_index_task(dataset_id: str, action: Literal["remove", "a
                         )
                         db.session.commit()
         elif action == "update":
-            dataset_documents = (
-                db.session.query(DatasetDocument)
-                .where(
+            dataset_documents = db.session.scalars(
+                select(DatasetDocument).where(
                     DatasetDocument.dataset_id == dataset_id,
                     DatasetDocument.indexing_status == "completed",
                     DatasetDocument.enabled == True,
                     DatasetDocument.archived == False,
                 )
-                .all()
-            )
+            ).all()
             # add new index
             if dataset_documents:
                 # update document status
                 dataset_documents_ids = [doc.id for doc in dataset_documents]
+                dataset_documents_doc_form = [doc.doc_form for doc in dataset_documents]
                 db.session.query(DatasetDocument).where(DatasetDocument.id.in_(dataset_documents_ids)).update(
                     {"indexing_status": "indexing"}, synchronize_session=False
                 )
@@ -109,13 +107,19 @@ def deal_dataset_vector_index_task(dataset_id: str, action: Literal["remove", "a
 
                 # clean index
                 index_processor.clean(dataset, None, with_keywords=False, delete_child_chunks=False)
-
-                for dataset_document in dataset_documents:
+                # for dataset_document in dataset_documents:
+                for (
+                    dataset_document_id, 
+                    dataset_document_doc_form
+                ) in zip(
+                    dataset_documents_ids, 
+                    dataset_documents_doc_form
+                ):
                     # update from vector index
                     try:
                         segments = (
                             db.session.query(DocumentSegment)
-                            .where(DocumentSegment.document_id == dataset_document.id, DocumentSegment.enabled == True)
+                            .where(DocumentSegment.document_id == dataset_document_id, DocumentSegment.enabled == True)
                             .order_by(DocumentSegment.position.asc())
                             .all()
                         )
@@ -131,7 +135,7 @@ def deal_dataset_vector_index_task(dataset_id: str, action: Literal["remove", "a
                                         "dataset_id": segment.dataset_id,
                                     },
                                 )
-                                if dataset_document.doc_form == IndexType.PARENT_CHILD_INDEX:
+                                if dataset_document_doc_form == IndexType.PARENT_CHILD_INDEX:
                                     child_chunks = segment.get_child_chunks()
                                     if child_chunks:
                                         child_documents = []
@@ -150,12 +154,12 @@ def deal_dataset_vector_index_task(dataset_id: str, action: Literal["remove", "a
                                 documents.append(document)
                             # save vector index
                             index_processor.load(dataset, documents, with_keywords=False)
-                        db.session.query(DatasetDocument).where(DatasetDocument.id == dataset_document.id).update(
+                        db.session.query(DatasetDocument).where(DatasetDocument.id == dataset_document_id).update(
                             {"indexing_status": "completed"}, synchronize_session=False
                         )
                         db.session.commit()
                     except Exception as e:
-                        db.session.query(DatasetDocument).where(DatasetDocument.id == dataset_document.id).update(
+                        db.session.query(DatasetDocument).where(DatasetDocument.id == dataset_document_id).update(
                             {"indexing_status": "error", "error": str(e)}, synchronize_session=False
                         )
                         db.session.commit()

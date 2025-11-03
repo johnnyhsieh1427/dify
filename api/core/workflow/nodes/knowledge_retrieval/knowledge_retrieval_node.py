@@ -9,7 +9,7 @@ import re
 import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import Float, and_, func, or_, select, text
 from sqlalchemy import cast as sqlalchemy_cast
@@ -37,14 +37,11 @@ from core.variables import (
     StringSegment,
 )
 from core.variables.segments import ArrayObjectSegment
-from core.workflow.entities.node_entities import NodeRunResult
-from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionStatus
-from core.workflow.nodes.base import BaseNode
+from core.workflow.entities import GraphInitParams
+from core.workflow.enums import ErrorStrategy, NodeType, WorkflowNodeExecutionStatus
+from core.workflow.node_events import ModelInvokeCompletedEvent, NodeRunResult
 from core.workflow.nodes.base.entities import BaseNodeData, RetryConfig
-from core.workflow.nodes.enums import ErrorStrategy, NodeType
-from core.workflow.nodes.event import (
-    ModelInvokeCompletedEvent,
-)
+from core.workflow.nodes.base.node import Node
 from core.workflow.nodes.knowledge_retrieval.template_prompts import (
     METADATA_FILTER_ASSISTANT_PROMPT_1,
     METADATA_FILTER_ASSISTANT_PROMPT_2,
@@ -62,6 +59,7 @@ from extensions.ext_redis import redis_client
 from libs.json_in_md_parser import parse_and_check_json_markdown
 from models.dataset import Dataset, DatasetMetadata, Document, RateLimitLog
 from models.model import UploadFile
+from models.tools import ToolFile
 
 # from models.workflow import WorkflowNodeExecutionStatus
 from services.feature_service import FeatureService
@@ -78,7 +76,7 @@ from .exc import (
 
 if TYPE_CHECKING:
     from core.file.models import File
-    from core.workflow.graph_engine import Graph, GraphInitParams, GraphRuntimeState
+    from core.workflow.entities import GraphRuntimeState
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +89,8 @@ default_retrieval_model = {
 }
 
 
-class KnowledgeRetrievalNode(BaseNode):
-    _node_type = NodeType.KNOWLEDGE_RETRIEVAL
+class KnowledgeRetrievalNode(Node):
+    node_type = NodeType.KNOWLEDGE_RETRIEVAL
 
     _node_data: KnowledgeRetrievalNodeData
 
@@ -107,21 +105,15 @@ class KnowledgeRetrievalNode(BaseNode):
         id: str,
         config: Mapping[str, Any],
         graph_init_params: "GraphInitParams",
-        graph: "Graph",
         graph_runtime_state: "GraphRuntimeState",
-        previous_node_id: Optional[str] = None,
-        thread_pool_id: Optional[str] = None,
         *,
         llm_file_saver: LLMFileSaver | None = None,
-    ) -> None:
+    ):
         super().__init__(
             id=id,
             config=config,
             graph_init_params=graph_init_params,
-            graph=graph,
             graph_runtime_state=graph_runtime_state,
-            previous_node_id=previous_node_id,
-            thread_pool_id=thread_pool_id,
         )
         # LLM file outputs, used for MultiModal outputs.
         self._file_outputs: list[File] = []
@@ -133,10 +125,10 @@ class KnowledgeRetrievalNode(BaseNode):
             )
         self._llm_file_saver = llm_file_saver
 
-    def init_node_data(self, data: Mapping[str, Any]) -> None:
+    def init_node_data(self, data: Mapping[str, Any]):
         self._node_data = KnowledgeRetrievalNodeData.model_validate(data)
 
-    def _get_error_strategy(self) -> Optional[ErrorStrategy]:
+    def _get_error_strategy(self) -> ErrorStrategy | None:
         return self._node_data.error_strategy
 
     def _get_retry_config(self) -> RetryConfig:
@@ -145,7 +137,7 @@ class KnowledgeRetrievalNode(BaseNode):
     def _get_title(self) -> str:
         return self._node_data.title
 
-    def _get_description(self) -> Optional[str]:
+    def _get_description(self) -> str | None:
         return self._node_data.desc
 
     def _get_default_value_dict(self) -> dict[str, Any]:
@@ -205,7 +197,7 @@ class KnowledgeRetrievalNode(BaseNode):
             return NodeRunResult(
                 status=WorkflowNodeExecutionStatus.SUCCEEDED,
                 inputs=variables,
-                process_data=None,
+                process_data={},
                 outputs=outputs,  # type: ignore
             )
 
@@ -267,7 +259,7 @@ class KnowledgeRetrievalNode(BaseNode):
         )
         all_documents = []
         dataset_retrieval = DatasetRetrieval()
-        if node_data.retrieval_mode == DatasetRetrieveConfigEntity.RetrieveStrategy.SINGLE.value:
+        if node_data.retrieval_mode == DatasetRetrieveConfigEntity.RetrieveStrategy.SINGLE:
             # fetch model config
             if node_data.single_retrieval_config is None:
                 raise ValueError("single_retrieval_config is required")
@@ -299,7 +291,7 @@ class KnowledgeRetrievalNode(BaseNode):
                     metadata_filter_document_ids=metadata_filter_document_ids,
                     metadata_condition=metadata_condition,
                 )
-        elif node_data.retrieval_mode == DatasetRetrieveConfigEntity.RetrieveStrategy.MULTIPLE.value:
+        elif node_data.retrieval_mode == DatasetRetrieveConfigEntity.RetrieveStrategy.MULTIPLE:
             if node_data.multiple_retrieval_config is None:
                 raise ValueError("multiple_retrieval_config is required")
             if node_data.multiple_retrieval_config.reranking_mode == "reranking_model":
@@ -383,21 +375,46 @@ class KnowledgeRetrievalNode(BaseNode):
                     document = db.session.scalar(stmt)
                     if dataset and document:
                         file_location = None
-                        try:
-                            import json
-                            source_info = json.loads(document.data_source_info)
-                            isDict = isinstance(source_info, dict)
-                            hasUploadFileId = source_info.get("upload_file_id", False)
-                            isUploadFile = document.data_source_type == "upload_file"
+                        if (
+                            document.created_from == "rag-pipeline" and
+                            document.data_source_type == "online_drive"
+                        ):
+                            try:
+                                from mimetypes import guess_extension
 
-                            if (isDict and hasUploadFileId and isUploadFile):
-                                upload_file = db.session.query(UploadFile).where(
-                                    UploadFile.id == source_info["upload_file_id"]
+                                from core.datasource.datasource_file_manager import DatasourceFileManager
+
+                                datasource_file_manager = DatasourceFileManager()
+                                datasource_name = document.data_source_info_dict.get("id")
+                                tool_file = db.session.query(ToolFile).where(
+                                    ToolFile.name == datasource_name,
                                 ).first()
-                                if (upload_file and upload_file.storage_type in ["local", "opendal"]):
-                                    file_location = upload_file.key
-                        except:
-                            pass
+                                extension = guess_extension(tool_file.mimetype) or ".bin"
+
+                                sign_file = datasource_file_manager.sign_file(
+                                    datasource_file_id=tool_file.id,
+                                    extension=extension
+                                )
+                                file_location = sign_file
+                            except:
+                                pass
+                        
+                        elif document.data_source_type == "upload_file":
+                            try:
+                                import json
+                                source_info = json.loads(document.data_source_info)
+                                isDict = isinstance(source_info, dict)
+                                hasUploadFileId = source_info.get("upload_file_id", False)
+                                isUploadFile = document.data_source_type == "upload_file"
+
+                                if (isDict and hasUploadFileId and isUploadFile):
+                                    upload_file = db.session.query(UploadFile).where(
+                                        UploadFile.id == source_info["upload_file_id"]
+                                    ).first()
+                                    if (upload_file and upload_file.storage_type in ["local", "opendal"]):
+                                        file_location = upload_file.key
+                            except:
+                                pass
                         
                         source = {
                             "metadata": {
@@ -445,14 +462,14 @@ class KnowledgeRetrievalNode(BaseNode):
 
     def _get_metadata_filter_condition(
         self, dataset_ids: list, query: str, node_data: KnowledgeRetrievalNodeData
-    ) -> tuple[Optional[dict[str, list[str]]], Optional[MetadataCondition]]:
+    ) -> tuple[dict[str, list[str]] | None, MetadataCondition | None]:
         document_query = db.session.query(Document).where(
             Document.dataset_id.in_(dataset_ids),
             Document.indexing_status == "completed",
             Document.enabled == True,
             Document.archived == False,
         )
-        filters = []  # type: ignore
+        filters: list[Any] = []
         metadata_condition = None
         if node_data.metadata_filtering_mode == "disabled":
             return None, None
@@ -466,7 +483,7 @@ class KnowledgeRetrievalNode(BaseNode):
                         filter.get("condition", ""),
                         filter.get("metadata_name", ""),
                         filter.get("value"),
-                        filters,  # type: ignore
+                        filters,
                     )
                     conditions.append(
                         Condition(
@@ -576,7 +593,8 @@ class KnowledgeRetrievalNode(BaseNode):
                 structured_output=None,
                 file_saver=self._llm_file_saver,
                 file_outputs=self._file_outputs,
-                node_id=self.node_id,
+                node_id=self._node_id,
+                node_type=self.node_type,
             )
 
             for event in generator:
@@ -602,10 +620,10 @@ class KnowledgeRetrievalNode(BaseNode):
         return automatic_metadata_filters
 
     def _process_metadata_filter_func(
-        self, sequence: int, condition: str, metadata_name: str, value: Optional[Any], filters: list
-    ):
+        self, sequence: int, condition: str, metadata_name: str, value: Any, filters: list[Any]
+    ) -> list[Any]:
         if value is None and condition not in ("empty", "not empty"):
-            return
+            return filters
 
         key = f"{metadata_name}_{sequence}"
         key_value = f"{metadata_name}_{sequence}_value"
@@ -690,6 +708,7 @@ class KnowledgeRetrievalNode(BaseNode):
         node_id: str,
         node_data: Mapping[str, Any],
     ) -> Mapping[str, Sequence[str]]:
+        # graph_config is not used in this node type
         # Create typed NodeData from dict
         typed_node_data = KnowledgeRetrievalNodeData.model_validate(node_data)
 

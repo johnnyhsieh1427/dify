@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from core.model_manager import ModelInstance, ModelManager
 from core.model_runtime.entities.model_entities import ModelType
@@ -20,10 +19,10 @@ class VectorService:
     @classmethod
     def create_segments_vector(
         cls, 
-        keywords_list: Optional[list[list[str]]], 
+        keywords_list: list[list[str]] | None, 
         segments: list[DocumentSegment], 
         dataset: Dataset, 
-        doc_form: str, 
+        doc_form: str
     ):
         documents: list[Document] = []
 
@@ -88,7 +87,7 @@ class VectorService:
             )
 
     @classmethod
-    def update_segment_vector(cls, keywords: Optional[list[str]], segment: DocumentSegment, dataset: Dataset):
+    def update_segment_vector(cls, keywords: list[str] | None, segment: DocumentSegment, dataset: Dataset):
         # update segment index task
 
         # format new index
