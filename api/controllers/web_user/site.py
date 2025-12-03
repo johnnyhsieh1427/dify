@@ -3,10 +3,10 @@
 # 修改日期: 2025-07-31
 # UserAppSiteApi改list輸出
 
-from flask_restx import fields, marshal  # type: ignore
+from flask_restx import fields, marshal
 
 from configs import dify_config
-from controllers.web_user import api
+from controllers.web_user import web_chat_ns
 from controllers.web_user.error import AppUnavailableError
 from controllers.web_user.wraps import WebUserApiResource
 from extensions.ext_database import db
@@ -18,9 +18,10 @@ from models.model import App, EndUser, Site
 # from services.feature_service import FeatureService
 
 
+@web_chat_ns.route("/site")
 class UserAppSiteApi(WebUserApiResource):
-    """Resource for user app sites."""
-    
+    """Resource for app sites."""
+
     model_config_fields = {
         "opening_statement": fields.String,
         "suggested_questions": fields.Raw(attribute="suggested_questions_list"),
@@ -64,22 +65,22 @@ class UserAppSiteApi(WebUserApiResource):
         "items": fields.List(fields.Nested(app_fields))
     }
 
+    @web_chat_ns.doc("Get App Site Info")
+    @web_chat_ns.doc(description="Retrieve app site information and configuration.")
+    @web_chat_ns.doc(
+        responses={
+            200: "Success",
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "App Not Found",
+            500: "Internal Server Error",
+        }
+    )
     def get(self, app_models: list[App], end_user: EndUser):
         _list = []
         for app_model in app_models:
             site = db.session.query(Site).filter(Site.app_id == app_model.id).first()
-            # if not site:
-            #     _list.append(None)
-            #     continue
-            # if app_model.status != "normal":
-            #     _list.append(None)
-            #     continue
-            # if not app_model.enable_site:
-            #     _list.append(None)
-            #     continue
-            # if app_model.tenant.status == TenantStatus.ARCHIVE:
-            #     _list.append(None)
-            #     continue
             _list.append(
                 marshal(
                     AppSiteInfo(app_model.tenant, app_model, site, end_user.id, False),
@@ -90,9 +91,6 @@ class UserAppSiteApi(WebUserApiResource):
         if not _list:
             raise AppUnavailableError("No site available for this app.")
         return _list
-
-
-api.add_resource(UserAppSiteApi, "/site")
 
 
 class AppSiteInfo:

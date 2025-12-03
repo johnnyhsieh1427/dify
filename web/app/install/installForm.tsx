@@ -35,7 +35,7 @@ type AccountFormValues = z.infer<typeof accountFormSchema>
 
 const InstallForm = () => {
   useDocumentTitle('')
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const docLink = useDocLink()
   const router = useRouter()
   const [showPassword, setShowPassword] = React.useState(false)
@@ -58,6 +58,7 @@ const InstallForm = () => {
     await setup({
       body: {
         ...data,
+        language: i18n.language,
       },
     })
 
@@ -72,10 +73,8 @@ const InstallForm = () => {
 
     // Store tokens and redirect to apps if login successful
     if (loginRes.result === 'success') {
-      localStorage.setItem('console_token', loginRes.data.access_token)
-      localStorage.setItem('refresh_token', loginRes.data.refresh_token)
-      // router.replace('/apps')
-      router.replace('/chat-app')
+      router.replace('/apps')
+      // router.replace('/chat-app')
     }
     else {
       // Fallback to signin page if auto-login fails

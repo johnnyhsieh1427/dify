@@ -3,6 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from configs import dify_config
 from core.plugin.entities.plugin_daemon import (
     PluginBasicBooleanResponse,
     PluginToolProviderEntity,
@@ -124,7 +125,11 @@ class PluginToolManager(BasePluginClient):
             },
         )
 
-        return merge_blob_chunks(response)
+        return merge_blob_chunks(
+            response, 
+            max_file_size=dify_config.MAX_FILE_SIZE,
+            max_chunk_size=dify_config.MAX_CHUNK_SIZE
+        )
 
     def validate_provider_credentials(
         self, tenant_id: str, user_id: str, provider: str, credentials: dict[str, Any]

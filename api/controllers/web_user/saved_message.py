@@ -6,7 +6,7 @@ from flask_restx import fields, marshal_with, reqparse  # type: ignore
 from flask_restx.inputs import int_range  # type: ignore
 from werkzeug.exceptions import NotFound
 
-from controllers.web_user import api
+from controllers.web_user import web_chat_ns
 from controllers.web_user.error import NotCompletionAppError
 from controllers.web_user.wraps import WebUserApiResource
 from fields.conversation_fields import message_file_fields
@@ -28,6 +28,7 @@ message_fields = {
 }
 
 
+@web_chat_ns.route("/saved-messages/<uuid:app_id>")
 class SavedMessageListApi(WebUserApiResource):
     saved_message_infinite_scroll_pagination_fields = {
         "limit": fields.Integer,
@@ -35,6 +36,33 @@ class SavedMessageListApi(WebUserApiResource):
         "data": fields.List(fields.Nested(message_fields)),
     }
 
+    post_response_fields = {
+        "result": fields.String,
+    }
+
+    @web_chat_ns.doc("Get Saved Messages")
+    @web_chat_ns.doc(description="Retrieve paginated list of saved messages for a completion application.")
+    @web_chat_ns.doc(
+        params={
+            "last_id": {"description": "Last message ID for pagination", "type": "string", "required": False},
+            "limit": {
+                "description": "Number of messages to return (1-100)",
+                "type": "integer",
+                "required": False,
+                "default": 20,
+            },
+        }
+    )
+    @web_chat_ns.doc(
+        responses={
+            200: "Success",
+            400: "Bad Request - Not a completion app",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "App Not Found",
+            500: "Internal Server Error",
+        }
+    )
     @marshal_with(saved_message_infinite_scroll_pagination_fields)
     def get(self, app_models: list[App], end_user, app_id):
         try:
@@ -45,13 +73,33 @@ class SavedMessageListApi(WebUserApiResource):
         if app_model.mode != "completion":
             raise NotCompletionAppError()
         
-        parser = reqparse.RequestParser()
-        parser.add_argument("last_id", type=uuid_value, location="args")
-        parser.add_argument("limit", type=int_range(1, 100), required=False, default=20, location="args")
+        parser = (
+            reqparse.RequestParser()
+            .add_argument("last_id", type=uuid_value, location="args")
+            .add_argument("limit", type=int_range(1, 100), required=False, default=20, location="args")
+        )
         args = parser.parse_args()
         
         return SavedMessageService.pagination_by_last_id(app_model, end_user, args["last_id"], args["limit"])
 
+    @web_chat_ns.doc("Save Message")
+    @web_chat_ns.doc(description="Save a specific message for later reference.")
+    @web_chat_ns.doc(
+        params={
+            "message_id": {"description": "Message UUID to save", "type": "string", "required": True},
+        }
+    )
+    @web_chat_ns.doc(
+        responses={
+            200: "Message saved successfully",
+            400: "Bad Request - Not a completion app",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Message Not Found",
+            500: "Internal Server Error",
+        }
+    )
+    @marshal_with(post_response_fields)
     def post(self, app_model, end_user):
         if app_model.mode != "completion":
             raise NotCompletionAppError()
@@ -68,7 +116,34 @@ class SavedMessageListApi(WebUserApiResource):
         return {"result": "success"}
 
 
+@web_chat_ns.route("/saved-messages/<uuid:app_id>/<uuid:message_id>")
 class SavedMessageApi(WebUserApiResource):
+    delete_response_fields = {
+        "result": fields.String,
+    }
+
+    @web_chat_ns.doc("Delete Saved Message")
+    @web_chat_ns.doc(description="Remove a message from saved messages.")
+    @web_chat_ns.doc(
+        params={
+            "message_id": {
+                "description": "Message UUID to delete",
+                "type": "string",
+                "required": True
+            }
+        }
+    )
+    @web_chat_ns.doc(
+        responses={
+            204: "Message removed successfully",
+            400: "Bad Request - Not a completion app",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Message Not Found",
+            500: "Internal Server Error",
+        }
+    )
+    @marshal_with(delete_response_fields)
     def delete(self, app_models: list[App], end_user, app_id, message_id):
         message_id = str(message_id)
         
@@ -82,8 +157,4 @@ class SavedMessageApi(WebUserApiResource):
 
         SavedMessageService.delete(app_model, end_user, message_id)
 
-        return {"result": "success"}
-
-
-api.add_resource(SavedMessageListApi, "/saved-messages/<uuid:app_id>")
-api.add_resource(SavedMessageApi, "/saved-messages/<uuid:app_id>/<uuid:message_id>")
+        return {"result": "success"}, 204

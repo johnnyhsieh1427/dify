@@ -28,7 +28,14 @@ class Storage:
             case StorageType.OPENDAL:
                 from extensions.storage.opendal_storage import OpenDALStorage
 
-                return lambda: OpenDALStorage(dify_config.OPENDAL_SCHEME)
+                def create_opendal_storage():
+                    scheme = dify_config.OPENDAL_SCHEME
+                    kwargs = {}
+                    if scheme == "fs":
+                        kwargs["root"] = dify_config.OPENDAL_FS_ROOT
+                    return OpenDALStorage(scheme=scheme, **kwargs)
+
+                return create_opendal_storage
             case StorageType.LOCAL:
                 from extensions.storage.opendal_storage import OpenDALStorage
 

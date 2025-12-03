@@ -4,10 +4,11 @@
 import logging
 
 from flask import request
+from flask_restx import fields, marshal_with
 from werkzeug.exceptions import InternalServerError, NotFound
 
 import services
-from controllers.web_user import api
+from controllers.web_user import web_chat_ns
 from controllers.web_user.error import (
     AppUnavailableError,
     AudioTooLargeError,
@@ -22,7 +23,7 @@ from controllers.web_user.error import (
 from controllers.web_user.wraps import WebUserApiResource
 from core.errors.error import ModelCurrentlyNotSupportError, ProviderTokenNotInitError, QuotaExceededError
 from core.model_runtime.errors.invoke import InvokeError
-from models.model import App, AppMode
+from models.model import App
 from services.audio_service import AudioService
 from services.errors.audio import (
     AudioTooLargeServiceError,
@@ -31,9 +32,31 @@ from services.errors.audio import (
     UnsupportedAudioTypeServiceError,
 )
 
+logger = logging.getLogger(__name__)
 
+
+@web_chat_ns.route("/audio-to-text/<uuid:app_id>")
 class AudioApi(WebUserApiResource):
+    audio_to_text_response_fields = {
+        "text": fields.String,
+    }
+
+    @marshal_with(audio_to_text_response_fields)
+    @web_chat_ns.doc("Audio to Text")
+    @web_chat_ns.doc(description="Convert audio file to text using speech-to-text service.")
+    @web_chat_ns.doc(
+        responses={
+            200: "Success",
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            413: "Audio file too large",
+            415: "Unsupported audio type",
+            500: "Internal Server Error",
+        }
+    )
     def post(self, app_models: list[App], end_user, app_id):
+        """Convert audio to text"""
         file = request.files["file"]
         
         try:
@@ -46,7 +69,7 @@ class AudioApi(WebUserApiResource):
 
             return response
         except services.errors.app_model_config.AppModelConfigBrokenError:
-            logging.exception("App model config broken.")
+            logger.exception("App model config broken.")
             raise AppUnavailableError()
         except NoAudioUploadedServiceError:
             raise NoAudioUploadedError()
@@ -67,11 +90,29 @@ class AudioApi(WebUserApiResource):
         except ValueError as e:
             raise e
         except Exception as e:
-            logging.exception("Failed to handle post request to AudioApi")
+            logger.exception("Failed to handle post request to AudioApi")
             raise InternalServerError()
 
 
+@web_chat_ns.route("/text-to-audio/<uuid:app_id>")
 class TextApi(WebUserApiResource):
+    text_to_audio_response_fields = {
+        "audio_url": fields.String,
+        "duration": fields.Float,
+    }
+    
+    @marshal_with(text_to_audio_response_fields)
+    @web_chat_ns.doc("Text to Audio")
+    @web_chat_ns.doc(description="Convert text to audio using text-to-speech service.")
+    @web_chat_ns.doc(
+        responses={
+            200: "Success",
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            500: "Internal Server Error",
+        }
+    )
     def post(self, app_models: list[App], end_user, app_id):
         from flask_restx import reqparse  # type: ignore
 
@@ -81,36 +122,25 @@ class TextApi(WebUserApiResource):
             raise NotFound("App Not Exists.")
         
         try:
-            parser = reqparse.RequestParser()
-            parser.add_argument("message_id", type=str, required=False, location="json")
-            parser.add_argument("voice", type=str, location="json")
-            parser.add_argument("text", type=str, location="json")
-            parser.add_argument("streaming", type=bool, location="json")
+            parser = (
+                reqparse.RequestParser()
+                .add_argument("message_id", type=str, required=False, location="json")
+                .add_argument("voice", type=str, location="json")
+                .add_argument("text", type=str, location="json")
+                .add_argument("streaming", type=bool, location="json")
+            )
             args = parser.parse_args()
 
             message_id = args.get("message_id", None)
             text = args.get("text", None)
-            
-            if (
-                app_model.mode in {AppMode.ADVANCED_CHAT.value, AppMode.WORKFLOW.value}
-                and app_model.workflow
-                and app_model.workflow.features_dict
-            ):
-                text_to_speech = app_model.workflow.features_dict.get("text_to_speech", {})
-                voice = args.get("voice") or text_to_speech.get("voice")
-            else:
-                try:
-                    voice = args.get("voice") or app_model.app_model_config.text_to_speech_dict.get("voice")
-                except Exception:
-                    voice = None
-
+            voice = args.get("voice", None)
             response = AudioService.transcript_tts(
-                app_model=app_model, message_id=message_id, end_user=end_user.external_user_id, voice=voice, text=text
+                app_model=app_model, text=text, voice=voice, end_user=end_user.external_user_id, message_id=message_id
             )
 
             return response
         except services.errors.app_model_config.AppModelConfigBrokenError:
-            logging.exception("App model config broken.")
+            logger.exception("App model config broken.")
             raise AppUnavailableError()
         except NoAudioUploadedServiceError:
             raise NoAudioUploadedError()
@@ -131,9 +161,5 @@ class TextApi(WebUserApiResource):
         except ValueError as e:
             raise e
         except Exception as e:
-            logging.exception("Failed to handle post request to TextApi")
+            logger.exception("Failed to handle post request to TextApi")
             raise InternalServerError()
-
-
-api.add_resource(AudioApi, "/audio-to-text/<uuid:app_id>")
-api.add_resource(TextApi, "/text-to-audio/<uuid:app_id>")

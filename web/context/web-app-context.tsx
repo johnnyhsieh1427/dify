@@ -4,14 +4,12 @@
 
 import type { ChatConfig } from '@/app/components/base/chat/types'
 import Loading from '@/app/components/base/loading'
-import { checkOrSetAccessToken, checkUserAppLogin } from '@/app/components/share/utils'
 import { AccessMode } from '@/models/access-control'
 import type { AppData, AppMeta } from '@/models/share'
 import { useGetWebAppAccessModeByCode } from '@/service/use-share'
 import { usePathname, useSearchParams } from 'next/navigation'
 import type { FC, PropsWithChildren } from 'react'
 import { useEffect } from 'react'
-import { useState } from 'react'
 import { create } from 'zustand'
 import { useGlobalPublicStore } from './global-public-context'
 
@@ -88,32 +86,14 @@ const WebAppStoreProvider: FC<PropsWithChildren> = ({ children }) => {
     updateShareCode(shareCode)
   }, [shareCode, updateShareCode])
 
-  const { isFetching, data: accessModeResult } = useGetWebAppAccessModeByCode(shareCode)
-  const [isFetchingAccessToken, setIsFetchingAccessToken] = useState(true)
+  const { isLoading, data: accessModeResult } = useGetWebAppAccessModeByCode(shareCode)
 
   useEffect(() => {
-    if (accessModeResult?.accessMode) {
+    if (accessModeResult?.accessMode)
       updateWebAppAccessMode(accessModeResult.accessMode)
-      if (accessModeResult.accessMode === AccessMode.PUBLIC) {
-        setIsFetchingAccessToken(true)
-        if (shareCode === 'chat-app') {
-          checkUserAppLogin().finally(() => {
-            setIsFetchingAccessToken(false)
-          })
-        }
-        else {
-          checkOrSetAccessToken(shareCode).finally(() => {
-            setIsFetchingAccessToken(false)
-          })
-        }
-      }
-      else {
-        setIsFetchingAccessToken(false)
-      }
-    }
   }, [accessModeResult, updateWebAppAccessMode, shareCode])
 
-  if (isGlobalPending || isFetching || isFetchingAccessToken) {
+  if (isGlobalPending || isLoading) {
     return <div className='flex h-full w-full items-center justify-center'>
       <Loading />
     </div>

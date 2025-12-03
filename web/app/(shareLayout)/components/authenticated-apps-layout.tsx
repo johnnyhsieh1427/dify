@@ -6,7 +6,6 @@
 
 import AppUnavailable from '@/app/components/base/app-unavailable'
 import Loading from '@/app/components/base/loading'
-import { checkUserAppLogin, removeAccessToken } from '@/app/components/share/utils'
 import { useWebAppStore } from '@/context/web-app-context'
 import { fetchUserAppInfo, fetchUserAppMeta, fetchUserAppParams, fetchUserLatestMessageIndex } from '@/service/share'
 import { useRouter } from 'next/navigation'
@@ -28,14 +27,12 @@ const AuthenticatedAppsLayout = ({ children }: { children: React.ReactNode }) =>
   }, [])
 
   const backToHome = useCallback(() => {
-    removeAccessToken()
     router.replace(getSigninUrl())
   }, [getSigninUrl, router])
 
   useEffect(() => {
     (async () => {
       try {
-        await checkUserAppLogin()
         setIsAuthenticated(true)
       }
       catch {

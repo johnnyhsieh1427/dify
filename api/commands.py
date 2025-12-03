@@ -1,11 +1,16 @@
 # 修改日期2025-02-28
 # 新增create_workspace(), create-account()和delete-account()函數
 # 修改日期2025-08-25
-# create_account()愈設帳號的密碼sp@1234@
+# create_account()預設帳號的密碼sp@1234@
+# 修改日期2025-12-03
+# 新增batch-create-accounts指令
+
 import base64
 import json
 import logging
+import os
 import secrets
+from datetime import datetime
 from typing import Any
 
 import click
@@ -1525,6 +1530,14 @@ def transform_datasource_credentials():
                     auth_count = 0
                     for firecrawl_tenant_credential in firecrawl_tenant_credentials:
                         auth_count += 1
+                        if not firecrawl_tenant_credential.credentials:
+                            click.echo(
+                                click.style(
+                                    f"Skipping firecrawl credential for tenant {tenant_id} due to missing credentials.",
+                                    fg="yellow",
+                                )
+                            )
+                            continue
                         # get credential api key
                         credentials_json = json.loads(firecrawl_tenant_credential.credentials)
                         api_key = credentials_json.get("config", {}).get("api_key")
@@ -1580,6 +1593,14 @@ def transform_datasource_credentials():
                     auth_count = 0
                     for jina_tenant_credential in jina_tenant_credentials:
                         auth_count += 1
+                        if not jina_tenant_credential.credentials:
+                            click.echo(
+                                click.style(
+                                    f"Skipping jina credential for tenant {tenant_id} due to missing credentials.",
+                                    fg="yellow",
+                                )
+                            )
+                            continue
                         # get credential api key
                         credentials_json = json.loads(jina_tenant_credential.credentials)
                         api_key = credentials_json.get("config", {}).get("api_key")
@@ -1913,7 +1934,7 @@ def create_account(email: list, language: str | None = None):
 
         click.echo(
             click.style(
-                "Account created.\nEmail: {}\nAccount: {}\nPassword: {}".format(email, account.name, new_password),
+                f"Account created.\nEmail: {_email}\nAccount: {account.name}\nPassword: {new_password}",
                 fg="green",
             )
         )
@@ -1936,3 +1957,103 @@ def delete_account(email: str):
         return
     AccountService.delete_account(account)
     click.echo(click.style("Account deleted successfully.", fg="green"))
+
+
+@click.command("batch-create-accounts-from-file", help="Create accounts from a text file (one email per line).")
+@click.option("--file", "file_path", prompt=True, help="Path to a text file with one email per line.")
+@click.option("--language", default="zh-Hant", show_default=True, help="Account language.")
+def batch_create_accounts_from_file(file_path: str, language: str):
+    """
+    Read a text file and create accounts for each email line.
+    - Ignores blank lines and comments starting with '#'.
+    - Skips existing accounts.
+    """
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            lines = [ln.strip() for ln in f]
+    except Exception as e:
+        click.echo(click.style(f"Failed to read file: {e}", fg="red"))
+        return
+
+    # Validate language en-US or zh-Hant
+    if language not in languages:
+        language = "zh-Hant"
+
+    created = 0
+    skipped = 0
+    invalid = 0
+    
+    log_file_root = "/app/api/storage/logs"
+    log_file_name = f"batch_create_accounts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    
+    created_account_emails = set()
+    skipped_account_emails = set()
+    invalid_account_emails = set()
+    
+    if not os.path.exists(log_file_root):
+        os.makedirs(log_file_root, exist_ok=True)
+    log_file_path = os.path.join(log_file_root, log_file_name)
+    
+    for ln in lines:
+        if not ln or ln.startswith("#"):
+            continue
+        email = ln.lower()
+        if "@" not in email:
+            invalid += 1
+            invalid_account_emails.add(email)
+            click.echo(click.style(f"Invalid email, skipped: {email}", fg="red"))
+            continue
+
+        # Check existence
+        if db.session.query(Account).filter(Account.email == email).one_or_none():
+            skipped += 1
+            skipped_account_emails.add(email)
+            click.echo(click.style(f"Exists, skipped: {email}", fg="yellow"))
+            continue
+
+        account_name = email.split("@")[0]
+        new_password = base64.urlsafe_b64encode(os.urandom(8)).decode("utf-8")
+
+        try:
+            account = RegisterService.register(
+                email=email,
+                name=account_name,
+                password=new_password,
+                language=language,
+                create_workspace_required=False,
+            )
+            created += 1
+            created_account_emails.add((email, new_password))
+            click.echo(click.style(f"Created: {email} (name={account.name})", fg="green"))
+        except Exception as e:
+            click.echo(click.style(f"Failed to create {email}: {e}", fg="red"))
+            continue
+
+    with open(log_file_path, "w", encoding="utf-8") as log_file:
+        log_file.write("Batch Create Accounts Log\n")
+        log_file.write("=========================\n")
+        log_file.write(f"Total lines processed: {len(lines)}\n")
+        log_file.write(f"Accounts created: {created}\n")
+        log_file.write(f"Accounts skipped (existing): {skipped}\n")
+        log_file.write(f"Invalid emails: {invalid}\n\n")
+        if created_account_emails:
+            log_file.write("Created Accounts:\n")
+            for email, password in created_account_emails:
+                log_file.write(f"  Email: {email}, Password: {password}\n")
+            log_file.write("\n")
+        if skipped_account_emails:
+            log_file.write("Skipped Accounts (Existing):\n")
+            for email in skipped_account_emails:
+                log_file.write(f"  Email: {email}\n")
+            log_file.write("\n")
+        if invalid_account_emails:
+            log_file.write("Invalid Emails:\n")
+            for email in invalid_account_emails:
+                log_file.write(f"  Email: {email}\n")
+            log_file.write("\n")
+        log_file.write("End of Log\n")
+        
+    click.echo(click.style("\nBatch summary:", fg="yellow"))
+    click.echo(click.style(f"  Created: {created}", fg="green"))
+    click.echo(click.style(f"  Skipped: {skipped}", fg="white"))
+    click.echo(click.style(f"  Invalid: {invalid}", fg="red"))

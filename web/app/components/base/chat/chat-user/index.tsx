@@ -10,7 +10,6 @@
 
 import type { FC } from 'react'
 import {
-  useCallback,
   useEffect,
   useState,
 } from 'react'
@@ -28,14 +27,11 @@ import ChatWrapper from './chat-wrapper'
 import type { InstalledApp } from '@/models/explore'
 import Loading from '@/app/components/base/loading'
 import useBreakpoints, { MediaType } from '@/hooks/use-breakpoints'
-import { checkUserAppLogin, removeAccessToken } from '@/app/components/share/utils'
 import AppUnavailable from '@/app/components/base/app-unavailable'
 import cn from '@/utils/classnames'
 import useDocumentTitle from '@/hooks/use-document-title'
 import { CONVERSATION_ID_INFO } from '../constants'
 import { mutate } from 'swr'
-import { useTranslation } from 'react-i18next'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 type ChatWithHistoryProps = {
   className?: string
@@ -61,23 +57,6 @@ const ChatWithHistory: FC<ChatWithHistoryProps> = ({
     themeBuilder?.buildTheme(site?.chat_color_theme, site?.chat_color_theme_inverted)
   }, [site, customConfig, themeBuilder])
   useDocumentTitle(site?.title || 'Chat')
-
-  const { t } = useTranslation()
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
-  const getSigninUrl = useCallback(() => {
-    const params = new URLSearchParams(searchParams)
-    params.delete('message')
-    params.set('redirect_url', pathname)
-    return `/webapp-signin?${params.toString()}`
-  }, [searchParams, pathname])
-
-  const backToHome = useCallback(() => {
-    removeAccessToken()
-    const url = getSigninUrl()
-    router.replace(url)
-  }, [getSigninUrl, router])
 
   return (
     <div className={cn(
@@ -242,7 +221,6 @@ const ChatWithHistoryWrapWithCheckToken: FC<ChatWithHistoryWrapProps> = ({
           mutate('appInfoList', undefined, { revalidate: false })
           mutate('appParamsList', undefined, { revalidate: false })
           mutate('appMetaList', undefined, { revalidate: false })
-          await checkUserAppLogin()
         }
         catch (e: any) {
           (e.status !== 404) && setIsUnknownReason(true)

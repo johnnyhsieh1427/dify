@@ -1,3 +1,7 @@
+# 修改日期2025-11-04
+# 增加LDAP相關設定
+# 增加ldap_url, ldap_bind_user, ldap_bind_password
+
 from enum import StrEnum
 from typing import Literal
 
@@ -14,6 +18,47 @@ from pydantic import (
 from pydantic_settings import BaseSettings
 
 from .hosted_service import HostedServiceConfig
+
+
+class LdapConfig(BaseSettings):
+    """
+    Configuration for LDAP authentication
+    """
+
+    LDAP_ENABLED: bool = Field(
+        description="Enable LDAP authentication",
+        default=False,
+    )
+
+    LDAP_JOIN_TENANT_ID: str | None = Field(
+        description="Tenant ID to join for LDAP authentication",
+        default=None,
+    )
+
+    LDAP_URL: str = Field(
+        description="URL for the LDAP server",
+        default="ldap://localhost:389",
+    )
+
+    LDAP_BIND_USER: str = Field(
+        description="Bind DN for the LDAP server",
+        default="user",
+    )
+
+    LDAP_BIND_PASSWORD: str = Field(
+        description="Bind password for the LDAP server",
+        default="password",
+    )
+
+    LDAP_SEARCH_BASE: str = Field(
+        description="Search base for the LDAP server",
+        default="ou=users,dc=example,dc=com",
+    )
+
+    LDAP_SEARCH_FILTER: str = Field(
+        description="Search filter for the LDAP server",
+        default="(sAMAccountName={})",
+    )
 
 
 class SecurityConfig(BaseSettings):
@@ -150,7 +195,7 @@ class CodeExecutionSandboxConfig(BaseSettings):
 
     CODE_MAX_STRING_LENGTH: PositiveInt = Field(
         description="Maximum allowed length for strings in code execution",
-        default=80000,
+        default=400_000,
     )
 
     CODE_MAX_STRING_ARRAY_LENGTH: PositiveInt = Field(
@@ -189,6 +234,11 @@ class PluginConfig(BaseSettings):
         default="plugin-api-key",
     )
 
+    PLUGIN_DAEMON_TIMEOUT: PositiveFloat | None = Field(
+        description="Timeout in seconds for requests to the plugin daemon (set to None to disable)",
+        default=300.0,
+    )
+
     INNER_API_KEY_FOR_PLUGIN: str = Field(description="Inner api key for plugin", default="inner-api-key")
 
     PLUGIN_REMOTE_INSTALL_HOST: str = Field(
@@ -209,6 +259,16 @@ class PluginConfig(BaseSettings):
     PLUGIN_MAX_BUNDLE_SIZE: PositiveInt = Field(
         description="Maximum allowed size for plugin bundles in bytes",
         default=15728640 * 12,
+    )
+    
+    MAX_FILE_SIZE: PositiveInt = Field(
+        description="Maximum allowed file size for uploads in bytes",
+        default=52428800,
+    )
+    
+    MAX_CHUNK_SIZE: PositiveInt = Field(
+        description="Maximum allowed chunk size for uploads in bytes",
+        default=1048576,
     )
 
 
@@ -362,11 +422,11 @@ class HttpConfig(BaseSettings):
     )
 
     HTTP_REQUEST_MAX_READ_TIMEOUT: int = Field(
-        ge=1, description="Maximum read timeout in seconds for HTTP requests", default=60
+        ge=1, description="Maximum read timeout in seconds for HTTP requests", default=600
     )
 
     HTTP_REQUEST_MAX_WRITE_TIMEOUT: int = Field(
-        ge=1, description="Maximum write timeout in seconds for HTTP requests", default=20
+        ge=1, description="Maximum write timeout in seconds for HTTP requests", default=600
     )
 
     HTTP_REQUEST_NODE_MAX_BINARY_SIZE: PositiveInt = Field(
@@ -543,7 +603,7 @@ class UpdateConfig(BaseSettings):
 
 class WorkflowVariableTruncationConfig(BaseSettings):
     WORKFLOW_VARIABLE_TRUNCATION_MAX_SIZE: PositiveInt = Field(
-        # 100KB
+        # 1000 KiB
         1024_000,
         description="Maximum size for variable to trigger final truncation.",
     )
@@ -580,6 +640,11 @@ class WorkflowConfig(BaseSettings):
     MAX_VARIABLE_SIZE: PositiveInt = Field(
         description="Maximum size in bytes for a single variable in workflows. Default to 200 KB.",
         default=200 * 1024,
+    )
+
+    TEMPLATE_TRANSFORM_MAX_LENGTH: PositiveInt = Field(
+        description="Maximum number of characters allowed in Template Transform node output",
+        default=400_000,
     )
 
     # GraphEngine Worker Pool Configuration
@@ -766,7 +831,7 @@ class MailConfig(BaseSettings):
 
     MAIL_TEMPLATING_TIMEOUT: int = Field(
         description="""
-        Timeout for email templating in seconds. Used to prevent infinite loops in malicious templates. 
+        Timeout for email templating in seconds. Used to prevent infinite loops in malicious templates.
         Only available in sandbox mode.""",
         default=3,
     )
@@ -1112,6 +1177,7 @@ class FeatureConfig(
     HttpConfig,
     InnerAPIConfig,
     IndexingConfig,
+    LdapConfig,
     LoggingConfig,
     MailConfig,
     ModelLoadBalanceConfig,

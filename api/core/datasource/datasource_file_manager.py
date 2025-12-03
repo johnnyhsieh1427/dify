@@ -195,13 +195,15 @@ class DatasourceFileManager:
         return blob, tool_file.mimetype
 
     @staticmethod
-    def get_file_generator_by_upload_file_id(upload_file_id: str):
+    def get_file_generator_by_upload_file_id(
+        upload_file_id: str,
+    ) -> tuple[Generator | None, UploadFile | None]:
         """
         get file binary
 
         :param tool_file_id: the id of the tool file
 
-        :return: the binary of the file, mime type
+        :return: stream generator and upload file metadata
         """
         upload_file: UploadFile | None = db.session.query(UploadFile).where(UploadFile.id == upload_file_id).first()
 
@@ -210,7 +212,7 @@ class DatasourceFileManager:
 
         stream = storage.load_stream(upload_file.key)
 
-        return stream, upload_file.mime_type
+        return stream, upload_file
 
     def get_file_generator_by_tool_file_id(self, tool_file_id: str) -> tuple[Generator | None, ToolFile | None]:
         """
@@ -235,6 +237,30 @@ class DatasourceFileManager:
 
         return stream, tool_file
 
+    @staticmethod
+    def get_file_generator_by_datasource_file_id(
+        datasource_file_id: str,
+    ) -> tuple[Generator | None, ToolFile | None]:
+        """
+        get file binary
+
+        :param datasource_file_id: the id of the datasource file
+
+        :return: stream generator and upload file metadata
+        """
+        datasource_file: ToolFile | None = (
+            db.session.query(ToolFile)
+            .where(
+                ToolFile.id == datasource_file_id,
+            )
+            .first()
+        )
+        if not datasource_file:
+            return None, None
+
+        stream = storage.load_stream(datasource_file.file_key)
+
+        return stream, datasource_file
 # init tool_file_parser
 # from core.file.datasource_file_parser import datasource_file_manager
 #

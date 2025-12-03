@@ -2,16 +2,16 @@
 // 增加檢查方式, 若是/chat-app, 直接跳轉到 /chat-app
 'use client'
 import type { FC, PropsWithChildren } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useCallback } from 'react'
 import { useWebAppStore } from '@/context/web-app-context'
 import { useRouter, useSearchParams } from 'next/navigation'
 import AppUnavailable from '@/app/components/base/app-unavailable'
-import { checkOrSetAccessToken, checkUserAppLogin, removeAccessToken, setAccessToken } from '@/app/components/share/utils'
 import { useTranslation } from 'react-i18next'
+import { chatAppLoginStatus, webAppLoginStatus, webAppLogout } from '@/service/webapp-auth'
 import { fetchAccessToken } from '@/service/share'
 import Loading from '@/app/components/base/loading'
-import { AccessMode } from '@/models/access-control'
+import { setWebAppAccessToken, setWebAppPassport } from '@/service/webapp-auth'
 
 const Splash: FC<PropsWithChildren> = ({ children }) => {
   const { t } = useTranslation()
@@ -20,9 +20,9 @@ const Splash: FC<PropsWithChildren> = ({ children }) => {
   const searchParams = useSearchParams()
   const router = useRouter()
   const redirectUrl = searchParams.get('redirect_url')
-  const tokenFromUrl = searchParams.get('web_sso_token')
   const message = searchParams.get('message')
   const code = searchParams.get('code')
+  const tokenFromUrl = searchParams.get('web_sso_token')
   const getSigninUrl = useCallback(() => {
     const params = new URLSearchParams(searchParams)
     params.delete('message')
@@ -30,40 +30,73 @@ const Splash: FC<PropsWithChildren> = ({ children }) => {
     return `/webapp-signin?${params.toString()}`
   }, [searchParams])
 
-  const backToHome = useCallback(() => {
-    removeAccessToken()
+  const backToHome = useCallback(async () => {
+    await webAppLogout(shareCode!)
     const url = getSigninUrl()
     router.replace(url)
-  }, [getSigninUrl, router])
+  }, [getSigninUrl, router, webAppLogout, shareCode])
 
+  const [isLoading, setIsLoading] = useState(true)
   useEffect(() => {
+    if (message) {
+      setIsLoading(false)
+      return
+    }
+
+    if(tokenFromUrl)
+      setWebAppAccessToken(tokenFromUrl)
+
+    const redirectOrFinish = () => {
+      if (redirectUrl)
+        router.replace(decodeURIComponent(redirectUrl))
+      else
+        setIsLoading(false)
+    }
+
+    const proceedToAuth = () => {
+      setIsLoading(false)
+    }
+
     (async () => {
-      if (message)
-        return
       if (shareCode === 'chat-app') {
-        await checkUserAppLogin()
-        router.replace('/chat-app')
-        return
+        const { userLoggedIn, appLoggedIn } = await chatAppLoginStatus(shareCode!)
+        if (userLoggedIn && appLoggedIn)
+          proceedToAuth()
+        else
+          router.replace('/signin')
       }
-      if (shareCode && tokenFromUrl && redirectUrl) {
-        localStorage.setItem('webapp_access_token', tokenFromUrl)
-        const tokenResp = await fetchAccessToken({ appCode: shareCode, webAppAccessToken: tokenFromUrl })
-        await setAccessToken(shareCode, tokenResp.access_token)
-        router.replace(decodeURIComponent(redirectUrl))
-        return
-      }
-      if (shareCode && redirectUrl && localStorage.getItem('webapp_access_token')) {
-        const tokenResp = await fetchAccessToken({ appCode: shareCode, webAppAccessToken: localStorage.getItem('webapp_access_token') })
-        await setAccessToken(shareCode, tokenResp.access_token)
-        router.replace(decodeURIComponent(redirectUrl))
-        return
-      }
-      if (webAppAccessMode === AccessMode.PUBLIC && redirectUrl) {
-        await checkOrSetAccessToken(shareCode)
-        router.replace(decodeURIComponent(redirectUrl))
+      else {
+        // if access mode is public, user login is always true, but the app login(passport) may be expired
+        const { userLoggedIn, appLoggedIn } = await webAppLoginStatus(shareCode!)
+        if (userLoggedIn && appLoggedIn) {
+          redirectOrFinish()
+        }
+        else if (!userLoggedIn && !appLoggedIn) {
+          proceedToAuth()
+        }
+        else if (!userLoggedIn && appLoggedIn) {
+          redirectOrFinish()
+        }
+        else if (userLoggedIn && !appLoggedIn) {
+          try {
+            const { access_token } = await fetchAccessToken({ appCode: shareCode! })
+            setWebAppPassport(shareCode!, access_token)
+            redirectOrFinish()
+          }
+          catch (error) {
+            await webAppLogout(shareCode!)
+            proceedToAuth()
+          }
+        }
       }
     })()
-  }, [shareCode, redirectUrl, router, tokenFromUrl, message, webAppAccessMode])
+  }, [
+    shareCode,
+    redirectUrl,
+    router,
+    message,
+    webAppAccessMode,
+    tokenFromUrl])
 
   if (message) {
     return <div className='flex h-full flex-col items-center justify-center gap-y-4'>
@@ -71,12 +104,8 @@ const Splash: FC<PropsWithChildren> = ({ children }) => {
       <span className='system-sm-regular cursor-pointer text-text-tertiary' onClick={backToHome}>{code === '403' ? t('common.userProfile.logout') : t('share.login.backToHome')}</span>
     </div>
   }
-  if (tokenFromUrl) {
-    return <div className='flex h-full items-center justify-center'>
-      <Loading />
-    </div>
-  }
-  if (webAppAccessMode === AccessMode.PUBLIC && redirectUrl) {
+
+  if (isLoading) {
     return <div className='flex h-full items-center justify-center'>
       <Loading />
     </div>

@@ -3,6 +3,9 @@
 # 加入FeatureService.get_system_features().is_allow_create_workspace參數
 # 修改日期2025-03-13
 # invite_new_member()函數, 強制email改小寫
+# 修改日期2025-11-04
+# 新增load_ldap_account()函數, 新增LDAP驗證功能
+
 import base64
 import json
 import logging
@@ -13,12 +16,12 @@ from hashlib import sha256
 from typing import Any, cast
 
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-from werkzeug.exceptions import Unauthorized
+from werkzeug.exceptions import NotFound, Unauthorized
 
 from configs import dify_config
-from constants.languages import language_timezone_mapping, languages
+from constants.languages import get_valid_language, language_timezone_mapping
 from events.tenant_event import tenant_was_created
 from extensions.ext_database import db
 from extensions.ext_redis import redis_client, redis_fallback
@@ -27,6 +30,7 @@ from libs.helper import RateLimiter, TokenManager
 from libs.passport import PassportService
 from libs.password import compare_password, hash_password, valid_password
 from libs.rsa import generate_key_pair
+from libs.token import generate_csrf_token
 from models.account import (
     Account,
     AccountIntegrate,
@@ -37,7 +41,7 @@ from models.account import (
     TenantPluginAutoUpgradeStrategy,
     TenantStatus,
 )
-from models.model import DifySetup
+from models.model import App, AppMode, DifySetup, EndUser, Site
 from services.billing_service import BillingService
 from services.errors.account import (
     AccountAlreadyInTenantError,
@@ -81,6 +85,8 @@ logger = logging.getLogger(__name__)
 class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
+    csrf_token: str
+    chat_app_token: str
 
 
 REFRESH_TOKEN_PREFIX = "refresh_token:"
@@ -132,7 +138,7 @@ class AccountService:
         if not account:
             return None
 
-        if account.status == AccountStatus.BANNED.value:
+        if account.status == AccountStatus.BANNED:
             raise Unauthorized("Account is banned.")
 
         current_tenant = db.session.query(TenantAccountJoin).filter_by(account_id=account.id, current=True).first()
@@ -176,6 +182,109 @@ class AccountService:
         return token
 
     @staticmethod
+    def get_account_chat_app_passport(account: Account) -> str:
+        validMode = [AppMode.CHAT.value, AppMode.AGENT_CHAT.value, AppMode.ADVANCED_CHAT.value]
+        if account is None or account.is_anonymous:
+            raise Unauthorized("User login required.")
+        
+        # **使用子查詢查找用戶加入的租戶**
+        tenant_subquery = (
+            select(TenantAccountJoin.tenant_id)
+            .where(TenantAccountJoin.account_id == account.id)
+            .subquery()
+        )
+
+        # **使用子查詢查找符合條件的 App**
+        app_subquery = (
+            select(App.id)
+            .where(App.tenant_id.in_(select(tenant_subquery.c.tenant_id)))
+            .where(App.enable_site == True)
+            .where(App.status == "normal")
+            .where(App.mode.in_(validMode))
+            .subquery()
+        )
+
+        # **使用子查詢查找可用的站點**
+        site_subquery = (
+            select(Site.app_id)
+            .where(Site.app_id.in_(select(app_subquery.c.id)))
+            .where(Site.status == "normal")
+            .subquery()
+        )
+
+        # **查詢符合條件的 App**
+        app_models = db.session.query(App).filter(App.id.in_(select(site_subquery.c.app_id))).all()
+        
+        if not app_models:
+            raise NotFound()
+
+        end_user = db.session.query(EndUser).filter(EndUser.session_id == account.id).first()
+        
+        if not end_user:
+            end_user = EndUser(
+                tenant_id=account.id,
+                app_id=account.id,
+                type="browser",
+                is_anonymous=False,
+                session_id=account.id,
+            )
+            db.session.add(end_user)
+            db.session.commit()
+            
+        exp_dt = datetime.now(UTC) + timedelta(minutes=dify_config.ACCESS_TOKEN_EXPIRE_MINUTES)
+        exp = int(exp_dt.timestamp())
+
+        payload = {
+            "user_id": account.id,
+            "end_user_id": end_user.id,
+            "app_ids": [i.id for i in app_models],
+            "exp": exp,
+            "iss": dify_config.EDITION,
+            "sub": "Console API Passport",
+        }
+
+        token: str = PassportService().issue(payload)
+        return token
+
+    @staticmethod
+    def load_ldap_account(user_email: str) -> bool:
+        from ldap3 import ALL, SIMPLE, Connection, Server
+        from ldap3.core.exceptions import LDAPException
+
+        ldap_url = dify_config.LDAP_URL
+        ldap_bind_user = dify_config.LDAP_BIND_USER
+        ldap_bind_password = dify_config.LDAP_BIND_PASSWORD
+        ldap_search_base = dify_config.LDAP_SEARCH_BASE
+        ldap_search_filter = dify_config.LDAP_SEARCH_FILTER
+        
+        user_email = user_email.strip()
+        username = user_email.split('@')[0]
+        server = Server(ldap_url, get_info=ALL)
+        try:
+            with Connection(
+                server,
+                user=ldap_bind_user,
+                password=ldap_bind_password,
+                authentication=SIMPLE
+            ) as conn:
+                if not conn.bind():
+                    raise LDAPException("Failed to bind to LDAP server.")
+                conn.search(
+                    ldap_search_base,
+                    ldap_search_filter.format(username),
+                    attributes=['cn', 'mail']
+                )
+                for entry in conn.entries:
+                    if str(entry.mail).lower() == user_email.lower():
+                        logger.info("LDAP account %s found.", user_email)
+                        return True
+            logger.info("LDAP account %s not found.", user_email)
+            return False
+        except LDAPException as e:
+            logger.exception("Failed to get %s email address from ldap", user_email)
+            return False
+
+    @staticmethod
     def authenticate(email: str, password: str, invite_token: str | None = None) -> Account:
         """authenticate account with email and password"""
 
@@ -183,7 +292,7 @@ class AccountService:
         if not account:
             raise AccountPasswordError("Invalid email or password.")
 
-        if account.status == AccountStatus.BANNED.value:
+        if account.status == AccountStatus.BANNED:
             raise AccountLoginError("Account is banned.")
 
         if password and invite_token and account.password is None:
@@ -198,8 +307,8 @@ class AccountService:
         if account.password is None or not compare_password(password, account.password, account.password_salt):
             raise AccountPasswordError("Invalid email or password.")
 
-        if account.status == AccountStatus.PENDING.value:
-            account.status = AccountStatus.ACTIVE.value
+        if account.status == AccountStatus.PENDING:
+            account.status = AccountStatus.ACTIVE
             account.initialized_at = naive_utc_now()
 
         db.session.commit()
@@ -251,10 +360,8 @@ class AccountService:
                 )
             )
 
-        account = Account()
-        account.email = email
-        account.name = name
-
+        password_to_set = None
+        salt_to_set = None
         if password:
             valid_password(password)
 
@@ -266,14 +373,18 @@ class AccountService:
             password_hashed = hash_password(password, salt)
             base64_password_hashed = base64.b64encode(password_hashed).decode()
 
-            account.password = base64_password_hashed
-            account.password_salt = base64_salt
+            password_to_set = base64_password_hashed
+            salt_to_set = base64_salt
 
-        account.interface_language = interface_language
-        account.interface_theme = interface_theme
-
-        # Set timezone based on language
-        account.timezone = language_timezone_mapping.get(interface_language, "UTC")
+        account = Account(
+            name=name,
+            email=email,
+            password=password_to_set,
+            password_salt=salt_to_set,
+            interface_language=interface_language,
+            interface_theme=interface_theme,
+            timezone=language_timezone_mapping.get(interface_language, "UTC"),
+        )
 
         db.session.add(account)
         db.session.commit()
@@ -287,8 +398,22 @@ class AccountService:
         account = AccountService.create_account(
             email=email, name=name, interface_language=interface_language, password=password
         )
+        account.status = AccountStatus.ACTIVE
+        account.initialized_at = naive_utc_now()
 
-        TenantService.create_owner_tenant_if_not_exist(account=account)
+        if dify_config.LDAP_ENABLED:
+            tenant = None
+            if dify_config.LDAP_JOIN_TENANT_ID:
+                tenant = db.session.query(Tenant).filter(Tenant.id == dify_config.LDAP_JOIN_TENANT_ID).first()
+            if not tenant:
+                tenant = db.session.query(Tenant).order_by(Tenant.created_at.asc()).first()
+            ta = TenantAccountJoin(
+                tenant_id=tenant.id, account_id=account.id, role=TenantAccountRole.NORMAL
+            )
+            db.session.add(ta)
+            db.session.commit()
+        else:
+            TenantService.create_owner_tenant_if_not_exist(account=account)
 
         return account
 
@@ -360,7 +485,7 @@ class AccountService:
     @staticmethod
     def close_account(account: Account):
         """Close account"""
-        account.status = AccountStatus.CLOSED.value
+        account.status = AccountStatus.CLOSED
         db.session.commit()
 
     @staticmethod
@@ -400,16 +525,23 @@ class AccountService:
         if ip_address:
             AccountService.update_login_info(account=account, ip_address=ip_address)
 
-        if account.status == AccountStatus.PENDING.value:
-            account.status = AccountStatus.ACTIVE.value
+        if account.status == AccountStatus.PENDING:
+            account.status = AccountStatus.ACTIVE
             db.session.commit()
 
         access_token = AccountService.get_account_jwt_token(account=account)
         refresh_token = _generate_refresh_token()
+        csrf_token = generate_csrf_token(account.id)
+        chat_app_token = AccountService.get_account_chat_app_passport(account=account)
 
         AccountService._store_refresh_token(refresh_token, account.id)
 
-        return TokenPair(access_token=access_token, refresh_token=refresh_token)
+        return TokenPair(
+            access_token=access_token, 
+            refresh_token=refresh_token, 
+            csrf_token=csrf_token, 
+            chat_app_token=chat_app_token
+        )
 
     @staticmethod
     def logout(*, account: Account):
@@ -434,8 +566,15 @@ class AccountService:
 
         AccountService._delete_refresh_token(refresh_token, account.id)
         AccountService._store_refresh_token(new_refresh_token, account.id)
+        csrf_token = generate_csrf_token(account.id)
+        chat_app_token = AccountService.get_account_chat_app_passport(account=account)
 
-        return TokenPair(access_token=new_access_token, refresh_token=new_refresh_token)
+        return TokenPair(
+            access_token=new_access_token, 
+            refresh_token=new_refresh_token, 
+            csrf_token=csrf_token, 
+            chat_app_token=chat_app_token
+        )
 
     @staticmethod
     def load_logged_in_account(*, account_id: str):
@@ -769,7 +908,7 @@ class AccountService:
         if not account:
             return None
 
-        if account.status == AccountStatus.BANNED.value:
+        if account.status == AccountStatus.BANNED:
             raise Unauthorized("Account is banned.")
 
         return account
@@ -1033,7 +1172,7 @@ class TenantService:
     @staticmethod
     def create_tenant_member(tenant: Tenant, account: Account, role: str = "normal") -> TenantAccountJoin:
         """Create tenant member"""
-        if role == TenantAccountRole.OWNER.value:
+        if role == TenantAccountRole.OWNER:
             if TenantService.has_roles(tenant, [TenantAccountRole.OWNER]):
                 logger.error("Tenant %s has already an owner.", tenant.id)
                 raise Exception("Tenant already has an owner.")
@@ -1258,7 +1397,7 @@ class RegisterService:
         return f"member_invite:token:{token}"
 
     @classmethod
-    def setup(cls, email: str, name: str, password: str, ip_address: str):
+    def setup(cls, email: str, name: str, password: str, ip_address: str, language: str):
         """
         Setup dify
 
@@ -1268,11 +1407,10 @@ class RegisterService:
         :param ip_address: ip address
         """
         try:
-            # Register
             account = AccountService.create_account(
                 email=email,
                 name=name,
-                interface_language=languages[0],
+                interface_language=get_valid_language(language),
                 password=password,
                 is_setup=True,
             )
@@ -1314,27 +1452,39 @@ class RegisterService:
             account = AccountService.create_account(
                 email=email,
                 name=name,
-                interface_language=language or languages[0],
+                interface_language=get_valid_language(language),
                 password=password,
                 is_setup=is_setup,
             )
-            account.status = AccountStatus.ACTIVE.value if not status else status.value
+            account.status = status or AccountStatus.ACTIVE
             account.initialized_at = naive_utc_now()
 
-            if open_id is not None and provider is not None:
-                AccountService.link_account_integrate(provider, open_id, account)
+            if dify_config.LDAP_ENABLED:
+                tenant = None
+                if dify_config.LDAP_JOIN_TENANT_ID:
+                    tenant = db.session.query(Tenant).filter(Tenant.id == dify_config.LDAP_JOIN_TENANT_ID).first()
+                if not tenant:
+                    tenant = db.session.query(Tenant).order_by(Tenant.created_at.asc()).first()
+                ta = TenantAccountJoin(
+                    tenant_id=tenant.id, account_id=account.id, role=TenantAccountRole.NORMAL
+                )
+                db.session.add(ta)
+                db.session.commit()
+            else:
+                if open_id is not None and provider is not None:
+                    AccountService.link_account_integrate(provider, open_id, account)
 
-            if (
-                FeatureService.get_system_features().is_allow_create_workspace
-                and create_workspace_required
-                and FeatureService.get_system_features().license.workspaces.is_available()
-            ):
-                tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
-                TenantService.create_tenant_member(tenant, account, role="owner")
-                account.current_tenant = tenant
-                tenant_was_created.send(tenant)
+                if (
+                    FeatureService.get_system_features().is_allow_create_workspace
+                    and create_workspace_required
+                    and FeatureService.get_system_features().license.workspaces.is_available()
+                ):
+                    tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
+                    TenantService.create_tenant_member(tenant, account, role="owner")
+                    account.current_tenant = tenant
+                    tenant_was_created.send(tenant)
 
-            db.session.commit()
+                db.session.commit()
         except WorkSpaceNotAllowedCreateError:
             db.session.rollback()
             logger.exception("Register failed")
@@ -1380,7 +1530,7 @@ class RegisterService:
                 TenantService.create_tenant_member(tenant, account, role)
 
             # Support resend invitation email when the account is pending status
-            if account.status != AccountStatus.PENDING.value:
+            if account.status != AccountStatus.PENDING:
                 raise AccountAlreadyInTenantError("Account already in tenant.")
 
         token = cls.generate_invite_token(tenant, account)

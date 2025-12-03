@@ -1,3 +1,6 @@
+# 修改日期2025-11-04
+# 修改Email註冊檢查ldap帳號是否存在
+
 from flask import request
 from flask_restx import Resource, reqparse
 from sqlalchemy import select
@@ -7,6 +10,7 @@ from configs import dify_config
 from constants.languages import languages
 from controllers.console import console_ns
 from controllers.console.auth.error import (
+    AuthenticationFailedError,
     EmailAlreadyInUseError,
     EmailCodeError,
     EmailRegisterLimitError,
@@ -19,7 +23,7 @@ from controllers.console.wraps import email_password_login_enabled, email_regist
 from extensions.ext_database import db
 from libs.helper import email, extract_remote_ip
 from libs.password import valid_password
-from models.account import Account
+from models import Account
 from services.account_service import AccountService
 from services.billing_service import BillingService
 from services.errors.account import AccountNotFoundError, AccountRegisterError
@@ -31,11 +35,15 @@ class EmailRegisterSendEmailApi(Resource):
     @email_password_login_enabled
     @email_register_enabled
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument("email", type=email, required=True, location="json")
-        parser.add_argument("language", type=str, required=False, location="json")
+        parser = (
+            reqparse.RequestParser()
+            .add_argument("email", type=email, required=True, location="json")
+            .add_argument("language", type=str, required=False, location="json")
+        )
         args = parser.parse_args()
 
+        if dify_config.LDAP_ENABLED and not AccountService.load_ldap_account(args["email"]):
+            raise AuthenticationFailedError()
         ip_address = extract_remote_ip(request)
         if AccountService.is_email_send_ip_limit(ip_address):
             raise EmailSendIpLimitError()
@@ -48,6 +56,8 @@ class EmailRegisterSendEmailApi(Resource):
 
         with Session(db.engine) as session:
             account = session.execute(select(Account).filter_by(email=args["email"])).scalar_one_or_none()
+            if account:
+                raise EmailAlreadyInUseError()
         token = None
         token = AccountService.send_email_register_email(email=args["email"], account=account, language=language)
         return {"result": "success", "data": token}
@@ -59,10 +69,12 @@ class EmailRegisterCheckApi(Resource):
     @email_password_login_enabled
     @email_register_enabled
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument("email", type=str, required=True, location="json")
-        parser.add_argument("code", type=str, required=True, location="json")
-        parser.add_argument("token", type=str, required=True, nullable=False, location="json")
+        parser = (
+            reqparse.RequestParser()
+            .add_argument("email", type=str, required=True, location="json")
+            .add_argument("code", type=str, required=True, location="json")
+            .add_argument("token", type=str, required=True, nullable=False, location="json")
+        )
         args = parser.parse_args()
 
         user_email = args["email"]
@@ -100,10 +112,12 @@ class EmailRegisterResetApi(Resource):
     @email_password_login_enabled
     @email_register_enabled
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument("token", type=str, required=True, nullable=False, location="json")
-        parser.add_argument("new_password", type=valid_password, required=True, nullable=False, location="json")
-        parser.add_argument("password_confirm", type=valid_password, required=True, nullable=False, location="json")
+        parser = (
+            reqparse.RequestParser()
+            .add_argument("token", type=str, required=True, nullable=False, location="json")
+            .add_argument("new_password", type=valid_password, required=True, nullable=False, location="json")
+            .add_argument("password_confirm", type=valid_password, required=True, nullable=False, location="json")
+        )
         args = parser.parse_args()
 
         # Validate passwords match

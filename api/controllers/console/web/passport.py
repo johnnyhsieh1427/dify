@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import cast
 
-from flask import request
+from flask import make_response, request
 from flask_login import current_user
 from flask_restx import Resource
 from sqlalchemy import select
@@ -91,10 +91,9 @@ class PassportUserAppResource(Resource):
         }
 
         tk = PassportService().issue(payload)
+        response = make_response({"result": "success", "data": {"access_token": tk}})
 
-        return {
-            "access_token": tk,
-        }
+        return response
 
 
 class PassportUserAuthResource(Resource):

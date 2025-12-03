@@ -279,7 +279,7 @@ const ChatWrapper = () => {
           isPublic={true}
           isWebChat={true}
         />)
-      : null}
+        : null}
     </div>
   )
 }

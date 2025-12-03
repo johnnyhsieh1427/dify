@@ -11,7 +11,6 @@ import ChatWithHistoryWrap from '@/app/components/base/chat/chat-user'
 import AuthenticatedAppsLayout from '../components/authenticated-apps-layout'
 import { useAsyncEffect } from 'ahooks'
 import { useRouter } from 'next/navigation'
-import { checkUserAppLogin } from '@/app/components/share/utils'
 
 const Chat = () => {
   const router = useRouter()
@@ -21,7 +20,6 @@ const Chat = () => {
   useAsyncEffect(async () => {
     if (!initialized) {
       try {
-        await checkUserAppLogin()
         setInitialized(true)
       }
       catch {

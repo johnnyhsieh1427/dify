@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from configs import dify_config
 from core.rag.extractor.entity.extract_setting import ExtractSetting
 from core.rag.models.document import Document
+from core.rag.retrieval.retrieval_methods import RetrievalMethod
 from core.rag.splitter.fixed_text_splitter import (
     EnhanceRecursiveCharacterTextSplitter,
     FixedMarkdownTextSplitter,
@@ -52,7 +53,7 @@ class BaseIndexProcessor(ABC):
     @abstractmethod
     def retrieve(
         self,
-        retrieval_method: str,
+        retrieval_method: RetrievalMethod,
         query: str,
         dataset: Dataset,
         top_k: int,

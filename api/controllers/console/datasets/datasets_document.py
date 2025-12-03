@@ -15,7 +15,6 @@ from typing import Literal, cast
 
 import sqlalchemy as sa
 from flask import request
-from flask_login import current_user
 from flask_restx import Resource, fields, marshal, marshal_with, reqparse
 from sqlalchemy import String, asc, desc, select
 from sqlalchemy import cast as _cast
@@ -55,7 +54,7 @@ from core.model_runtime.entities.model_entities import ModelType
 from core.model_runtime.errors.invoke import InvokeAuthorizationError
 from core.plugin.impl.exc import PluginDaemonClientSideError
 from core.rag.extractor.entity.datasource_type import DatasourceType
-from core.rag.extractor.entity.extract_setting import ExtractSetting
+from core.rag.extractor.entity.extract_setting import ExtractSetting, NotionInfo, WebsiteInfo
 from extensions.ext_database import db
 from fields.document_fields import (
     dataset_and_document_fields,
@@ -65,7 +64,7 @@ from fields.document_fields import (
     upload_file_fields,
 )
 from libs.datetime_utils import naive_utc_now
-from libs.login import login_required
+from libs.login import current_account_with_tenant, login_required
 from models import Dataset, DatasetProcessRule, Document, DocumentSegment, UploadFile
 from models.dataset import DocumentPipelineExecutionLog
 from services.dataset_service import DatasetService, DocumentService
@@ -76,6 +75,7 @@ logger = logging.getLogger(__name__)
 
 class DocumentResource(Resource):
     def get_document(self, dataset_id: str, document_id: str) -> Document:
+        current_user, current_tenant_id = current_account_with_tenant()
         dataset = DatasetService.get_dataset(dataset_id)
         if not dataset:
             raise NotFound("Dataset not found.")
@@ -90,12 +90,13 @@ class DocumentResource(Resource):
         if not document:
             raise NotFound("Document not found.")
 
-        if document.tenant_id != current_user.current_tenant_id:
+        if document.tenant_id != current_tenant_id:
             raise Forbidden("No permission.")
 
         return document
 
     def get_batch_documents(self, dataset_id: str, batch: str) -> Sequence[Document]:
+        current_user, _ = current_account_with_tenant()
         dataset = DatasetService.get_dataset(dataset_id)
         if not dataset:
             raise NotFound("Dataset not found.")
@@ -123,6 +124,7 @@ class GetProcessRuleApi(Resource):
     @login_required
     @account_initialization_required
     def get(self):
+        current_user, _ = current_account_with_tenant()
         req_data = request.args
 
         document_id = req_data.get("document_id")
@@ -168,6 +170,7 @@ class DatasetAllDocumentsListApi(Resource):
     @login_required
     @account_initialization_required
     def get(self, dataset_id):
+        current_user, _ = current_account_with_tenant()
         dataset_id = str(dataset_id)
         dataset = DatasetService.get_dataset(dataset_id)
         if not dataset:
@@ -218,6 +221,7 @@ class DatasetDocumentListApi(Resource):
     @login_required
     @account_initialization_required
     def get(self, dataset_id):
+        current_user, current_tenant_id = current_account_with_tenant()
         dataset_id = str(dataset_id)
         page = request.args.get("page", default=1, type=int)
         limit = request.args.get("limit", default=20, type=int)
@@ -249,7 +253,7 @@ class DatasetDocumentListApi(Resource):
         except services.errors.account.NoPermissionError as e:
             raise Forbidden(str(e))
 
-        query = select(Document).filter_by(dataset_id=str(dataset_id), tenant_id=current_user.current_tenant_id)
+        query = select(Document).filter_by(dataset_id=str(dataset_id), tenant_id=current_tenant_id)
 
         if search:
             search = f"%{search}%"
@@ -323,6 +327,7 @@ class DatasetDocumentListApi(Resource):
     @cloud_edition_billing_resource_check("vector_space")
     @cloud_edition_billing_rate_limit_check("knowledge")
     def post(self, dataset_id):
+        current_user, _ = current_account_with_tenant()
         dataset_id = str(dataset_id)
 
         dataset = DatasetService.get_dataset(dataset_id)
@@ -339,23 +344,23 @@ class DatasetDocumentListApi(Resource):
         except services.errors.account.NoPermissionError as e:
             raise Forbidden(str(e))
 
-        parser = reqparse.RequestParser()
-        parser.add_argument(
-            "indexing_technique", type=str, choices=Dataset.INDEXING_TECHNIQUE_LIST, nullable=False, location="json"
-        )
-        parser.add_argument("data_source", type=dict, required=False, location="json")
-        parser.add_argument("process_rule", type=dict, required=False, location="json")
-        parser.add_argument("duplicate", type=bool, default=True, nullable=False, location="json")
-        parser.add_argument("original_document_id", type=str, required=False, location="json")
-        parser.add_argument("doc_form", type=str, default="text_model", required=False, nullable=False, location="json")
-        parser.add_argument("retrieval_model", type=dict, required=False, nullable=False, location="json")
-        parser.add_argument("embedding_model", type=str, required=False, nullable=True, location="json")
-        parser.add_argument("embedding_model_provider", type=str, required=False, nullable=True, location="json")
-        parser.add_argument(
-            "doc_language", type=str, default="English", required=False, nullable=False, location="json"
+        parser = (
+            reqparse.RequestParser()
+            .add_argument(
+                "indexing_technique", type=str, choices=Dataset.INDEXING_TECHNIQUE_LIST, nullable=False, location="json"
+            )
+            .add_argument("data_source", type=dict, required=False, location="json")
+            .add_argument("process_rule", type=dict, required=False, location="json")
+            .add_argument("duplicate", type=bool, default=True, nullable=False, location="json")
+            .add_argument("original_document_id", type=str, required=False, location="json")
+            .add_argument("doc_form", type=str, default="text_model", required=False, nullable=False, location="json")
+            .add_argument("retrieval_model", type=dict, required=False, nullable=False, location="json")
+            .add_argument("embedding_model", type=str, required=False, nullable=True, location="json")
+            .add_argument("embedding_model_provider", type=str, required=False, nullable=True, location="json")
+            .add_argument("doc_language", type=str, default="English", required=False, nullable=False, location="json")
         )
         args = parser.parse_args()
-        knowledge_config = KnowledgeConfig(**args)
+        knowledge_config = KnowledgeConfig.model_validate(args)
 
         if not dataset.indexing_technique and not knowledge_config.indexing_technique:
             raise ValueError("indexing_technique is required.")
@@ -422,37 +427,38 @@ class DatasetInitApi(Resource):
     @cloud_edition_billing_rate_limit_check("knowledge")
     def post(self):
         # The role of the current user in the ta table must be admin, owner, dataset_operator, or editor
+        current_user, current_tenant_id = current_account_with_tenant()
         if not current_user.is_dataset_editor:
             raise Forbidden()
 
-        parser = reqparse.RequestParser()
-        parser.add_argument(
-            "indexing_technique",
-            type=str,
-            choices=Dataset.INDEXING_TECHNIQUE_LIST,
-            required=True,
-            nullable=False,
-            location="json",
+        parser = (
+            reqparse.RequestParser()
+            .add_argument(
+                "indexing_technique",
+                type=str,
+                choices=Dataset.INDEXING_TECHNIQUE_LIST,
+                required=True,
+                nullable=False,
+                location="json",
+            )
+            .add_argument("data_source", type=dict, required=True, nullable=True, location="json")
+            .add_argument("process_rule", type=dict, required=True, nullable=True, location="json")
+            .add_argument("doc_form", type=str, default="text_model", required=False, nullable=False, location="json")
+            .add_argument("doc_language", type=str, default="English", required=False, nullable=False, location="json")
+            .add_argument("retrieval_model", type=dict, required=False, nullable=False, location="json")
+            .add_argument("embedding_model", type=str, required=False, nullable=True, location="json")
+            .add_argument("embedding_model_provider", type=str, required=False, nullable=True, location="json")
         )
-        parser.add_argument("data_source", type=dict, required=True, nullable=True, location="json")
-        parser.add_argument("process_rule", type=dict, required=True, nullable=True, location="json")
-        parser.add_argument("doc_form", type=str, default="text_model", required=False, nullable=False, location="json")
-        parser.add_argument(
-            "doc_language", type=str, default="English", required=False, nullable=False, location="json"
-        )
-        parser.add_argument("retrieval_model", type=dict, required=False, nullable=False, location="json")
-        parser.add_argument("embedding_model", type=str, required=False, nullable=True, location="json")
-        parser.add_argument("embedding_model_provider", type=str, required=False, nullable=True, location="json")
         args = parser.parse_args()
 
-        knowledge_config = KnowledgeConfig(**args)
+        knowledge_config = KnowledgeConfig.model_validate(args)
         if knowledge_config.indexing_technique == "high_quality":
             if knowledge_config.embedding_model is None or knowledge_config.embedding_model_provider is None:
                 raise ValueError("embedding model and embedding model provider are required for high quality indexing.")
             try:
                 model_manager = ModelManager()
                 model_manager.get_model_instance(
-                    tenant_id=current_user.current_tenant_id,
+                    tenant_id=current_tenant_id,
                     provider=args["embedding_model_provider"],
                     model_type=ModelType.TEXT_EMBEDDING,
                     model=args["embedding_model"],
@@ -469,7 +475,9 @@ class DatasetInitApi(Resource):
 
         try:
             dataset, documents, batch = DocumentService.save_document_without_dataset_id(
-                tenant_id=current_user.current_tenant_id, knowledge_config=knowledge_config, account=current_user
+                tenant_id=current_tenant_id,
+                knowledge_config=knowledge_config,
+                account=current_user,
             )
         except ProviderTokenNotInitError as ex:
             raise ProviderNotInitializeError(ex.description)
@@ -495,6 +503,7 @@ class DocumentIndexingEstimateApi(DocumentResource):
     @login_required
     @account_initialization_required
     def get(self, dataset_id, document_id):
+        _, current_tenant_id = current_account_with_tenant()
         dataset_id = str(dataset_id)
         document_id = str(document_id)
         document = self.get_document(dataset_id, document_id)
@@ -503,7 +512,7 @@ class DocumentIndexingEstimateApi(DocumentResource):
             raise DocumentAlreadyFinishedError()
 
         data_process_rule = document.dataset_process_rule
-        data_process_rule_dict = data_process_rule.to_dict()
+        data_process_rule_dict = data_process_rule.to_dict() if data_process_rule else {}
 
         response = {"tokens": 0, "total_price": 0, "currency": "USD", "total_segments": 0, "preview": []}
 
@@ -523,14 +532,14 @@ class DocumentIndexingEstimateApi(DocumentResource):
                     raise NotFound("File not found.")
 
                 extract_setting = ExtractSetting(
-                    datasource_type=DatasourceType.FILE.value, upload_file=file, document_model=document.doc_form
+                    datasource_type=DatasourceType.FILE, upload_file=file, document_model=document.doc_form
                 )
 
                 indexing_runner = IndexingRunner()
 
                 try:
                     estimate_response = indexing_runner.indexing_estimate(
-                        current_user.current_tenant_id,
+                        current_tenant_id,
                         [extract_setting],
                         data_process_rule_dict,
                         document.doc_form,
@@ -559,13 +568,14 @@ class DocumentBatchIndexingEstimateApi(DocumentResource):
     @login_required
     @account_initialization_required
     def get(self, dataset_id, batch):
+        _, current_tenant_id = current_account_with_tenant()
         dataset_id = str(dataset_id)
         batch = str(batch)
         documents = self.get_batch_documents(dataset_id, batch)
         if not documents:
             return {"tokens": 0, "total_price": 0, "currency": "USD", "total_segments": 0, "preview": []}, 200
         data_process_rule = documents[0].dataset_process_rule
-        data_process_rule_dict = data_process_rule.to_dict()
+        data_process_rule_dict = data_process_rule.to_dict() if data_process_rule else {}
         extract_settings = []
         for document in documents:
             if document.indexing_status in {"completed", "error"}:
@@ -578,7 +588,7 @@ class DocumentBatchIndexingEstimateApi(DocumentResource):
                 file_id = data_source_info["upload_file_id"]
                 file_detail = (
                     db.session.query(UploadFile)
-                    .where(UploadFile.tenant_id == current_user.current_tenant_id, UploadFile.id == file_id)
+                    .where(UploadFile.tenant_id == current_tenant_id, UploadFile.id == file_id)
                     .first()
                 )
 
@@ -586,7 +596,7 @@ class DocumentBatchIndexingEstimateApi(DocumentResource):
                     raise NotFound("File not found.")
 
                 extract_setting = ExtractSetting(
-                    datasource_type=DatasourceType.FILE.value, upload_file=file_detail, document_model=document.doc_form
+                    datasource_type=DatasourceType.FILE, upload_file=file_detail, document_model=document.doc_form
                 )
                 extract_settings.append(extract_setting)
 
@@ -594,14 +604,16 @@ class DocumentBatchIndexingEstimateApi(DocumentResource):
                 if not data_source_info:
                     continue
                 extract_setting = ExtractSetting(
-                    datasource_type=DatasourceType.NOTION.value,
-                    notion_info={
-                        "credential_id": data_source_info["credential_id"],
-                        "notion_workspace_id": data_source_info["notion_workspace_id"],
-                        "notion_obj_id": data_source_info["notion_page_id"],
-                        "notion_page_type": data_source_info["type"],
-                        "tenant_id": current_user.current_tenant_id,
-                    },
+                    datasource_type=DatasourceType.NOTION,
+                    notion_info=NotionInfo.model_validate(
+                        {
+                            "credential_id": data_source_info["credential_id"],
+                            "notion_workspace_id": data_source_info["notion_workspace_id"],
+                            "notion_obj_id": data_source_info["notion_page_id"],
+                            "notion_page_type": data_source_info["type"],
+                            "tenant_id": current_tenant_id,
+                        }
+                    ),
                     document_model=document.doc_form,
                 )
                 extract_settings.append(extract_setting)
@@ -609,15 +621,17 @@ class DocumentBatchIndexingEstimateApi(DocumentResource):
                 if not data_source_info:
                     continue
                 extract_setting = ExtractSetting(
-                    datasource_type=DatasourceType.WEBSITE.value,
-                    website_info={
-                        "provider": data_source_info["provider"],
-                        "job_id": data_source_info["job_id"],
-                        "url": data_source_info["url"],
-                        "tenant_id": current_user.current_tenant_id,
-                        "mode": data_source_info["mode"],
-                        "only_main_content": data_source_info["only_main_content"],
-                    },
+                    datasource_type=DatasourceType.WEBSITE,
+                    website_info=WebsiteInfo.model_validate(
+                        {
+                            "provider": data_source_info["provider"],
+                            "job_id": data_source_info["job_id"],
+                            "url": data_source_info["url"],
+                            "tenant_id": current_tenant_id,
+                            "mode": data_source_info["mode"],
+                            "only_main_content": data_source_info["only_main_content"],
+                        }
+                    ),
                     document_model=document.doc_form,
                 )
                 extract_settings.append(extract_setting)
@@ -627,7 +641,7 @@ class DocumentBatchIndexingEstimateApi(DocumentResource):
             indexing_runner = IndexingRunner()
             try:
                 response = indexing_runner.indexing_estimate(
-                    current_user.current_tenant_id,
+                    current_tenant_id,
                     extract_settings,
                     data_process_rule_dict,
                     document.doc_form,
@@ -804,7 +818,7 @@ class DocumentApi(DocumentResource):
             }
         else:
             dataset_process_rules = DatasetService.get_process_rules(dataset_id)
-            document_process_rules = document.dataset_process_rule.to_dict()
+            document_process_rules = document.dataset_process_rule.to_dict() if document.dataset_process_rule else {}
             data_source_info = document.data_source_detail_dict
             response = {
                 "id": document.id,
@@ -878,6 +892,7 @@ class DocumentProcessingApi(DocumentResource):
     @account_initialization_required
     @cloud_edition_billing_rate_limit_check("knowledge")
     def patch(self, dataset_id, document_id, action: Literal["pause", "resume"]):
+        current_user, _ = current_account_with_tenant()
         dataset_id = str(dataset_id)
         document_id = str(document_id)
         document = self.get_document(dataset_id, document_id)
@@ -928,6 +943,7 @@ class DocumentMetadataApi(DocumentResource):
     @login_required
     @account_initialization_required
     def put(self, dataset_id, document_id):
+        current_user, _ = current_account_with_tenant()
         dataset_id = str(dataset_id)
         document_id = str(document_id)
         document = self.get_document(dataset_id, document_id)
@@ -975,6 +991,7 @@ class DocumentStatusApi(DocumentResource):
     @cloud_edition_billing_resource_check("vector_space")
     @cloud_edition_billing_rate_limit_check("knowledge")
     def patch(self, dataset_id, action: Literal["enable", "disable", "archive", "un_archive"]):
+        current_user, _ = current_account_with_tenant()
         dataset_id = str(dataset_id)
         dataset = DatasetService.get_dataset(dataset_id)
         if dataset is None:
@@ -1078,8 +1095,9 @@ class DocumentRetryApi(DocumentResource):
     def post(self, dataset_id):
         """retry document."""
 
-        parser = reqparse.RequestParser()
-        parser.add_argument("document_ids", type=list, required=True, nullable=False, location="json")
+        parser = reqparse.RequestParser().add_argument(
+            "document_ids", type=list, required=True, nullable=False, location="json"
+        )
         args = parser.parse_args()
         dataset_id = str(dataset_id)
         dataset = DatasetService.get_dataset(dataset_id)
@@ -1121,12 +1139,14 @@ class DocumentRenameApi(DocumentResource):
     @marshal_with(document_fields)
     def post(self, dataset_id, document_id):
         # The role of the current user in the ta table must be admin, owner, editor, or dataset_operator
+        current_user, _ = current_account_with_tenant()
         if not current_user.is_dataset_editor:
             raise Forbidden()
         dataset = DatasetService.get_dataset(dataset_id)
+        if not dataset:
+            raise NotFound("Dataset not found.")
         DatasetService.check_dataset_operator_permission(current_user, dataset)
-        parser = reqparse.RequestParser()
-        parser.add_argument("name", type=str, required=True, nullable=False, location="json")
+        parser = reqparse.RequestParser().add_argument("name", type=str, required=True, nullable=False, location="json")
         args = parser.parse_args()
 
         try:
@@ -1144,6 +1164,7 @@ class WebsiteDocumentSyncApi(DocumentResource):
     @account_initialization_required
     def get(self, dataset_id, document_id):
         """sync website document."""
+        _, current_tenant_id = current_account_with_tenant()
         dataset_id = str(dataset_id)
         dataset = DatasetService.get_dataset(dataset_id)
         if not dataset:
@@ -1152,7 +1173,7 @@ class WebsiteDocumentSyncApi(DocumentResource):
         document = DocumentService.get_document(dataset.id, document_id)
         if not document:
             raise NotFound("Document not found.")
-        if document.tenant_id != current_user.current_tenant_id:
+        if document.tenant_id != current_tenant_id:
             raise Forbidden("No permission.")
         if document.data_source_type != "website_crawl":
             raise ValueError("Document is not a website document.")

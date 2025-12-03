@@ -20,6 +20,10 @@ const translation = {
     cancel: 'Cancel',
     clear: 'Clear',
     save: 'Save',
+    yes: 'Yes',
+    no: 'No',
+    deleteConfirmTitle: 'Delete?',
+    confirmAction: 'Please confirm your action.',
     saveAndEnable: 'Save & Enable',
     edit: 'Edit',
     add: 'Add',
@@ -169,6 +173,7 @@ const translation = {
   },
   userProfile: {
     settings: 'Settings',
+    contactUs: 'Contact Us',
     emailSupport: 'Email Support',
     workspace: 'Workspace',
     createWorkspace: 'Create Workspace',

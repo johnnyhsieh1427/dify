@@ -30,12 +30,11 @@ import DifyLogo from '@/app/components/base/logo/dify-logo'
 import type { ConversationItem } from '@/models/share'
 import cn from '@/utils/classnames'
 import { useWebAppStore } from '@/context/web-app-context'
-import { CONVERSATION_ID_INFO } from '../../constants'
-import { logout } from '@/service/common'
 import Modal from '../../../modal'
 import AnswerIcon from '../../../answer-icon'
 import { DotsGrid, LogOut01 } from '../../../icons/src/vender/line/general'
 import { mutate } from 'swr'
+import { useLogout } from '@/service/use-common'
 
 type Props = {
   isPanel?: boolean
@@ -103,8 +102,9 @@ const Sidebar = ({ isPanel }: Props) => {
     setCurrentActiveIndex(index)
     setShowApps(false)
   }, [setCurrentActiveIndex])
+  const { mutateAsync: logout } = useLogout()
   const handleLogout = async () => {
-    await logout({ url: '/logout', params: {} })
+    await logout()
     mutate('appInfoList', undefined, { revalidate: true })
     mutate('appParamsList', undefined, { revalidate: true })
     mutate('appMetaList', undefined, { revalidate: true })
@@ -113,11 +113,6 @@ const Sidebar = ({ isPanel }: Props) => {
     updateAppParamsList(null)
     updateAppMetaList(null)
     updateActiveIndex(0)
-    localStorage.removeItem('setup_status')
-    localStorage.removeItem('token')
-    localStorage.removeItem('console_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem(CONVERSATION_ID_INFO)
     router.push('/signin')
   }
   return (

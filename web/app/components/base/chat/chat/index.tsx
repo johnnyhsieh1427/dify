@@ -1,5 +1,7 @@
 // 修改日期2025-05-27
 // 修改ChatProps類型，新增isPublic和isWebChat
+// 修改日期2025-11-05
+// 增加輸入框下方的免責聲明
 
 import type {
   FC,
@@ -289,50 +291,55 @@ const Chat: FC<ChatProps> = ({
           className={`absolute bottom-0 z-10 flex justify-center bg-chat-input-mask ${(hasTryToAsk || !noChatInput || !noStopResponding) && chatFooterClassName}`}
           ref={chatFooterRef}
         >
-          <div
-            ref={chatFooterInnerRef}
-            className={cn('relative', chatFooterInnerClassName)}
-          >
-            {
-              !noStopResponding && isResponding && (
-                <div className='mb-2 flex justify-center'>
-                  <Button className='border-components-panel-border bg-components-panel-bg text-components-button-secondary-text' onClick={onStopResponding}>
-                    <StopCircle className='mr-[5px] h-3.5 w-3.5' />
-                    <span className='text-xs font-normal'>{t('appDebug.operation.stopResponding')}</span>
-                  </Button>
-                </div>
-              )
-            }
-            {
-              hasTryToAsk && (
-                <TryToAsk
-                  suggestedQuestions={suggestedQuestions}
-                  onSend={onSend}
-                  isMobile={isMobile}
-                />
-              )
-            }
-            {
-              !noChatInput && (
-                <ChatInputArea
-                  botName={appData?.site.title || 'Bot'}
-                  disabled={inputDisabled}
-                  showFeatureBar={showFeatureBar}
-                  showFileUpload={showFileUpload}
-                  featureBarDisabled={isResponding}
-                  onFeatureBarClick={onFeatureBarClick}
-                  visionConfig={config?.file_upload}
-                  speechToTextConfig={config?.speech_to_text}
-                  onSend={onSend}
-                  inputs={inputs}
-                  inputsForm={inputsForm}
-                  theme={themeBuilder?.theme}
-                  isResponding={isResponding}
-                  isPublic={isPublic}
-                  isWebChat={isWebChat}
-                />
-              )
-            }
+          <div className="flex w-full flex-col items-center">
+            <div
+              ref={chatFooterInnerRef}
+              className={cn('relative', chatFooterInnerClassName)}
+            >
+              {
+                !noStopResponding && isResponding && (
+                  <div className='mb-2 flex justify-center'>
+                    <Button className='border-components-panel-border bg-components-panel-bg text-components-button-secondary-text' onClick={onStopResponding}>
+                      <StopCircle className='mr-[5px] h-3.5 w-3.5' />
+                      <span className='text-xs font-normal'>{t('appDebug.operation.stopResponding')}</span>
+                    </Button>
+                  </div>
+                )
+              }
+              {
+                hasTryToAsk && (
+                  <TryToAsk
+                    suggestedQuestions={suggestedQuestions}
+                    onSend={onSend}
+                    isMobile={isMobile}
+                  />
+                )
+              }
+              {
+                !noChatInput && (
+                  <ChatInputArea
+                    botName={appData?.site.title || 'Bot'}
+                    disabled={inputDisabled}
+                    showFeatureBar={showFeatureBar}
+                    showFileUpload={showFileUpload}
+                    featureBarDisabled={isResponding}
+                    onFeatureBarClick={onFeatureBarClick}
+                    visionConfig={config?.file_upload}
+                    speechToTextConfig={config?.speech_to_text}
+                    onSend={onSend}
+                    inputs={inputs}
+                    inputsForm={inputsForm}
+                    theme={themeBuilder?.theme}
+                    isResponding={isResponding}
+                    isPublic={isPublic}
+                    isWebChat={isWebChat}
+                  />
+                )
+              }
+            </div>
+            <div className="mb-1 mt-2 w-full select-none text-center text-xs text-gray-400">
+              LLM can make mistakes. Check important info.<br />AI回答可能出錯，請核實重要資訊。
+            </div>
           </div>
         </div>
         {showPromptLogModal && !hideLogModal && (
