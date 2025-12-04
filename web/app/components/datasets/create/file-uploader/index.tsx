@@ -141,8 +141,8 @@ const FileUploader = ({
   }, [fileListRef, notify, onFileUpdate, t])
 
   const uploadBatchFiles = useCallback((bFiles: FileItem[]) => {
-    bFiles.forEach(bf => (bf.progress = 0))
-    return Promise.all(bFiles.map(fileUpload))
+    const updatedFiles = bFiles.map(bf => ({ ...bf, progress: 0 }))
+    return Promise.all(updatedFiles.map(fileUpload))
   }, [fileUpload])
 
   const uploadMultipleFiles = useCallback(async (files: FileItem[]) => {
