@@ -121,9 +121,9 @@ class ForgotPasswordCheckApi(Resource):
         )
         args = parser.parse_args()
 
-        user_email = args["email"]
+        user_email = args["email"].lower()
 
-        is_forgot_password_error_rate_limit = AccountService.is_forgot_password_error_rate_limit(args["email"])
+        is_forgot_password_error_rate_limit = AccountService.is_forgot_password_error_rate_limit(user_email)
         if is_forgot_password_error_rate_limit:
             raise EmailPasswordResetLimitError()
 
@@ -135,7 +135,7 @@ class ForgotPasswordCheckApi(Resource):
             raise InvalidEmailError()
 
         if args["code"] != token_data.get("code"):
-            AccountService.add_forgot_password_error_rate_limit(args["email"])
+            AccountService.add_forgot_password_error_rate_limit(user_email)
             raise EmailCodeError()
 
         # Verified, revoke the first token
@@ -146,7 +146,7 @@ class ForgotPasswordCheckApi(Resource):
             user_email, code=args["code"], additional_data={"phase": "reset"}
         )
 
-        AccountService.reset_forgot_password_error_rate_limit(args["email"])
+        AccountService.reset_forgot_password_error_rate_limit(user_email)
         return {"is_valid": True, "email": token_data.get("email"), "token": new_token}
 
 
