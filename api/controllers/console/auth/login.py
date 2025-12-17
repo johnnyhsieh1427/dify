@@ -145,18 +145,18 @@ class ResetPasswordSendEmailApi(Resource):
             .add_argument("language", type=str, required=False, location="json")
         )
         args = parser.parse_args()
-
+        user_email = args["email"].lower()
         if args["language"] is not None and args["language"] == "zh-Hans":
             language = "zh-Hans"
         else:
             language = "en-US"
         try:
-            account = AccountService.get_user_through_email(args["email"])
+            account = AccountService.get_user_through_email(user_email)
         except AccountRegisterError:
             raise AccountInFreezeError()
 
         token = AccountService.send_reset_password_email(
-            email=args["email"],
+            email=user_email,
             account=account,
             language=language,
             is_allow_register=FeatureService.get_system_features().is_allow_register,

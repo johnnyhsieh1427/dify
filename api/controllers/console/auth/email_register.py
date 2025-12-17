@@ -41,8 +41,8 @@ class EmailRegisterSendEmailApi(Resource):
             .add_argument("language", type=str, required=False, location="json")
         )
         args = parser.parse_args()
-
-        if dify_config.LDAP_ENABLED and not AccountService.load_ldap_account(args["email"]):
+        user_email = args["email"].lower()
+        if dify_config.LDAP_ENABLED and not AccountService.load_ldap_account(user_email):
             raise AuthenticationFailedError()
         ip_address = extract_remote_ip(request)
         if AccountService.is_email_send_ip_limit(ip_address):
@@ -51,15 +51,15 @@ class EmailRegisterSendEmailApi(Resource):
         if args["language"] in languages:
             language = args["language"]
 
-        if dify_config.BILLING_ENABLED and BillingService.is_email_in_freeze(args["email"]):
+        if dify_config.BILLING_ENABLED and BillingService.is_email_in_freeze(user_email):
             raise AccountInFreezeError()
 
         with Session(db.engine) as session:
-            account = session.execute(select(Account).filter_by(email=args["email"])).scalar_one_or_none()
+            account = session.execute(select(Account).filter_by(email=user_email)).scalar_one_or_none()
             if account:
                 raise EmailAlreadyInUseError()
         token = None
-        token = AccountService.send_email_register_email(email=args["email"], account=account, language=language)
+        token = AccountService.send_email_register_email(email=user_email, account=account, language=language)
         return {"result": "success", "data": token}
 
 
