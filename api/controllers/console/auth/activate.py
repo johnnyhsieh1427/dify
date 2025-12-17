@@ -38,7 +38,7 @@ class ActivateCheckApi(Resource):
         args = active_check_parser.parse_args()
 
         workspaceId = args["workspace_id"]
-        reg_email = args["email"]
+        reg_email = args["email"].lower()
         token = args["token"]
 
         invitation = RegisterService.get_invitation_if_token_valid(workspaceId, reg_email, token)
@@ -86,12 +86,12 @@ class ActivateApi(Resource):
     @console_ns.response(400, "Already activated or invalid token")
     def post(self):
         args = active_parser.parse_args()
-
-        invitation = RegisterService.get_invitation_if_token_valid(args["workspace_id"], args["email"], args["token"])
+        user_email = args["email"].lower()
+        invitation = RegisterService.get_invitation_if_token_valid(args["workspace_id"], user_email, args["token"])
         if invitation is None:
             raise AlreadyActivateError()
 
-        RegisterService.revoke_token(args["workspace_id"], args["email"], args["token"])
+        RegisterService.revoke_token(args["workspace_id"], user_email, args["token"])
 
         account = invitation["account"]
         account.name = args["name"]

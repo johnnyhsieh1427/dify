@@ -355,8 +355,8 @@ class AccountDeleteUpdateFeedbackApi(Resource):
     @setup_required
     def post(self):
         args = parser_feedback.parse_args()
-
-        BillingService.update_account_deletion_feedback(args["email"], args["feedback"])
+        user_email = args["email"].lower()
+        BillingService.update_account_deletion_feedback(user_email, args["feedback"])
 
         return {"result": "success"}
 
@@ -483,7 +483,7 @@ class ChangeEmailSendEmailApi(Resource):
         else:
             language = "en-US"
         account = None
-        user_email = args["email"]
+        new_user_email = args["email"].lower()
         if args["phase"] is not None and args["phase"] == "new_email":
             if args["token"] is None:
                 raise InvalidTokenError()
@@ -491,18 +491,18 @@ class ChangeEmailSendEmailApi(Resource):
             reset_data = AccountService.get_change_email_data(args["token"])
             if reset_data is None:
                 raise InvalidTokenError()
-            user_email = reset_data.get("email", "")
+            user_email = reset_data.get("email", "").lower()
 
             if user_email != current_user.email:
                 raise InvalidEmailError()
         else:
             with Session(db.engine) as session:
-                account = session.execute(select(Account).filter_by(email=args["email"])).scalar_one_or_none()
+                account = session.execute(select(Account).filter_by(email=new_user_email)).scalar_one_or_none()
             if account is None:
                 raise AccountNotFound()
 
         token = AccountService.send_change_email_email(
-            account=account, email=args["email"], old_email=user_email, language=language, phase=args["phase"]
+            account=account, email=new_user_email, old_email=user_email, language=language, phase=args["phase"]
         )
         return {"result": "success", "data": token}
 
@@ -525,9 +525,9 @@ class ChangeEmailCheckApi(Resource):
     def post(self):
         args = parser_validity.parse_args()
 
-        user_email = args["email"]
+        user_email = args["email"].lower()
 
-        is_change_email_error_rate_limit = AccountService.is_change_email_error_rate_limit(args["email"])
+        is_change_email_error_rate_limit = AccountService.is_change_email_error_rate_limit(user_email)
         if is_change_email_error_rate_limit:
             raise EmailChangeLimitError()
 
@@ -539,7 +539,7 @@ class ChangeEmailCheckApi(Resource):
             raise InvalidEmailError()
 
         if args["code"] != token_data.get("code"):
-            AccountService.add_change_email_error_rate_limit(args["email"])
+            AccountService.add_change_email_error_rate_limit(user_email)
             raise EmailCodeError()
 
         # Verified, revoke the first token
@@ -550,7 +550,7 @@ class ChangeEmailCheckApi(Resource):
             user_email, code=args["code"], old_email=token_data.get("old_email"), additional_data={}
         )
 
-        AccountService.reset_change_email_error_rate_limit(args["email"])
+        AccountService.reset_change_email_error_rate_limit(user_email)
         return {"is_valid": True, "email": token_data.get("email"), "token": new_token}
 
 
@@ -607,8 +607,9 @@ class CheckEmailUnique(Resource):
     @setup_required
     def post(self):
         args = parser_check.parse_args()
-        if AccountService.is_account_in_freeze(args["email"]):
+        user_email = args["email"].lower()
+        if AccountService.is_account_in_freeze(user_email):
             raise AccountInFreezeError()
-        if not AccountService.check_email_unique(args["email"]):
+        if not AccountService.check_email_unique(user_email):
             raise EmailAlreadyInUseError()
         return {"result": "success"}

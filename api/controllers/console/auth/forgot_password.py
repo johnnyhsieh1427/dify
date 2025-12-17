@@ -60,7 +60,7 @@ class ForgotPasswordSendEmailApi(Resource):
             .add_argument("language", type=str, required=False, location="json")
         )
         args = parser.parse_args()
-
+        user_email = args["email"].lower()
         ip_address = extract_remote_ip(request)
         if AccountService.is_email_send_ip_limit(ip_address):
             raise EmailSendIpLimitError()
@@ -71,11 +71,11 @@ class ForgotPasswordSendEmailApi(Resource):
             language = "en-US"
 
         with Session(db.engine) as session:
-            account = session.execute(select(Account).filter_by(email=args["email"])).scalar_one_or_none()
+            account = session.execute(select(Account).filter_by(email=user_email)).scalar_one_or_none()
 
         token = AccountService.send_reset_password_email(
             account=account,
-            email=args["email"],
+            email=user_email,
             language=language,
             is_allow_register=FeatureService.get_system_features().is_allow_register,
         )
@@ -121,9 +121,9 @@ class ForgotPasswordCheckApi(Resource):
         )
         args = parser.parse_args()
 
-        user_email = args["email"]
+        user_email = args["email"].lower()
 
-        is_forgot_password_error_rate_limit = AccountService.is_forgot_password_error_rate_limit(args["email"])
+        is_forgot_password_error_rate_limit = AccountService.is_forgot_password_error_rate_limit(user_email)
         if is_forgot_password_error_rate_limit:
             raise EmailPasswordResetLimitError()
 
@@ -135,7 +135,7 @@ class ForgotPasswordCheckApi(Resource):
             raise InvalidEmailError()
 
         if args["code"] != token_data.get("code"):
-            AccountService.add_forgot_password_error_rate_limit(args["email"])
+            AccountService.add_forgot_password_error_rate_limit(user_email)
             raise EmailCodeError()
 
         # Verified, revoke the first token
@@ -146,7 +146,7 @@ class ForgotPasswordCheckApi(Resource):
             user_email, code=args["code"], additional_data={"phase": "reset"}
         )
 
-        AccountService.reset_forgot_password_error_rate_limit(args["email"])
+        AccountService.reset_forgot_password_error_rate_limit(user_email)
         return {"is_valid": True, "email": token_data.get("email"), "token": new_token}
 
 
