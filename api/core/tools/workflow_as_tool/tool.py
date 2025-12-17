@@ -1,3 +1,5 @@
+# 修改日期2025-12-17
+# 修改WorkflowTool在_invoke只輸出create_json_message或create_text_message一次
 import json
 import logging
 from collections.abc import Generator, Mapping, Sequence
@@ -116,8 +118,10 @@ class WorkflowTool(Tool):
 
         self._latest_usage = self._derive_usage_from_result(data)
 
-        yield self.create_text_message(json.dumps(outputs, ensure_ascii=False))
-        yield self.create_json_message(outputs)
+        if isinstance(outputs, dict):
+            yield self.create_json_message(outputs)
+        else:
+            yield self.create_text_message(json.dumps(outputs, ensure_ascii=False))
 
     @property
     def latest_usage(self) -> LLMUsage:

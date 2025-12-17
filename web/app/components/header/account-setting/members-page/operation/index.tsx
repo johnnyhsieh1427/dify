@@ -23,13 +23,7 @@ const Operation = ({
 }: IOperationProps) => {
   const { t } = useTranslation()
   const { datasetOperatorEnabled } = useProviderContext()
-  const RoleMap = {
-    owner: t('common.members.owner'),
-    admin: t('common.members.admin'),
-    editor: t('common.members.editor'),
-    normal: t('common.members.normal'),
-    dataset_operator: t('common.members.datasetOperator'),
-  }
+  const { notify } = useContext(ToastContext)
   const roleList = useMemo(() => {
     if (operatorRole === 'owner') {
       return [
@@ -45,7 +39,19 @@ const Operation = ({
     }
     return []
   }, [operatorRole, datasetOperatorEnabled])
-  const { notify } = useContext(ToastContext)
+
+  // Add guard clause
+  if (!member || !member.role)
+    return null
+
+  const RoleMap = {
+    owner: t('common.members.owner'),
+    admin: t('common.members.admin'),
+    editor: t('common.members.editor'),
+    normal: t('common.members.normal'),
+    dataset_operator: t('common.members.datasetOperator'),
+  }
+
   const toHump = (name: string) => name.replace(/_(\w)/g, (all, letter) => letter.toUpperCase())
   const handleDeleteMemberOrCancelInvitation = async () => {
     try {

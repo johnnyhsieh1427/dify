@@ -31,6 +31,11 @@ const translation = {
     refresh: 'Restart',
     reset: 'Reset',
     search: 'Search',
+    noSearchResults: 'No {{content}} were found',
+    resetKeywords: 'Reset keywords',
+    selectCount: '{{count}} Selected',
+    searchCount: 'Find {{count}} {{content}}',
+    noSearchCount: '0 {{content}}',
     change: 'Change',
     remove: 'Remove',
     send: 'Send',
@@ -43,6 +48,7 @@ const translation = {
     downloadFailed: 'Download failed. Please try again later.',
     viewDetails: 'View Details',
     delete: 'Delete',
+    now: 'Now',
     deleteApp: 'Delete App',
     settings: 'Settings',
     setup: 'Setup',
@@ -81,7 +87,9 @@ const translation = {
   placeholder: {
     input: 'Please enter',
     select: 'Please select',
+    search: 'Search...',
   },
+  noData: 'No data',
   label: {
     optional: '(optional)',
   },
@@ -177,10 +185,10 @@ const translation = {
     emailSupport: 'Email Support',
     workspace: 'Workspace',
     createWorkspace: 'Create Workspace',
-    helpCenter: 'Docs',
+    helpCenter: 'View Docs',
     support: 'Support',
     compliance: 'Compliance',
-    communityFeedback: 'Feedback',
+    forum: 'Forum',
     roadmap: 'Roadmap',
     github: 'GitHub',
     community: 'Community',
@@ -737,6 +745,7 @@ const translation = {
     uploadFromComputerLimit: 'Upload {{type}} cannot exceed {{size}}',
     pasteFileLinkInvalid: 'Invalid file link',
     fileExtensionNotSupport: 'File extension not supported',
+    fileExtensionBlocked: 'This file type is blocked for security reasons',
   },
   tag: {
     placeholder: 'All Tags',
@@ -771,6 +780,12 @@ const translation = {
     supportedFormats: 'Supports PNG, JPG, JPEG, WEBP and GIF',
   },
   you: 'You',
+  dynamicSelect: {
+    error: 'Loading options failed',
+    noData: 'No options available',
+    loading: 'Loading options...',
+    selected: '{{count}} selected',
+  },
 }
 
 export default translation

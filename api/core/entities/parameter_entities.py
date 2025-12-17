@@ -15,6 +15,7 @@ class CommonParameterType(StrEnum):
     MODEL_SELECTOR = "model-selector"
     TOOLS_SELECTOR = "array[tools]"
     DATASET_SELECTOR = "dataset-selector"
+    CHECKBOX = "checkbox"
     ANY = auto()
 
     # Dynamic select parameter

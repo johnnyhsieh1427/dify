@@ -1,3 +1,6 @@
+# 修改日期2025-12-17
+# 修改AgentNode有RETRIEVER_RESOURCES類型的ToolInvokeMessage處理
+
 import json
 from collections.abc import Generator, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, cast
@@ -36,6 +39,7 @@ from core.workflow.node_events import (
     AgentLogEvent,
     NodeEventBase,
     NodeRunResult,
+    RunRetrieverResourceEvent,
     StreamChunkEvent,
     StreamCompletedEvent,
 )
@@ -694,7 +698,12 @@ class AgentNode(Node):
                     agent_logs.append(agent_log)
 
                 yield agent_log
-
+            elif message.type == ToolInvokeMessage.MessageType.RETRIEVER_RESOURCES:
+                retriever_resource = RunRetrieverResourceEvent(
+                    retriever_resources=message.message.retriever_resources,
+                    context=message.message.context,
+                )
+                yield retriever_resource
         # Add agent_logs to outputs['json'] to ensure frontend can access thinking process
         json_output: list[dict[str, Any]] = []
 

@@ -9,6 +9,7 @@ from dify_app import DifyApp
 def init_app(app: DifyApp):
     from commands import (
         add_qdrant_index,
+        batch_create_accounts_from_file,
         cleanup_orphaned_draft_variables,
         clear_free_plan_tenant_expired_logs,
         clear_orphaned_file_records,
@@ -31,6 +32,7 @@ def init_app(app: DifyApp):
         reset_password,
         setup_datasource_oauth_client,
         setup_system_tool_oauth_client,
+        setup_system_trigger_oauth_client,
         transform_datasource_credentials,
         upgrade_db,
         vdb_migrate,
@@ -50,6 +52,7 @@ def init_app(app: DifyApp):
         reset_email,
         reset_encrypt_key_pair,
         vdb_migrate,
+        batch_create_accounts_from_file,
         convert_to_agent_apps,
         add_qdrant_index,
         create_tenant,
@@ -64,6 +67,7 @@ def init_app(app: DifyApp):
         clear_orphaned_file_records,
         remove_orphaned_files_on_storage,
         setup_system_tool_oauth_client,
+        setup_system_trigger_oauth_client,
         create_account,
         cleanup_orphaned_draft_variables,
         migrate_oss,

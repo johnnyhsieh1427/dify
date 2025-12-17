@@ -97,7 +97,6 @@ const Panel: FC<NodePanelProps<LLMNodeType>> = ({
       }
     })()
   }, [inputs.model.completion_params])
-
   return (
     <div className='mt-2'>
       <div className='space-y-4 px-4 pb-4'>
@@ -109,7 +108,6 @@ const Panel: FC<NodePanelProps<LLMNodeType>> = ({
             popupClassName='!w-[387px]'
             isInWorkflow
             isAdvancedMode={true}
-            mode={model?.mode}
             provider={model?.provider}
             completionParams={model?.completion_params}
             modelId={model?.name}

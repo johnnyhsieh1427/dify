@@ -121,6 +121,7 @@ app_partial_fields = {
     "access_mode": fields.String,
     "create_user_name": fields.String,
     "author_name": fields.String,
+    "has_draft_trigger": fields.Boolean,
 }
 
 

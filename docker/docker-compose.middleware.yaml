@@ -23,12 +23,15 @@ services:
   # DB UI for postgres
   pgadmin:
     image: dpage/pgadmin4:8.13.0
+    profiles:
+      - ""
+      - postgresql
     restart: always
     env_file:
       - ./middleware.env
     user: "${UID}:${GID}"
     depends_on:
-      db:
+      db_postgres:
         condition: service_healthy
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-user@domain.org}
@@ -39,8 +42,11 @@ services:
       - ${PGADMIN_VOLUME:-./volumes/pgadmin/data}:/var/lib/pgadmin
 
   # The postgres database.
-  db:
+  db_postgres:
     image: postgres:15-alpine
+    profiles:
+      - ""
+      - postgresql
     restart: always
     env_file:
       - ./middleware.env
@@ -68,7 +74,7 @@ services:
           "CMD",
           "pg_isready",
           "-h",
-          "db",
+          "db_postgres",
           "-U",
           "${PGUSER:-postgres}",
           "-d",
@@ -78,13 +84,38 @@ services:
       timeout: 3s
       retries: 30
 
-  redis_ui:
-    image: redis/redisinsight:latest
+  db_mysql:
+    image: mysql:8.0
+    profiles:
+      - mysql
     restart: always
+    env_file:
+      - ./middleware.env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-difyai123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-dify}
+    command: >
+      --max_connections=1000
+      --innodb_buffer_pool_size=${MYSQL_INNODB_BUFFER_POOL_SIZE:-512M}
+      --innodb_log_file_size=${MYSQL_INNODB_LOG_FILE_SIZE:-128M}
+      --innodb_flush_log_at_trx_commit=${MYSQL_INNODB_FLUSH_LOG_AT_TRX_COMMIT:-2}
+    volumes:
+      - ${MYSQL_HOST_VOLUME:-./volumes/mysql/data}:/var/lib/mysql
     ports:
-      - "5541:5540"
-    depends_on:
-      - redis
+      - "${EXPOSE_MYSQL_PORT:-3306}:3306"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-u",
+          "root",
+          "-p${MYSQL_PASSWORD:-difyai123456}",
+        ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
 
   # The redis cache.
   redis:
@@ -136,16 +167,15 @@ services:
 
   # plugin daemon
   plugin_daemon:
-    image: langgenius/dify-plugin-daemon:0.3.3-local
+    image: langgenius/dify-plugin-daemon:0.4.1-local
     restart: always
     env_file:
       - ./middleware.env
     environment:
       # Use the shared environment variables.
-      DB_HOST: ${DB_HOST:-db}
+      DB_TYPE: ${DB_TYPE:-postgresql}
+      DB_HOST: ${DB_HOST:-db_postgres}
       DB_PORT: ${DB_PORT:-5432}
-      DB_USERNAME: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-difyai123456}
       DB_DATABASE: ${DB_PLUGIN_DATABASE:-dify_plugin}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
@@ -196,6 +226,8 @@ services:
       VOLCENGINE_TOS_ACCESS_KEY: ${PLUGIN_VOLCENGINE_TOS_ACCESS_KEY:-}
       VOLCENGINE_TOS_SECRET_KEY: ${PLUGIN_VOLCENGINE_TOS_SECRET_KEY:-}
       VOLCENGINE_TOS_REGION: ${PLUGIN_VOLCENGINE_TOS_REGION:-}
+      SENTRY_ENABLED: ${PLUGIN_SENTRY_ENABLED:-false}
+      SENTRY_DSN: ${PLUGIN_SENTRY_DSN:-}
       THIRD_PARTY_SIGNATURE_VERIFICATION_ENABLED: true
       THIRD_PARTY_SIGNATURE_VERIFICATION_PUBLIC_KEYS: /app/keys/publickey.pem
     ports:
