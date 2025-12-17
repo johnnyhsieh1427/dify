@@ -38,7 +38,7 @@ class ActivateCheckApi(Resource):
         args = active_check_parser.parse_args()
 
         workspaceId = args["workspace_id"]
-        reg_email = args["email"]
+        reg_email = args["email"].lower()
         token = args["token"]
 
         invitation = RegisterService.get_invitation_if_token_valid(workspaceId, reg_email, token)

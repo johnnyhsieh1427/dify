@@ -77,10 +77,10 @@ class SetupApi(Resource):
             .add_argument("language", type=str, required=False, location="json")
         )
         args = parser.parse_args()
-
+        user_email = args["email"].lower()
         # setup
         RegisterService.setup(
-            email=args["email"],
+            email=user_email,
             name=args["name"],
             password=args["password"],
             ip_address=extract_remote_ip(request),
